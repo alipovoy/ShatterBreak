@@ -10,9 +10,34 @@
 		8A3A5FC62F51498B007C4B4B /* ShatterBreak.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShatterBreak.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		8A3A5FD82F5149ED007C4B4B /* Exceptions for "ShatterBreak" folder in "ShatterBreak" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				ShatterBreak.entitlements,
+			);
+			target = 8A3A5FC52F51498B007C4B4B /* ShatterBreak */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		8A3A5FDD2F514A2B007C4B4B /* Exceptions for "ShatterBreak" folder in "Compile Sources" phase from "ShatterBreak" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 8A3A5FC22F51498B007C4B4B /* Sources */;
+			membershipExceptions = (
+				Info.plist,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8A3A5FC82F51498B007C4B4B /* ShatterBreak */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8A3A5FD82F5149ED007C4B4B /* Exceptions for "ShatterBreak" folder in "ShatterBreak" target */,
+				8A3A5FDD2F514A2B007C4B4B /* Exceptions for "ShatterBreak" folder in "Compile Sources" phase from "ShatterBreak" target */,
+			);
 			path = ShatterBreak;
 			sourceTree = "<group>";
 		};
