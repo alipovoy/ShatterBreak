@@ -47,23 +47,15 @@ struct OverlayView: View {
 
             // Shake the screen
             phase = 1
-            withAnimation(Animation.linear(duration: 0.05).repeatCount(40, autoreverses: true)) {
+            withAnimation(Animation.linear(duration: 0.05).repeatCount(15, autoreverses: true)) {
                 shakeOffset = 15
             }
 
-            try? await Task.sleep(nanoseconds: 2_000_000_000) // Wait 2 more seconds
-            if Task.isCancelled { return }
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // wait before shatter the window
 
-            // Shatter and display text
-            phase = 2
-            NSSound(named: "Glass")?.play()
-
-        } else {
-            // Fallback for denied permissions
-            // The screen becomes grey immediately. We set phase = 2 to show shatters instantly without delay.
-            phase = 2
-            NSSound(named: "Glass")?.play()
         }
+        phase = 2
+        NSSound(named: "Glass")?.play()
     }
 
     private func timeString(from interval: TimeInterval) -> String {
