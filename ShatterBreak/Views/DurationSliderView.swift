@@ -43,21 +43,36 @@ struct DurationSliderView: View {
                 return log(clampedValue / min) / log(max / min)
             },
             set: { newValue in
-                // 1. Get the exact mathematically calculated seconds from the slider position
-                let rawSeconds = min * pow((max / min), newValue)
 
-                // 2. Determine the dynamic snapping step based on the raw value
+                // --- 1. MAGNET LOGIC ---
+                // Define the exact timer values that should act as strong magnets: 5s, 30s, 1m, 5m, 10m, 30m, 60m, 90m, 120m
+                let magnetTicks: [Double] = [5, 30, 60, 300, 600, 1500, 2700, 3300, 5400, 7200]
+                let magnetStrength = 0.02 // Locks onto the tick if the slider is within 2% of it visually
+
+                for tick in magnetTicks {
+                    // Find where this tick lives visually on the 0...1 slider track
+                    let tickPosition = log(Swift.max(min, tick) / min) / log(max / min)
+
+                    // If the user's thumb is near this position, snap directly to the tick and return
+                    if abs(newValue - tickPosition) < magnetStrength {
+                        value.wrappedValue = Swift.max(min, Swift.min(tick, max))
+                        return
+                    }
+                }
+
+                // --- 2. REGULAR DYNAMIC STEP LOGIC (Fallback) ---
+                let rawSeconds = min * pow((max / min), newValue)
                 let step: Double
                 switch rawSeconds {
                 case ..<30:           // Under 30 seconds
                     step = 1          // 1-second steps
-                case 30..<60:        // 0.5 to 1 minutes
+                case 30..<60:         // 0.5 to 1 minutes
                     step = 5          // 5-second steps
-                case 60..<120:       // 1 to 2 minutes
+                case 60..<120:        // 1 to 2 minutes
                     step = 10         // 10-second steps
-                case 120..<600:      // 2 to 10 minutes
+                case 120..<600:       // 2 to 10 minutes
                     step = 60         // 1-minute steps
-                default:              // 60 minutes and over
+                default:              // 10 minutes and over
                     step = 300        // 5-minute steps
                 }
 
@@ -69,5 +84,4 @@ struct DurationSliderView: View {
             }
         )
     }
-
 }
