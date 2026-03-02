@@ -7,6 +7,15 @@ import ScreenCaptureKit // Required for modern screen capture
 struct ShatterBreakApp: App {
     @StateObject private var timerState = TimerState()
 
+
+    init() {
+        // Pre-flight check on launch so the user gets prompted immediately
+        // while they still have normal desktop access.
+        if !CGPreflightScreenCaptureAccess() {
+            CGRequestScreenCaptureAccess()
+        }
+    }
+
     var body: some Scene {
         MenuBarExtra("ShatterBreak", systemImage: "app.badge.clock") {
             MenuView(state: timerState)
@@ -245,11 +254,10 @@ struct MenuView: View {
             // Footer with Quit button
             HStack {
                 Spacer()
-                Button("Quit") {
-                    NSApplication.shared.terminate(nil)
+                Button("Quit", ) {
+                    NSApp.terminate(nil) // macOS
                 }
-                .buttonStyle(.plain)
-                .foregroundColor(.secondary)
+                .buttonStyle(.borderedProminent)
             }
         }
         .padding()
@@ -303,6 +311,7 @@ class OverlayManager {
 
     func showOverlays(state: TimerState) {
         captureTask?.cancel() // Cancel any ongoing capture tasks before starting a new one
+
         let hasScreenRecordingPermission = CGPreflightScreenCaptureAccess()
 
         captureTask = Task {
@@ -418,11 +427,9 @@ struct OverlayView: View {
 
     private func runAnimationSequence() async {
         if hasPermission {
-            // Phase 0: Initial state, show screenshot
-            try? await Task.sleep(nanoseconds: 2_000_000_000) // Wait 2 seconds
             if Task.isCancelled { return }
 
-            // Phase 1: Shake the screen
+            // Shake the screen
             phase = 1
             withAnimation(Animation.linear(duration: 0.05).repeatCount(40, autoreverses: true)) {
                 shakeOffset = 15
@@ -431,7 +438,7 @@ struct OverlayView: View {
             try? await Task.sleep(nanoseconds: 2_000_000_000) // Wait 2 more seconds
             if Task.isCancelled { return }
 
-            // Phase 2: Shatter and display text
+            // Shatter and display text
             phase = 2
             NSSound(named: "Glass")?.play()
 
@@ -462,7 +469,7 @@ struct CrackedGlassView: View {
             Canvas { context, size in
                 if !isGenerated { return }
 
-                // 4. Render the paths
+                // Render the paths
                 // Dark underlay for depth (simulating the edge of thick glass)
                 context.stroke(mainCracks, with: .color(.black.opacity(0.5)), lineWidth: 3)
                 context.stroke(webCracks,  with: .color(.black.opacity(0.3)), lineWidth: 1.5)
@@ -527,7 +534,7 @@ struct CrackedGlassView: View {
                 currentPoint = CGPoint(x: nextX, y: nextY)
                 main.addLine(to: currentPoint)
 
-                // 3. Occasionally spawn smaller "web" fractures
+                // Occasionally spawn smaller "web" fractures
                 if CGFloat.random(in: 0...1) > 0.6 {
                     web.move(to: currentPoint)
 
