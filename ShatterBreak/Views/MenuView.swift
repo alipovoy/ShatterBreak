@@ -3,12 +3,6 @@ import SwiftUI
 struct MenuView: View {
     @ObservedObject var state: TimerState
 
-    // Tracks which text field is currently active for input validation
-    enum FocusedField {
-        case work, rest
-    }
-    @FocusState private var focusedField: FocusedField?
-
     var body: some View {
         VStack(spacing: 16) {
             // Header / Timer Display
@@ -61,10 +55,7 @@ struct MenuView: View {
                     value: $state.workDurationSecs,
                     min: 5,
                     max: 7200,
-                    disabled: state.isRunning,
-                    focusedField: $focusedField,
-                    fieldEquals: .work,
-                    onSubmit: { validateInputs() }
+                    disabled: state.isRunning
                 )
 
                 DurationSliderView(
@@ -73,10 +64,7 @@ struct MenuView: View {
                     value: $state.restDurationSecs,
                     min: 5,
                     max: 3600,
-                    disabled: state.isRunning,
-                    focusedField: $focusedField,
-                    fieldEquals: .rest,
-                    onSubmit: { validateInputs() }
+                    disabled: state.isRunning
                 )
             }
 
@@ -93,42 +81,13 @@ struct MenuView: View {
         }
         .padding()
         .frame(width: 320)
-        .onChange(of: focusedField) { oldFocus, newFocus in
-            if newFocus == nil {
-                validateInputs()
-            }
-        }
     }
 
     // MARK: - Helpers
-
-    private func validateInputs() {
-        // Ensure work duration is within a valid range
-        if state.workDurationSecs < 5 { state.workDurationSecs = 5 }
-        if state.workDurationSecs > 7200 { state.workDurationSecs = 7200 }
-
-        // Ensure rest duration is within a valid range
-        if state.restDurationSecs < 5 { state.restDurationSecs = 5 }
-        if state.restDurationSecs > 3600 { state.restDurationSecs = 3600 }
-    }
 
     private func timeString(from interval: TimeInterval) -> String {
         let minutes = max(0, Int(interval) / 60)
         let seconds = max(0, Int(interval) % 60)
         return String(format: "%02d:%02d", minutes, seconds)
-    }
-
-    // Creates a logarithmic binding for the slider to provide better control over large ranges
-    private func logBinding(for value: Binding<Double>, min: Double, max: Double) -> Binding<Double> {
-        Binding(
-            get: {
-                let clampedValue = Swift.max(min, Swift.min(value.wrappedValue, max))
-                return log(clampedValue / min) / log(max / min)
-            },
-            set: { newValue in
-                let newSeconds = min * pow((max / min), newValue)
-                value.wrappedValue = round(newSeconds)
-            }
-        )
     }
 }
