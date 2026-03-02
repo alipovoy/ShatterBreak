@@ -51,7 +51,11 @@ class OverlayManager {
                 // Prevent AppKit from auto-releasing the window on close, as we manage its lifecycle
                 window.isReleasedWhenClosed = false
 
-                window.level = NSWindow.Level(Int(NSWindow.Level.mainMenu.rawValue) - 1) // Place below menu bar
+                // Allow overlaying native fullscreen spaces
+                window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
+                // Place above EVERYTHING (including full-screen games, videos, and presentation modes)
+                window.level = .screenSaver
+
                 window.isOpaque = false
                 window.backgroundColor = .clear
                 window.ignoresMouseEvents = false // Disallow clicks to pass through
