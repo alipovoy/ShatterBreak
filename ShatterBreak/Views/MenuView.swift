@@ -54,55 +54,30 @@ struct MenuView: View {
             Divider()
 
             // Configuration Sliders for durations
-            VStack(alignment: .leading, spacing: 12) {
-                // Work Timer Row
-                Text("Work Duration")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+            VStack(alignment: .leading, spacing: 16) {
+                DurationSliderView(
+                    title: "Work Duration",
+                    systemImage: "briefcase.fill",
+                    value: $state.workDurationSecs,
+                    min: 5,
+                    max: 7200,
+                    disabled: state.isRunning,
+                    focusedField: $focusedField,
+                    fieldEquals: .work,
+                    onSubmit: { validateInputs() }
+                )
 
-                HStack {
-                    Image(systemName: "briefcase.fill")
-                        .foregroundColor(.secondary)
-
-                    Slider(value: logBinding(for: $state.workDurationSecs, min: 5, max: 7200), in: 0...1)
-
-                    TextField("Secs", value: $state.workDurationSecs, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 55)
-                        .multilineTextAlignment(.trailing)
-                        .focused($focusedField, equals: .work)
-                        .onSubmit { validateInputs() }
-
-                    Text("sec")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .disabled(state.isRunning)
-
-                // Rest Timer Row
-                Text("Rest Duration")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .padding(.top, 4)
-
-                HStack {
-                    Image(systemName: "cup.and.saucer.fill")
-                        .foregroundColor(.secondary)
-
-                    Slider(value: logBinding(for: $state.restDurationSecs, min: 5, max: 3600), in: 0...1)
-
-                    TextField("Secs", value: $state.restDurationSecs, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 55)
-                        .multilineTextAlignment(.trailing)
-                        .focused($focusedField, equals: .rest)
-                        .onSubmit { validateInputs() }
-
-                    Text("sec")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .disabled(state.isRunning)
+                DurationSliderView(
+                    title: "Rest Duration",
+                    systemImage: "cup.and.saucer.fill",
+                    value: $state.restDurationSecs,
+                    min: 5,
+                    max: 3600,
+                    disabled: state.isRunning,
+                    focusedField: $focusedField,
+                    fieldEquals: .rest,
+                    onSubmit: { validateInputs() }
+                )
             }
 
             Divider()
