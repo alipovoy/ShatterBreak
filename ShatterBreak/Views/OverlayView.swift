@@ -9,6 +9,9 @@ struct OverlayView: View {
     @State private var phase = 0 // Controls animation sequence
     @State private var shakeOffset: CGFloat = 0
 
+    @AppStorage("playSound") private var playSound: Bool = true
+    @AppStorage("effectType") private var effectType: EffectType = .shatter
+
     var body: some View {
         ZStack {
             if hasPermission, let cgImage = bgImage {
@@ -42,7 +45,7 @@ struct OverlayView: View {
     }
 
     private func runAnimationSequence() async {
-        if hasPermission {
+        if (effectType == .shatter && hasPermission) {
             if Task.isCancelled { return }
 
             // Shake the screen
@@ -55,7 +58,10 @@ struct OverlayView: View {
 
         }
         phase = 2
-        NSSound(named: "Glass")?.play()
+
+        if playSound {
+            NSSound(named: "Glass")?.play()
+        }
     }
 
     private func timeString(from interval: TimeInterval) -> String {
@@ -163,4 +169,12 @@ struct CrackedGlassView: View {
             self.isGenerated = true
         }
     }
+}
+
+#Preview("OverlayView") {
+    OverlayView(state: TimerState(), bgImage: nil, hasPermission: true)
+}
+
+#Preview("CrackedGlassView") {
+    CrackedGlassView()
 }

@@ -21,5 +21,10 @@ struct ShatterBreakApp: App {
             MenuView(state: timerState)
         }
         .menuBarExtraStyle(.window)
+
+        Window("Preferences", id: "preferences") {
+            PreferencesView()
+        }
+        .windowResizability(.contentSize)
     }
 }

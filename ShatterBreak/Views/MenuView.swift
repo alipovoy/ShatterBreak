@@ -2,6 +2,8 @@ import SwiftUI
 
 struct MenuView: View {
     @ObservedObject var state: TimerState
+    @Environment(\.openWindow) private var openWindow
+    var onQuit: () -> Void = { NSApp.terminate(nil) }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -72,9 +74,19 @@ struct MenuView: View {
 
             // Footer with Quit button
             HStack {
+                Button(action: {
+                    openWindow(id: "preferences")
+                }) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 18))
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut(",", modifiers: .command)
+
                 Spacer()
+
                 Button("Quit", action: {
-                    NSApp.terminate(nil) // macOS
+                    onQuit()
                 })
                 .buttonStyle(.borderedProminent)
             }
@@ -90,4 +102,8 @@ struct MenuView: View {
         let seconds = max(0, Int(interval) % 60)
         return String(format: "%02d:%02d", minutes, seconds)
     }
+}
+
+#Preview("MenuView") {
+    MenuView(state: TimerState(), onQuit: { /* no-op for preview */ })
 }

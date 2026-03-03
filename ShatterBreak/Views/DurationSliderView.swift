@@ -55,6 +55,7 @@ struct DurationSliderView: View {
                     }
             }
         }
+        .padding(10)
         .onAppear {
             viewModel.syncManualInput(with: value, isInputFocused: isInputFocused)
         }
@@ -62,4 +63,16 @@ struct DurationSliderView: View {
             viewModel.syncManualInput(with: newValue, isInputFocused: isInputFocused)
         }
     }
+}
+
+#Preview("DurationSliderView") {
+    @Previewable @State var value: Double = 1500
+    DurationSliderView(
+        title: "Work Duration",
+        systemImage: "timer",
+        value: $value,
+        min: 5,
+        max: 7200,
+        disabled: false
+    )
 }
