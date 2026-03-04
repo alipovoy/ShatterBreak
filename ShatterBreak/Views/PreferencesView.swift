@@ -10,7 +10,7 @@ struct PreferencesView: View {
     @State private var showPermissionAlert = false
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack {
             Form {
                 Section("General Settings") {
                     Toggle("Play Sound", isOn: $playSound)
@@ -32,8 +32,8 @@ struct PreferencesView: View {
 
                     // Shown when the system has actively denied permission
                     if permissions.status == .denied {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 6) {
+                        VStack(alignment: .leading) {
+                            HStack{
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundStyle(.yellow)
                                 Text("Shatter requires Screen Recording permission.")
@@ -51,7 +51,17 @@ struct PreferencesView: View {
                 .headerProminence(.increased)
             }
             .formStyle(.grouped)
+            .scrollDisabled(true)
+            .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                Spacer()
+                Button("Close") { dismiss() }
+                    .keyboardShortcut(.defaultAction)
+            }
         }
+        .padding()
+        .fixedSize()
         .onAppear { permissions.refresh() }
         .alert("Screen Recording Permission Required", isPresented: $showPermissionAlert) {
             Button("Open System Settings") {
@@ -61,13 +71,6 @@ struct PreferencesView: View {
         } message: {
             Text("Shatter requires Screen Recording permission. Enable it in System Settings → Privacy & Security → Screen & System Audio Recording.")
         }
-
-        HStack {
-            Spacer()
-            Button("Close") { dismiss() }
-                .keyboardShortcut(.defaultAction)
-        }
-        .padding([.trailing, .bottom])
     }
 }
 
