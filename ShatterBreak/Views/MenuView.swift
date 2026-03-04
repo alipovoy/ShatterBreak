@@ -79,8 +79,9 @@ struct MenuView: View {
                 }) {
                     Image(systemName: "gearshape")
                         .font(.system(size: 18))
+                        .foregroundStyle(Color.accentColor)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(IconButtonStyle())
                 .keyboardShortcut(",", modifiers: .command)
 
                 Spacer()
@@ -101,6 +102,15 @@ struct MenuView: View {
         let minutes = max(0, Int(interval) / 60)
         let seconds = max(0, Int(interval) % 60)
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+}
+
+struct IconButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.5 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
 }
 
