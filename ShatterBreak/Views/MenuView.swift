@@ -27,8 +27,12 @@ struct MenuView: View {
                     Button(action: {
                         state.isPaused ? state.resume() : state.pause()
                     }) {
-                        Label(state.isPaused ? "Resume" : "Pause", systemImage: state.isPaused ? "play.fill" : "pause.fill")
-                            .frame(maxWidth: .infinity)
+                        Label(
+                            state.isPaused ? "Resume" : (state.isResting ? "Skip Rest" : "Pause"),
+                            systemImage: state.isPaused
+                                ? "play.fill" : (state.isResting ? "forward.fill" : "pause.fill")
+                        )
+                        .frame(maxWidth: .infinity)
                     }
                     .controlSize(.large)
 
@@ -86,9 +90,12 @@ struct MenuView: View {
 
                 Spacer()
 
-                Button("Quit", action: {
-                    onQuit()
-                })
+                Button(
+                    "Quit",
+                    action: {
+                        onQuit()
+                    }
+                )
                 .buttonStyle(.borderedProminent)
             }
         }
@@ -115,5 +122,5 @@ struct IconButtonStyle: ButtonStyle {
 }
 
 #Preview("MenuView") {
-    MenuView(state: TimerState(), onQuit: { /* no-op for preview */ })
+    MenuView(state: TimerState(), onQuit: { /* no-op for preview */  })
 }
