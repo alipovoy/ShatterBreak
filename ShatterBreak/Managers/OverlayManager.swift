@@ -53,8 +53,13 @@ class OverlayManager {
 
                 // Allow overlaying native fullscreen spaces
                 window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
-                // Place above EVERYTHING (including full-screen games, videos, and presentation modes)
-                window.level = .screenSaver
+                // Determine window level based on "Soft Overlay" preference
+                let softOverlay = UserDefaults.standard.bool(forKey: "softOverlay")
+                if softOverlay {
+                    window.level = NSWindow.Level(Int(NSWindow.Level.mainMenu.rawValue) - 1) // Place below menu bar
+                } else {
+                    window.level = .screenSaver // Place above EVERYTHING
+                }
 
                 window.isOpaque = false
                 window.backgroundColor = .clear
