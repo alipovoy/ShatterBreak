@@ -14,7 +14,7 @@ struct OverlayView: View {
 
     var body: some View {
         ZStack {
-            if hasPermission, let cgImage = bgImage {
+            if effectType == .shatter, hasPermission, let cgImage = bgImage {
                 Image(nsImage: NSImage(cgImage: cgImage, size: .zero))
                     .resizable()
                     .offset(x: phase == 1 ? shakeOffset : 0, y: phase == 1 ? -shakeOffset : 0)
