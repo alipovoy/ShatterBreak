@@ -27,3 +27,6 @@ TODO.md
 TODO*.md
 TASKS.md
 NOTES.md
+
+# ─── Environment configuration, secrets ────────────────────────────
+.env/
