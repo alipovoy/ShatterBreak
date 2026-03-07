@@ -50,11 +50,11 @@ struct OverlayView: View {
 
             // Shake the screen
             phase = 1
-            withAnimation(Animation.linear(duration: 0.05).repeatCount(15, autoreverses: true)) {
-                shakeOffset = 15
+            withAnimation(Animation.spring(duration: 0.05).repeatCount(20, autoreverses: true)) {
+                shakeOffset = 10
             }
-
-            try? await Task.sleep(nanoseconds: 1_000_000_000) // wait before shatter the window
+            if Task.isCancelled { return }
+            try? await Task.sleep(nanoseconds: 900_000_000) // wait before shatter the window
 
         }
         phase = 2
