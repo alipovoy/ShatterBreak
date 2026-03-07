@@ -1,14 +1,20 @@
-import SwiftUI
 import AppKit
 import ScreenCaptureKit
+import SwiftUI
 
 @MainActor
-class OverlayManager {
+protocol OverlayManaging: AnyObject {
+    func showOverlays(state: TimerState)
+    func dismissOverlays()
+}
+
+@MainActor
+class OverlayManager: OverlayManaging {
     private var windows: [NSWindow] = []
-    private var captureTask: Task<Void, Never>? // Manages the asynchronous screen capture process
+    private var captureTask: Task<Void, Never>?  // Manages the asynchronous screen capture process
 
     func showOverlays(state: TimerState) {
-        captureTask?.cancel() // Cancel any ongoing capture tasks before starting a new one
+        captureTask?.cancel()  // Cancel any ongoing capture tasks before starting a new one
 
         let hasScreenRecordingPermission = CGPreflightScreenCaptureAccess()
 
@@ -18,18 +24,21 @@ class OverlayManager {
             if hasScreenRecordingPermission {
                 do {
                     // Capture content from all displays, excluding desktop windows
-                    let shareableContent = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+                    let shareableContent = try await SCShareableContent.excludingDesktopWindows(
+                        false, onScreenWindowsOnly: false)
 
                     for display in shareableContent.displays {
                         if Task.isCancelled { return }
 
-                        let filter = SCContentFilter(display: display, excludingApplications: [], exceptingWindows: [])
+                        let filter = SCContentFilter(
+                            display: display, excludingApplications: [], exceptingWindows: [])
                         let config = SCStreamConfiguration()
                         config.width = display.width
                         config.height = display.height
                         config.showsCursor = false
 
-                        let cgImage = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+                        let cgImage = try await SCScreenshotManager.captureImage(
+                            contentFilter: filter, configuration: config)
                         capturedImages[display.displayID] = cgImage
                     }
                 } catch {
@@ -37,7 +46,7 @@ class OverlayManager {
                 }
             }
 
-            if Task.isCancelled { return } // Check for cancellation before creating windows
+            if Task.isCancelled { return }  // Check for cancellation before creating windows
 
             // Create an overlay window for each screen
             for screen in NSScreen.screens {
@@ -52,24 +61,31 @@ class OverlayManager {
                 window.isReleasedWhenClosed = false
 
                 // Allow overlaying native fullscreen spaces
-                window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
+                window.collectionBehavior = [
+                    .canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary,
+                ]
                 // Determine window level based on "Soft Overlay" preference
                 let softOverlay = UserDefaults.standard.bool(forKey: "softOverlay")
                 if softOverlay {
-                    window.level = NSWindow.Level(Int(NSWindow.Level.mainMenu.rawValue) - 1) // Place below menu bar
+                    window.level = NSWindow.Level(Int(NSWindow.Level.mainMenu.rawValue) - 1)  // Place below menu bar
                 } else {
-                    window.level = .screenSaver // Place above EVERYTHING
+                    window.level = .screenSaver  // Place above EVERYTHING
                 }
 
                 window.isOpaque = false
                 window.backgroundColor = .clear
-                window.ignoresMouseEvents = false // Disallow clicks to pass through
+                window.ignoresMouseEvents = false  // Disallow clicks to pass through
                 window.setFrame(screen.frame, display: true)
 
-                let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID ?? CGMainDisplayID()
+                let displayID =
+                    screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")]
+                    as? CGDirectDisplayID ?? CGMainDisplayID()
                 let screenshot = capturedImages[displayID]
 
-                let hostingView = NSHostingView(rootView: OverlayView(state: state, bgImage: screenshot, hasPermission: hasScreenRecordingPermission))
+                let hostingView = NSHostingView(
+                    rootView: OverlayView(
+                        state: state, bgImage: screenshot,
+                        hasPermission: hasScreenRecordingPermission))
                 window.contentView = hostingView
                 window.makeKeyAndOrderFront(nil)
 
@@ -79,7 +95,7 @@ class OverlayManager {
     }
 
     func dismissOverlays() {
-        captureTask?.cancel() // Cancel any pending capture tasks
+        captureTask?.cancel()  // Cancel any pending capture tasks
 
         windows.forEach { window in
             // Safely detach the SwiftUI view and hide the window before deallocation

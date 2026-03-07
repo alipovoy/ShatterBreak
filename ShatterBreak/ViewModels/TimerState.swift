@@ -11,9 +11,9 @@ class TimerState: ObservableObject {
     @Published var isResting = false
     @Published var timeRemaining: TimeInterval = 0
 
-    private var timer: AnyCancellable?
-    private var sleepObservers = Set<AnyCancellable>()
-    private let overlayManager = OverlayManager()
+    private var timerTask: Task<Void, Never>?
+    private var sleepObserverTasks = [Task<Void, Never>]()
+    private let overlayManager: any OverlayManaging
 
     // Set when rest begins; wall-clock source of truth for rest countdown.
     private var restStartedAt: Date?
@@ -25,8 +25,13 @@ class TimerState: ObservableObject {
     // True when the system auto-paused the work timer so we can auto-resume on wake.
     private var wasAutoPausedBySystem = false
 
-    init() {
+    init(overlayManager: any OverlayManaging) {
+        self.overlayManager = overlayManager
         setupSleepObservers()
+    }
+
+    convenience init() {
+        self.init(overlayManager: OverlayManager())
     }
 
     // MARK: - Public API
@@ -42,14 +47,14 @@ class TimerState: ObservableObject {
     func pause() {
         if isResting {
             // "Skip Rest": cancel rest and start work immediately.
-            timer?.cancel()
+            timerTask?.cancel()
             restStartedAt = nil
             isResting = false
             overlayManager.dismissOverlays()
             start()
         } else {
             isPaused = true
-            timer?.cancel()
+            timerTask?.cancel()
         }
     }
 
@@ -59,7 +64,7 @@ class TimerState: ObservableObject {
     }
 
     func stop() {
-        timer?.cancel()
+        timerTask?.cancel()
         isRunning = false
         isPaused = false
         isResting = false
@@ -72,13 +77,14 @@ class TimerState: ObservableObject {
     // MARK: - Timer
 
     private func runTimer() {
-        timer?.cancel()
-        timer = Timer.publish(every: 1, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard let self else { return }
-                self.tick()
+        timerTask?.cancel()
+        timerTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                if Task.isCancelled { break }
+                self?.tick()
             }
+        }
     }
 
     private func tick() {
@@ -88,7 +94,7 @@ class TimerState: ObservableObject {
 
             if timeRemaining <= 0 && !isSystemAsleep {
                 // Rest complete while user is present — auto-start next work session.
-                timer?.cancel()
+                timerTask?.cancel()
                 restStartedAt = nil
                 isResting = false
                 overlayManager.dismissOverlays()
@@ -99,7 +105,7 @@ class TimerState: ObservableObject {
             timeRemaining -= 1
 
             if timeRemaining <= 0 {
-                timer?.cancel()
+                timerTask?.cancel()
                 triggerRestPhase()
             }
         }
@@ -118,28 +124,33 @@ class TimerState: ObservableObject {
     private func setupSleepObservers() {
         let nc = NSWorkspace.shared.notificationCenter
 
-        // System sleep: set flag before machine sleeps so tick() won't
-        // race against handleWake() on the first RunLoop cycle after wake.
-        nc.publisher(for: NSWorkspace.willSleepNotification)
-            .sink { [weak self] _ in self?.handleSleep() }
-            .store(in: &sleepObservers)
+        sleepObserverTasks.append(
+            Task { @MainActor [weak self] in
+                for await _ in nc.notifications(named: NSWorkspace.willSleepNotification) {
+                    self?.handleSleep()
+                }
+            })
 
-        // Display sleep (screen saver / display timeout).
-        // Does NOT set isSystemAsleep — the RunLoop keeps running, so
-        // tick() fires normally; only the work-timer pause matters here.
-        nc.publisher(for: NSWorkspace.screensDidSleepNotification)
-            .sink { [weak self] _ in self?.handleDisplaySleep() }
-            .store(in: &sleepObservers)
+        sleepObserverTasks.append(
+            Task { @MainActor [weak self] in
+                for await _ in nc.notifications(named: NSWorkspace.screensDidSleepNotification) {
+                    self?.handleDisplaySleep()
+                }
+            })
 
-        // System wake
-        nc.publisher(for: NSWorkspace.didWakeNotification)
-            .sink { [weak self] _ in self?.handleWake() }
-            .store(in: &sleepObservers)
+        sleepObserverTasks.append(
+            Task { @MainActor [weak self] in
+                for await _ in nc.notifications(named: NSWorkspace.didWakeNotification) {
+                    self?.handleWake()
+                }
+            })
 
-        // Display wake
-        nc.publisher(for: NSWorkspace.screensDidWakeNotification)
-            .sink { [weak self] _ in self?.handleWake() }
-            .store(in: &sleepObservers)
+        sleepObserverTasks.append(
+            Task { @MainActor [weak self] in
+                for await _ in nc.notifications(named: NSWorkspace.screensDidWakeNotification) {
+                    self?.handleWake()
+                }
+            })
     }
 
     private func handleSleep() {
@@ -168,7 +179,7 @@ class TimerState: ObservableObject {
             let elapsed = Date().timeIntervalSince(anchor)
             if elapsed >= restDurationSecs {
                 // R2: rest expired during absence — return to idle, user starts manually.
-                timer?.cancel()
+                timerTask?.cancel()
                 restStartedAt = nil
                 isResting = false
                 isRunning = false
