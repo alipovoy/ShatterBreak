@@ -11,7 +11,34 @@ import Testing
 @testable import ShatterBreak
 
 @Suite("TimerState wake before rest expiry", .serialized)
-struct TimerStateWakeBeforeExpiryTests {
+class TimerStateWakeBeforeExpiryTests {
+    private let savedWorkDuration: Double
+    private let savedRestDuration: Double
+
+    init() {
+        // Save original UserDefaults values
+        self.savedWorkDuration = UserDefaults.standard.double(forKey: "workDurationSecs")
+        self.savedRestDuration = UserDefaults.standard.double(forKey: "restDurationSecs")
+
+        // Clear for clean test setup
+        UserDefaults.standard.removeObject(forKey: "workDurationSecs")
+        UserDefaults.standard.removeObject(forKey: "restDurationSecs")
+    }
+
+    deinit {
+        // Restore original UserDefaults values
+        if savedWorkDuration > 0 {
+            UserDefaults.standard.set(savedWorkDuration, forKey: "workDurationSecs")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "workDurationSecs")
+        }
+
+        if savedRestDuration > 0 {
+            UserDefaults.standard.set(savedRestDuration, forKey: "restDurationSecs")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "restDurationSecs")
+        }
+    }
 
     @Test("wake during rest before expiry keeps overlay and rest")
     @MainActor

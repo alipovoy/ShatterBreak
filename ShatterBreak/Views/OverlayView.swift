@@ -11,6 +11,7 @@ struct OverlayView: View {
 
     @AppStorage("playSound") private var playSound: Bool = true
     @AppStorage("effectType") private var effectType: EffectType = .shatter
+    @AppStorage("allowPostpone") private var allowPostpone: Bool = false
 
     var body: some View {
         ZStack {
@@ -30,7 +31,7 @@ struct OverlayView: View {
                         .foregroundStyle(.white)
                         .shadow(color: .black, radius: 5)
 
-                    if state.canPostpone {
+                    if state.canPostpone && allowPostpone {
                         Button {
                             state.postpone()
                         } label: {
@@ -188,7 +189,7 @@ struct CrackedGlassView: View {
 
     let timerState = TimerState()
     timerState.isResting = true
-    
+
     return OverlayView(state: timerState, bgImage: nil, hasPermission: true)
         .background(WindowConfigurator())
         .frame(width: 400, height: 300)

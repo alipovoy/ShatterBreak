@@ -9,19 +9,21 @@ final class TimerState {
             UserDefaults.standard.set(workDurationSecs, forKey: "workDurationSecs")
         }
     }
-    
+
     var restDurationSecs: Double {
         didSet {
             UserDefaults.standard.set(restDurationSecs, forKey: "restDurationSecs")
         }
     }
 
+    var postponeDurationSecs: Double = 60
+
     var isRunning = false
     var isPaused = false
     var isResting = false
     var timeRemaining: TimeInterval = 0
     var hasPostponeBeenUsedThisCycle = false
-    
+
     var canPostpone: Bool {
         isResting && !hasPostponeBeenUsedThisCycle && !isInPostponedWork
     }
@@ -35,26 +37,28 @@ final class TimerState {
     private var isSystemAsleep = false
     private var wasAutoPausedBySystem = false
 
-    init(overlayManager: any OverlayManaging) {
+    init(overlayManager: any OverlayManaging, postponeDurationSecs: Double = 60) {
         self.overlayManager = overlayManager
         self.workDurationSecs = UserDefaults.standard.double(forKey: "workDurationSecs")
         self.restDurationSecs = UserDefaults.standard.double(forKey: "restDurationSecs")
-        
+        self.postponeDurationSecs = postponeDurationSecs
+
         // Set defaults if not previously saved
         if self.workDurationSecs == 0 { self.workDurationSecs = 1500 }
         if self.restDurationSecs == 0 { self.restDurationSecs = 300 }
-        
+
         setupSleepObservers()
     }
-    
-    init() {
+
+    init(postponeDurationSecs: Double = 60) {
         self.overlayManager = OverlayManager()
         self.workDurationSecs = UserDefaults.standard.double(forKey: "workDurationSecs")
         self.restDurationSecs = UserDefaults.standard.double(forKey: "restDurationSecs")
-        
+        self.postponeDurationSecs = postponeDurationSecs
+
         if self.workDurationSecs == 0 { self.workDurationSecs = 1500 }
         if self.restDurationSecs == 0 { self.restDurationSecs = 300 }
-        
+
         setupSleepObservers()
     }
 
@@ -105,7 +109,7 @@ final class TimerState {
         isInPostponedWork = true
         hasPostponeBeenUsedThisCycle = true
         isResting = false
-        timeRemaining = 60
+        timeRemaining = postponeDurationSecs
         overlayManager.dismissOverlays()
     }
 
@@ -181,10 +185,10 @@ final class TimerState {
             NSWorkspace.didWakeNotification,
             NSWorkspace.screensDidWakeNotification
         ]
-        
+
         for name in notifications {
             sleepObserverTasks.append(Task { [weak self] in
-                let center = NotificationCenter.default
+                let center = NSWorkspace.shared.notificationCenter
                 for await _ in center.notifications(named: name) {
                     self?.handleNotification(name)
                 }
@@ -194,7 +198,7 @@ final class TimerState {
 
     private func handleNotification(_ name: NSNotification.Name) {
         switch name {
-        case NSWorkspace.willSleepNotification, 
+        case NSWorkspace.willSleepNotification,
              NSWorkspace.screensDidSleepNotification:
             handleSleep()
         case NSWorkspace.didWakeNotification,

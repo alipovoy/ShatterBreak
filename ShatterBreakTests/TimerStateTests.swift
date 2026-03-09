@@ -11,22 +11,49 @@ import Testing
 @testable import ShatterBreak
 
 @Suite("TimerState basic flows", .serialized)
-struct TimerStateBasicTests {
+class TimerStateBasicTests {
+    private let savedWorkDuration: Double
+    private let savedRestDuration: Double
+
+    init() {
+        // Save original UserDefaults values
+        self.savedWorkDuration = UserDefaults.standard.double(forKey: "workDurationSecs")
+        self.savedRestDuration = UserDefaults.standard.double(forKey: "restDurationSecs")
+
+        // Clear for clean test setup
+        UserDefaults.standard.removeObject(forKey: "workDurationSecs")
+        UserDefaults.standard.removeObject(forKey: "restDurationSecs")
+    }
+
+    deinit {
+        // Restore original UserDefaults values
+        if savedWorkDuration > 0 {
+            UserDefaults.standard.set(savedWorkDuration, forKey: "workDurationSecs")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "workDurationSecs")
+        }
+
+        if savedRestDuration > 0 {
+            UserDefaults.standard.set(savedRestDuration, forKey: "restDurationSecs")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "restDurationSecs")
+        }
+    }
 
     @Test("start() initializes and transitions to rest")
     @MainActor
     func startTransitionsToRest() async throws {
         let state = TimerState(overlayManager: OverlaySpy())
-        state.workDurationSecs = 2
+        state.workDurationSecs = 1
         state.restDurationSecs = 2
 
         state.start()
         #expect(state.isRunning)
         #expect(!state.isPaused)
         #expect(!state.isResting)
-        #expect(state.timeRemaining == 2)
+        #expect(state.timeRemaining == 1)
 
-        try await Task.sleep(nanoseconds: 2_700_000_000)
+        try await Task.sleep(nanoseconds: 1_200_000_000)
         await Task.yield()
 
         #expect(state.isResting, "Should enter rest after work completes")
@@ -77,7 +104,34 @@ struct TimerStateBasicTests {
 }
 
 @Suite("TimerState sleep/wake behaviors", .serialized)
-struct TimerStateSleepWakeTests {
+class TimerStateSleepWakeTests {
+    private let savedWorkDuration: Double
+    private let savedRestDuration: Double
+
+    init() {
+        // Save original UserDefaults values
+        self.savedWorkDuration = UserDefaults.standard.double(forKey: "workDurationSecs")
+        self.savedRestDuration = UserDefaults.standard.double(forKey: "restDurationSecs")
+
+        // Clear for clean test setup
+        UserDefaults.standard.removeObject(forKey: "workDurationSecs")
+        UserDefaults.standard.removeObject(forKey: "restDurationSecs")
+    }
+
+    deinit {
+        // Restore original UserDefaults values
+        if savedWorkDuration > 0 {
+            UserDefaults.standard.set(savedWorkDuration, forKey: "workDurationSecs")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "workDurationSecs")
+        }
+
+        if savedRestDuration > 0 {
+            UserDefaults.standard.set(savedRestDuration, forKey: "restDurationSecs")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "restDurationSecs")
+        }
+    }
 
     @Test("display sleep auto-pauses work; wake auto-resumes")
     @MainActor

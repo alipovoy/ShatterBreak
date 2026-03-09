@@ -7,6 +7,7 @@ struct PreferencesView: View {
     @AppStorage("playSound") private var playSound: Bool = true
     @AppStorage("effectType") private var effectType: EffectType = .shatter
     @AppStorage("softOverlay") private var softOverlay: Bool = false
+    @AppStorage("allowPostpone") private var allowPostpone: Bool = false
 
     @State private var showPermissionAlert = false
 
@@ -16,6 +17,7 @@ struct PreferencesView: View {
                 Section("General Settings") {
                     Toggle("Play Sound", isOn: $playSound)
                     Toggle("Soft Overlay (allows menu bar access)", isOn: $softOverlay)
+                    Toggle("Allow Postpone", isOn: $allowPostpone)
 
                     Picker("Effect Type", selection: $effectType) {
                         ForEach(EffectType.allCases) { effect in
