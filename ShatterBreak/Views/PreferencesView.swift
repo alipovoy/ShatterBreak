@@ -2,7 +2,7 @@ import SwiftUI
 
 struct PreferencesView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var permissions: ScreenCapturePermissionManager
+    @Environment(\.permissions) private var permissions
 
     @AppStorage("playSound") private var playSound: Bool = true
     @AppStorage("effectType") private var effectType: EffectType = .shatter
@@ -23,31 +23,14 @@ struct PreferencesView: View {
                         }
                     }
                     .pickerStyle(.radioGroup)
-                    .onChange(of: effectType) { _, newValue in
-                        // When switching to Shatter without permission: keep the selection
-                        // so the user sees their intent reflected, then open the alert
-                        // pointing them to System Settings.
+                    .onChange(of: effectType) { oldValue, newValue in
                         guard newValue == .shatter else { return }
                         guard permissions.status != .granted else { return }
                         showPermissionAlert = true
                     }
 
-                    // Shown when the system has actively denied permission
                     if permissions.status == .denied {
-                        VStack(alignment: .leading) {
-                            HStack{
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundStyle(.yellow)
-                                Text("Shatter requires Screen Recording permission.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Button("Open System Settings to grant permission") {
-                                permissions.openSystemSettings()
-                            }
-                            .buttonStyle(.link)
-                            .font(.caption)
-                        }
+                        permissionWarning
                     }
                 }
                 .headerProminence(.increased)
@@ -74,9 +57,27 @@ struct PreferencesView: View {
             Text("Shatter requires Screen Recording permission. Enable it in System Settings → Privacy & Security → Screen & System Audio Recording.")
         }
     }
+
+    @ViewBuilder
+    private var permissionWarning: some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.yellow)
+                Text("Shatter requires Screen Recording permission.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Button("Open System Settings to grant permission") {
+                permissions.openSystemSettings()
+            }
+            .buttonStyle(.link)
+            .font(.caption)
+        }
+    }
 }
 
 #Preview {
     PreferencesView()
-        .environmentObject(ScreenCapturePermissionManager())
+        .environment(\.permissions, ScreenCapturePermissionManager())
 }

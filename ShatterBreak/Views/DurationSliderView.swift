@@ -8,18 +8,18 @@ struct DurationSliderView: View {
     let max: Double
     let disabled: Bool
 
-    @StateObject private var viewModel = DurationSliderViewModel()
+    @State private var viewModel = DurationSliderViewModel()
     @FocusState private var isInputFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
                 .font(.subheadline)
-                .fontWeight(.medium)
+                .bold()
 
             HStack {
                 Image(systemName: systemImage)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
                 Slider(
                     value: viewModel.sliderBinding(for: $value, min: min, max: max),
@@ -37,7 +37,7 @@ struct DurationSliderView: View {
                     .multilineTextAlignment(.trailing)
                     .focused($isInputFocused)
                     .disabled(disabled)
-                    .foregroundColor(viewModel.isEditing ? Color.accentColor : .primary)
+                    .foregroundStyle(viewModel.isEditing ? Color.accentColor : .primary)
                     .onChange(of: isInputFocused) { _, isFocused in
                         if isFocused {
                             viewModel.syncManualInput(with: value, isInputFocused: true)

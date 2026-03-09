@@ -1,12 +1,11 @@
 import SwiftUI
-import Combine
 
-struct SliderAnchor {
+struct SliderAnchor: Sendable {
     let stop: Double
     let value: Double
 }
 
-struct PiecewiseTimer {
+struct PiecewiseTimer: Sendable {
     static let anchors: [SliderAnchor] = [
         SliderAnchor(stop: 0.0,  value: 5),
         SliderAnchor(stop: 0.1,  value: 30),
@@ -22,6 +21,8 @@ struct PiecewiseTimer {
     ]
 
     static func seconds(from t: Double) -> Double {
+        guard anchors.count >= 2 else { return anchors.first?.value ?? 0 }
+        
         for i in 0..<anchors.count - 1 {
             let start = anchors[i]
             let end = anchors[i+1]
@@ -35,8 +36,10 @@ struct PiecewiseTimer {
     }
 
     static func position(from seconds: Double) -> Double {
-        if seconds <= anchors.first!.value { return anchors.first!.stop }
-        if seconds >= anchors.last!.value { return anchors.last!.stop }
+        guard let first = anchors.first, let last = anchors.last else { return 0 }
+        
+        if seconds <= first.value { return first.stop }
+        if seconds >= last.value { return last.stop }
 
         for i in 0..<anchors.count - 1 {
             let start = anchors[i]
@@ -47,25 +50,28 @@ struct PiecewiseTimer {
                 return start.stop + localT * (end.stop - start.stop)
             }
         }
-        return anchors.last!.stop
+        return last.stop
     }
 }
 
-class DurationSliderViewModel: ObservableObject {
-    @Published var manualInput: String = ""
-    @Published var isEditing = false
+@MainActor
+@Observable
+final class DurationSliderViewModel {
+    var manualInput: String = ""
+    var isEditing = false
 
     func syncManualInput(with seconds: Double, isInputFocused: Bool) {
         manualInput = isInputFocused ? formatTimeMMSS(seconds: seconds) : formatTime(seconds: seconds)
     }
 
     func updateValueFromInput(currentValue: inout Double, min: Double, max: Double) {
-        let cleanInput = manualInput.replacingOccurrences(of: "h", with: ":")
-            .replacingOccurrences(of: "m", with: ":")
-            .replacingOccurrences(of: "s", with: ":")
-            .replacingOccurrences(of: " ", with: "")
+        let cleanInput = manualInput
+            .replacing("h", with: ":")
+            .replacing("m", with: ":")
+            .replacing("s", with: ":")
+            .replacing(" ", with: "")
 
-        let rawComponents = cleanInput.components(separatedBy: ":")
+        let rawComponents = cleanInput.split(separator: ":")
         var totalSeconds: Double = 0
 
         if !rawComponents.isEmpty {
@@ -108,11 +114,10 @@ class DurationSliderViewModel: ObservableObject {
             set: { newValue in
                 let rawSeconds = PiecewiseTimer.seconds(from: newValue)
 
-                let step: Double
-                switch rawSeconds {
-                case ..<60: step = 5
-                case 60..<600: step = 60
-                default: step = 300
+                let step: Double = switch rawSeconds {
+                case ..<60: 5
+                case 60..<600: 60
+                default: 300
                 }
 
                 let snappedSeconds = round(rawSeconds / step) * step
@@ -121,25 +126,30 @@ class DurationSliderViewModel: ObservableObject {
         )
     }
 
-    func formatTime(seconds: Double) -> String {
-        let totalSeconds = Int(seconds)
-        let mins = totalSeconds / 60
-        let secs = totalSeconds % 60
+    // MARK: - Formatting
 
-        if mins >= 60 {
-            if secs > 0 {
-                return String(format: "%dh %02dm %02ds", mins / 60, mins % 60, secs)
+    func formatTime(seconds: Double) -> String {
+        let totalMinutes = Int(seconds) / 60
+        let remainingSeconds = Int(seconds) % 60
+        
+        if totalMinutes >= 60 {
+            let hours = totalMinutes / 60
+            let mins = totalMinutes % 60
+            
+            if remainingSeconds > 0 {
+                return "\(hours)h \(String(format: "%02d", mins))m \(String(format: "%02d", remainingSeconds))s"
+                    .replacingOccurrences(of: " 0", with: " ")
             } else {
-                return String(format: "%dh %02dm", mins / 60, mins % 60)
+                return "\(hours)h \(String(format: "%02d", mins))m"
             }
         }
-        return String(format: "%02d:%02d", mins, secs)
+        
+        return "\(String(format: "%02d", totalMinutes)):\(String(format: "%02d", remainingSeconds))"
     }
 
     private func formatTimeMMSS(seconds: Double) -> String {
-        let totalSeconds = Int(seconds)
-        let mins = totalSeconds / 60
-        let secs = totalSeconds % 60
-        return String(format: "%02d:%02d", mins, secs)
+        let totalMinutes = Int(seconds) / 60
+        let remainingSeconds = Int(seconds) % 60
+        return "\(String(format: "%02d", totalMinutes)):\(String(format: "%02d", remainingSeconds))"
     }
 }

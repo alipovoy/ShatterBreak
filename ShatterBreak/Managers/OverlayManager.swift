@@ -24,8 +24,11 @@ class OverlayManager: OverlayManaging {
             if hasScreenRecordingPermission {
                 do {
                     // Capture content from all displays, excluding desktop windows
-                    let shareableContent = try await SCShareableContent.excludingDesktopWindows(
-                        false, onScreenWindowsOnly: false)
+                    // Run at utility priority to avoid priority inversion with MainActor
+                    let shareableContent = try await Task.detached(priority: .utility) {
+                        try await SCShareableContent.excludingDesktopWindows(
+                            false, onScreenWindowsOnly: false)
+                    }.value
 
                     for display in shareableContent.displays {
                         if Task.isCancelled { return }
@@ -37,9 +40,17 @@ class OverlayManager: OverlayManaging {
                         config.height = display.height
                         config.showsCursor = false
 
-                        let cgImage = try await SCScreenshotManager.captureImage(
-                            contentFilter: filter, configuration: config)
-                        capturedImages[display.displayID] = cgImage
+                        // Run capture at utility priority to avoid priority inversion
+                        let cgImage = try await Task.detached(priority: .utility) { [filter, config] in
+                            // Check cancellation inside detached task
+                            guard !Task.isCancelled else { return nil as CGImage? }
+                            return try await SCScreenshotManager.captureImage(
+                                contentFilter: filter, configuration: config) as CGImage?
+                        }.value
+                        
+                        if let cgImage = cgImage {
+                            capturedImages[display.displayID] = cgImage
+                        }
                     }
                 } catch {
                     print("ScreenCaptureKit error: \(error.localizedDescription)")
