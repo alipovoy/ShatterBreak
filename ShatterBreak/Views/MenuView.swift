@@ -91,11 +91,8 @@ struct MenuView: View {
     }
 
     private func formattedTime(_ interval: TimeInterval) -> String {
-        let minutes = max(0, Int(interval) / 60)
-        let seconds = max(0, Int(interval) % 60)
-        let minutesPadded = minutes < 10 ? "0\(minutes)" : "\(minutes)"
-        let secondsPadded = seconds < 10 ? "0\(seconds)" : "\(seconds)"
-        return "\(minutesPadded):\(secondsPadded)"
+        // delegate to TimerState helper so formatting remains consistent
+        return TimerState.format(timeInterval: interval)
     }
 
     @ViewBuilder

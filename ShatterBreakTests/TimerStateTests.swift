@@ -101,6 +101,67 @@ class TimerStateBasicTests {
         #expect(!state.isResting)
         #expect(state.timeRemaining == 0)
     }
+
+    // MARK: - Formatting helpers
+
+    @Test("formatting helper produces zero-padded strings")
+    @MainActor
+    func formattingProducesCorrectOutput() {
+        #expect(TimerState.format(timeInterval: 0) == "00:00")
+        #expect(TimerState.format(timeInterval: 5) == "00:05")
+        #expect(TimerState.format(timeInterval: 65) == "01:05")
+        #expect(TimerState.format(timeInterval: 599) == "09:59")
+        #expect(TimerState.format(timeInterval: 600) == "10:00")
+    }
+
+    @Test("visibility flag reflects running vs resting")
+    @MainActor
+    func visibilityFlagRespectsState() {
+        let state = TimerState(overlayManager: OverlaySpy())
+
+        // idle
+        state.isRunning = false
+        state.isPaused = false
+        state.isResting = false
+        #expect(!state.shouldShowTimeInMenuBar)
+
+        // running work
+        state.isRunning = true
+        state.isPaused = false
+        state.isResting = false
+        #expect(state.shouldShowTimeInMenuBar)
+
+        // paused during work
+        state.isPaused = true
+        #expect(state.shouldShowTimeInMenuBar)
+
+        // resting, regardless of running/paused
+        state.isResting = true
+        #expect(!state.shouldShowTimeInMenuBar)
+    }
+
+    @Test("formattedTimeRemaining still produces string regardless of state")
+    @MainActor
+    func formattingUnaffectedByState() {
+        let state = TimerState(overlayManager: OverlaySpy())
+        state.timeRemaining = 75
+        #expect(state.formattedTimeRemaining == "01:15")
+
+        // state changes shouldn't mutate formatted text
+        state.isRunning = true
+        state.isResting = true
+        #expect(state.formattedTimeRemaining == "01:15")
+    }
+
+    @Test("app storage key toggles correctly")
+    @MainActor
+    func appStorageKeyBehavior() {
+        let key = "showTimerInMenuBar"
+        UserDefaults.standard.removeObject(forKey: key)
+        #expect(!UserDefaults.standard.bool(forKey: key))
+        UserDefaults.standard.set(true, forKey: key)
+        #expect(UserDefaults.standard.bool(forKey: key))
+    }
 }
 
 @Suite("TimerState sleep/wake behaviors", .serialized)

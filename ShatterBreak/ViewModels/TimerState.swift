@@ -28,6 +28,35 @@ final class TimerState {
         isResting && !hasPostponeBeenUsedThisCycle && !isInPostponedWork
     }
 
+    /// A human-readable representation of the remaining time suitable for display
+    /// in the menubar or other compact UI. When no timer is active an empty string
+    /// is returned.
+    /// `true` when the menubar label should show a timer value. This
+    /// isolates the decision logic from presentation, allowing callers to
+    /// consult the state directly rather than interpret an empty string.
+    var shouldShowTimeInMenuBar: Bool {
+        // don't display during rest because the transparent screenshot overlay
+        // can obscure the text, and avoid showing anything when the timer is
+        // idle.
+        (isRunning || isPaused) && !isResting
+    }
+
+    /// A formatted string for the remaining time. This property no longer
+    /// encodes visibility decisions; callers may format regardless of whether
+    /// it will be shown.
+    var formattedTimeRemaining: String {
+        TimerState.format(timeInterval: timeRemaining)
+    }
+
+    /// Helper formatter used by both the state and UI components.
+    nonisolated static func format(timeInterval interval: TimeInterval) -> String {
+        let minutes = max(0, Int(interval) / 60)
+        let seconds = max(0, Int(interval) % 60)
+        let minutesPadded = minutes < 10 ? "0\(minutes)" : "\(minutes)"
+        let secondsPadded = seconds < 10 ? "0\(seconds)" : "\(seconds)"
+        return "\(minutesPadded):\(secondsPadded)"
+    }
+
     private var isInPostponedWork = false
     private var savedRestRemaining: TimeInterval?
     private var timerTask: Task<Void, Never>?

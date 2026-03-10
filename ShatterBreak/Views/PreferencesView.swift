@@ -8,6 +8,7 @@ struct PreferencesView: View {
     @AppStorage("effectType") private var effectType: EffectType = .shatter
     @AppStorage("softOverlay") private var softOverlay: Bool = false
     @AppStorage("allowPostpone") private var allowPostpone: Bool = false
+    @AppStorage("showTimerInMenuBar") private var showTimerInMenuBar: Bool = false
 
     @State private var showPermissionAlert = false
 
@@ -34,6 +35,10 @@ struct PreferencesView: View {
                     if permissions.status == .denied {
                         permissionWarning
                     }
+
+                    // Menu bar display preference
+                    Toggle("Show timer in menu bar", isOn: $showTimerInMenuBar)
+                        .help("When enabled, the remaining time will be shown next to the app icon in the menu bar.")
                 }
                 .headerProminence(.increased)
             }

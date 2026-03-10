@@ -6,11 +6,21 @@ struct ShatterBreakApp: App {
     // State is initialized on MainActor since App is @MainActor
     @State private var timerState = TimerState()
     @State private var permissions = ScreenCapturePermissionManager()
+    @AppStorage("showTimerInMenuBar") private var showTimerInMenuBar: Bool = false
 
     var body: some Scene {
-        MenuBarExtra("ShatterBreak", systemImage: "app.badge.clock") {
+        MenuBarExtra {
             MenuView(state: timerState)
                 .environment(\.permissions, permissions)
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "app.badge.clock")
+
+                if showTimerInMenuBar && timerState.shouldShowTimeInMenuBar {
+                Text(timerState.formattedTimeRemaining)
+                    .font(.system(.body, design: .monospaced))
+            }
+            }
         }
         .menuBarExtraStyle(.window)
 
