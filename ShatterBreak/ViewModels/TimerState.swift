@@ -4,6 +4,20 @@ import Combine
 @MainActor
 @Observable
 final class TimerState {
+    enum Mode {
+        case idle           // nothing active
+        case running        // counting down a work period
+        case paused         // work was paused by user or system
+        case resting        // currently in a rest interval
+        case postponedWork  // work running during a postponed rest
+        case awaitingReturn // manual‑start mode, waiting for user
+    }
+
+    /// Represents the sole active state of the timer. All previous
+    /// boolean flags have been consolidated into this enum. Computed
+    /// properties below provide compatibility for existing callers.
+    var mode: Mode = .idle
+
     var workDurationSecs: Double {
         didSet {
             UserDefaults.standard.set(workDurationSecs, forKey: "workDurationSecs")
@@ -18,20 +32,30 @@ final class TimerState {
 
     var postponeDurationSecs: Double = 60
 
-    var isRunning = false
-    var isPaused = false
-    var isResting = false
+    // these helpers mirror the old boolean fields so views/tests can still
+    // refer to them without major rewrites. They are read‑only; tests
+    // should now set `mode` directly when simulating state.
+    var isRunning: Bool {
+        mode == .running || mode == .resting || mode == .postponedWork
+    }
+    var isPaused: Bool {
+        mode == .paused
+    }
+    var isResting: Bool {
+        mode == .resting
+    }
+    var awaitingReturn: Bool {
+        mode == .awaitingReturn
+    }
+
+    /// Internal computed flag used to determine when we're in postponed work.
+    private var isInPostponedWork: Bool { mode == .postponedWork }
+
     var hasPostponeBeenUsedThisCycle = false
     var timeRemaining: TimeInterval = 0
 
-    /// When the user has chosen "manual" start mode and a rest has completed,
-    /// the timer will not immediately begin a new work session. Instead we
-    /// sit in a waiting state until the user presses the "I'm back" button.
-    /// While this flag is true the timer is idle and no countdown occurs.
-    var awaitingReturn = false
-
     var canPostpone: Bool {
-        isResting && !hasPostponeBeenUsedThisCycle && !isInPostponedWork
+        mode == .resting && !hasPostponeBeenUsedThisCycle && !isInPostponedWork
     }
 
     /// A human-readable representation of the remaining time suitable for display
@@ -44,7 +68,12 @@ final class TimerState {
         // don't display during rest because the transparent screenshot overlay
         // can obscure the text, and avoid showing anything when the timer is
         // idle or waiting for the user to return.
-        (isRunning || isPaused) && !isResting && !awaitingReturn
+        switch mode {
+        case .running, .paused, .postponedWork:
+            return true
+        default:
+            return false
+        }
     }
 
     /// A formatted string for the remaining time. This property no longer
@@ -63,7 +92,6 @@ final class TimerState {
         return "\(minutesPadded):\(secondsPadded)"
     }
 
-    private var isInPostponedWork = false
     private var savedRestRemaining: TimeInterval?
     private var timerTask: Task<Void, Never>?
     private var sleepObserverTasks = [Task<Void, Never>]()
@@ -71,6 +99,7 @@ final class TimerState {
     private var restStartedAt: Date?
     private var isSystemAsleep = false
     private var wasAutoPausedBySystem = false
+    private var previousModeBeforeSleep: Mode?
 
     /// Helper to read the work‑start preference from UserDefaults. This is
     /// intentionally computed each time so tests can mutate defaults mid‑run.
@@ -107,46 +136,41 @@ final class TimerState {
     func start() {
         // only clear overlays if we were resting or waiting; the menu UI will
         // already be correct in the idle case and the spy will not be tripped.
-        if isResting || awaitingReturn {
+        if mode == .resting || mode == .awaitingReturn {
             overlayManager.dismissOverlays()
         }
 
-        // leaving the waiting state if we were there.
-        awaitingReturn = false
-
+        // kick off a fresh work interval
+        mode = .running
         timeRemaining = workDurationSecs
-        isRunning = true
-        isPaused = false
         wasAutoPausedBySystem = false
         runTimer()
     }
 
     func pause() {
-        if isResting {
+        if mode == .resting || mode == .postponedWork {
             timerTask?.cancel()
             restStartedAt = nil
-            isResting = false
+            // exit rest/postponed work and immediately start new work period
             overlayManager.dismissOverlays()
             start()
         } else {
-            isPaused = true
+            mode = .paused
             timerTask?.cancel()
         }
     }
 
     func resume() {
-        isPaused = false
+        // resuming always goes back to running; if we were paused during
+        // postponed work that's fine – mode will be reset below.
+        mode = .running
         runTimer()
     }
 
     func stop() {
         timerTask?.cancel()
-        isRunning = false
-        isPaused = false
-        isResting = false
-        isInPostponedWork = false
+        mode = .idle
         wasAutoPausedBySystem = false
-        awaitingReturn = false
         timeRemaining = 0
         restStartedAt = nil
         savedRestRemaining = nil
@@ -155,12 +179,11 @@ final class TimerState {
     }
 
     func postpone() {
-        guard isResting && !hasPostponeBeenUsedThisCycle && !isInPostponedWork else { return }
+        guard mode == .resting && !hasPostponeBeenUsedThisCycle && !isInPostponedWork else { return }
 
         savedRestRemaining = timeRemaining
-        isInPostponedWork = true
+        mode = .postponedWork
         hasPostponeBeenUsedThisCycle = true
-        isResting = false
         timeRemaining = postponeDurationSecs
         overlayManager.dismissOverlays()
     }
@@ -179,18 +202,18 @@ final class TimerState {
     private func tick() {
         // if waiting for the user we shouldn’t count down or transition;
         // just idle until start() is invoked.
-        if awaitingReturn {
+        if mode == .awaitingReturn {
             return
         }
 
-        if isInPostponedWork {
+        if mode == .postponedWork {
             timeRemaining -= 1
 
             if timeRemaining <= 0 {
                 timerTask?.cancel()
                 resumeRest()
             }
-        } else if isResting, let anchor = restStartedAt {
+        } else if mode == .resting, let anchor = restStartedAt {
             timeRemaining = max(0, restDurationSecs - Date().timeIntervalSince(anchor))
 
             if timeRemaining <= 0 && !isSystemAsleep {
@@ -199,22 +222,22 @@ final class TimerState {
                 // we finished a rest period; decide whether we should kick
                 // straight into work or wait for the user to return.
                 if autoStartWorkTimer {
-                    isResting = false
+                    mode = .running
                     overlayManager.dismissOverlays()
                     start()
                 } else {
                     // manual mode – remain on screen and show the "I'm back"
                     // button. The timer is no longer active until the user
-                    // confirms their return; this keeps isRunning false so
-                    // UI/tests treat the app as idle.
-                    isResting = false
-                    isRunning = false
-                    awaitingReturn = true
+                    // confirms their return; this keeps `mode` at awaitingReturn
+                    // so UI/tests treat the app as idle.
+                    mode = .awaitingReturn
                     timeRemaining = 0
                     // leave overlays visible
                 }
             }
         } else {
+            // running work (or paused state shouldn't have a timer running at
+            // all because we cancel when entering paused)
             timeRemaining -= 1
 
             if timeRemaining <= 0 {
@@ -227,8 +250,7 @@ final class TimerState {
     private func resumeRest() {
         guard let saved = savedRestRemaining else { return }
 
-        isInPostponedWork = false
-        isResting = true
+        mode = .resting
         timeRemaining = saved
 
         let elapsed = restDurationSecs - saved
@@ -240,8 +262,7 @@ final class TimerState {
     }
 
     private func triggerRestPhase() {
-        isResting = true
-        isInPostponedWork = false
+        mode = .resting
         hasPostponeBeenUsedThisCycle = false
         savedRestRemaining = nil
         restStartedAt = Date()
@@ -282,15 +303,18 @@ final class TimerState {
 
     private func handleSleep() {
         isSystemAsleep = true
-        guard isRunning && !isPaused && !isResting else { return }
-        pause()
+        // only auto‑pause if we were actively running (including postponed work)
+        guard mode == .running || mode == .postponedWork else { return }
+        // For postponed work, just pause like normal work; don't trigger new cycle
+        mode = .paused
+        timerTask?.cancel()
         wasAutoPausedBySystem = true
     }
 
     private func handleWake() {
         isSystemAsleep = false
 
-        if isResting, let anchor = restStartedAt {
+        if mode == .resting, let anchor = restStartedAt {
             let elapsed = Date().timeIntervalSince(anchor)
             // only treat the rest as finished if the countdown is actually
             // zero or less; the elapsed check alone proved unreliable in
@@ -298,13 +322,21 @@ final class TimerState {
             if elapsed >= restDurationSecs && timeRemaining <= 0 {
                 timerTask?.cancel()
                 restStartedAt = nil
-                isResting = false
-                isRunning = false
+                // return to idle; overlay should already be visible but we
+                // don't want the timer running.
+                mode = .idle
                 overlayManager.dismissOverlays()
             }
         } else if wasAutoPausedBySystem {
             wasAutoPausedBySystem = false
-            resume()
+            // If we were in postponed work before sleep, resume it; otherwise resume normally
+            if previousModeBeforeSleep == .postponedWork {
+                mode = .postponedWork
+            } else {
+                mode = .running
+            }
+            runTimer()
         }
+        previousModeBeforeSleep = nil
     }
 }

@@ -200,11 +200,11 @@ struct CrackedGlassView: View {
 
     // show resting state
     let restingState = TimerState()
-    restingState.isResting = true
+    restingState.mode = .resting
 
     // show awaiting-return state
     let awaitingState = TimerState()
-    awaitingState.awaitingReturn = true
+    awaitingState.mode = .awaitingReturn
 
     return VStack {
         OverlayView(state: restingState, bgImage: nil, hasPermission: true)

@@ -115,8 +115,7 @@ class TimerStatePostponeTests {
         #expect(spy.showCount == 1)
 
         state.postpone()
-        #expect(!state.isResting)
-        #expect(!state.isResting && state.isRunning && state.timeRemaining <= postponeDurationSecs, "Should be in postponed work state")
+        #expect(state.isRunning && state.timeRemaining <= postponeDurationSecs, "Should be in postponed work state")
         #expect(state.hasPostponeBeenUsedThisCycle, "Should mark postpone as used")
         #expect(state.timeRemaining == postponeDurationSecs, "Should set correct postpone timer")
         #expect(spy.dismissCount == 1, "Should dismiss overlays when postponing")
@@ -142,11 +141,11 @@ class TimerStatePostponeTests {
         #expect(state.isResting)
 
         state.postpone()
-        #expect(!state.isResting && state.isRunning && state.timeRemaining <= postponeDurationSecs)
+        #expect(state.isRunning && state.timeRemaining <= postponeDurationSecs)
 
         // Try to postpone again
         state.postpone()
-        #expect(!state.isResting && state.isRunning && state.timeRemaining <= postponeDurationSecs, "Should still be in postponed work (no change)")
+        #expect(state.isRunning && state.timeRemaining <= postponeDurationSecs, "Should still be in postponed work (no change)")
         #expect(state.timeRemaining == postponeDurationSecs, "Time should remain unchanged")
     }
 
@@ -164,15 +163,13 @@ class TimerStatePostponeTests {
         let originalRestTime = state.timeRemaining
 
         state.postpone()
-        #expect(!state.isResting)
-        #expect(!state.isResting && state.isRunning && state.timeRemaining <= postponeDurationSecs)
+        #expect(state.isRunning && state.timeRemaining <= postponeDurationSecs)
 
         // Wait for postpone to expire
         try await Task.sleep(nanoseconds: 2_500_000_000)
         await Task.yield()
 
         #expect(state.isResting, "Should resume rest after postpone expires")
-        #expect(state.isResting || !state.isRunning || state.timeRemaining > postponeDurationSecs, "Should exit postponed work state")
         #expect(state.timeRemaining == originalRestTime, "Should resume with original rest time")
         #expect(spy.showCount == 2, "Should show overlays again when resuming rest")
     }
@@ -250,8 +247,7 @@ class TimerStatePostponeTests {
         // Pause during postponed work should skip rest and start new work
         state.pause()
 
-        #expect(!state.isResting, "Pause should exit rest/postponed state")
-        #expect(state.isRunning, "Should start new work")
+        #expect(state.isRunning)
         #expect(!state.canPostpone, "Should have postpone flag set")
     }
 

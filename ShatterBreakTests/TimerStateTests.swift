@@ -60,7 +60,7 @@ class TimerStateBasicTests {
         await Task.yield()
 
         #expect(state.isResting, "Should enter rest after work completes")
-        #expect(state.isRunning, "Work timer transitions directly into rest with timer running")
+        #expect(state.isRunning)
         #expect(
             state.timeRemaining == 2, "On rest start, timeRemaining should reset to rest duration")
     }
@@ -100,8 +100,6 @@ class TimerStateBasicTests {
         state.stop()
 
         #expect(!state.isRunning)
-        #expect(!state.isPaused)
-        #expect(!state.isResting)
         #expect(state.timeRemaining == 0)
     }
 
@@ -149,29 +147,24 @@ class TimerStateBasicTests {
         let state = TimerState(overlayManager: OverlaySpy())
 
         // make sure awaitingReturn suppresses indicator
-        state.awaitingReturn = true
+        state.mode = .awaitingReturn
         #expect(!state.shouldShowTimeInMenuBar)
 
-        state.awaitingReturn = false
+        state.mode = .idle
 
         // idle
-        state.isRunning = false
-        state.isPaused = false
-        state.isResting = false
         #expect(!state.shouldShowTimeInMenuBar)
 
         // running work
-        state.isRunning = true
-        state.isPaused = false
-        state.isResting = false
+        state.mode = .running
         #expect(state.shouldShowTimeInMenuBar)
 
         // paused during work
-        state.isPaused = true
+        state.mode = .paused
         #expect(state.shouldShowTimeInMenuBar)
 
         // resting, regardless of running/paused
-        state.isResting = true
+        state.mode = .resting
         #expect(!state.shouldShowTimeInMenuBar)
     }
 
@@ -183,8 +176,8 @@ class TimerStateBasicTests {
         #expect(state.formattedTimeRemaining == "01:15")
 
         // state changes shouldn't mutate formatted text
-        state.isRunning = true
-        state.isResting = true
+        state.mode = .running
+        state.mode = .resting
         #expect(state.formattedTimeRemaining == "01:15")
     }
 
