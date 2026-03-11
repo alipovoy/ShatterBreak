@@ -41,6 +41,17 @@ struct OverlayView: View {
                         .controlSize(.extraLarge)
                         .background(Color.accentColor, in: Capsule())
                     }
+
+                    if state.awaitingReturn {
+                        Button {
+                            state.start()
+                        } label: {
+                            Text("I'm back")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.extraLarge)
+                        .background(Color.accentColor, in: Capsule())
+                    }
                 }
             }
         }
@@ -187,12 +198,23 @@ struct CrackedGlassView: View {
         func updateNSView(_ nsView: NSView, context: Context) {}
     }
 
-    let timerState = TimerState()
-    timerState.isResting = true
+    // show resting state
+    let restingState = TimerState()
+    restingState.isResting = true
 
-    return OverlayView(state: timerState, bgImage: nil, hasPermission: true)
-        .background(WindowConfigurator())
-        .frame(width: 400, height: 300)
+    // show awaiting-return state
+    let awaitingState = TimerState()
+    awaitingState.awaitingReturn = true
+
+    return VStack {
+        OverlayView(state: restingState, bgImage: nil, hasPermission: true)
+            .frame(width: 400, height: 300)
+            .padding()
+
+        OverlayView(state: awaitingState, bgImage: nil, hasPermission: true)
+            .frame(width: 400, height: 300)
+            .padding()
+    }
 }
 
 

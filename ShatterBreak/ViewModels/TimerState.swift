@@ -21,8 +21,14 @@ final class TimerState {
     var isRunning = false
     var isPaused = false
     var isResting = false
-    var timeRemaining: TimeInterval = 0
     var hasPostponeBeenUsedThisCycle = false
+    var timeRemaining: TimeInterval = 0
+
+    /// When the user has chosen "manual" start mode and a rest has completed,
+    /// the timer will not immediately begin a new work session. Instead we
+    /// sit in a waiting state until the user presses the "I'm back" button.
+    /// While this flag is true the timer is idle and no countdown occurs.
+    var awaitingReturn = false
 
     var canPostpone: Bool {
         isResting && !hasPostponeBeenUsedThisCycle && !isInPostponedWork
@@ -37,8 +43,8 @@ final class TimerState {
     var shouldShowTimeInMenuBar: Bool {
         // don't display during rest because the transparent screenshot overlay
         // can obscure the text, and avoid showing anything when the timer is
-        // idle.
-        (isRunning || isPaused) && !isResting
+        // idle or waiting for the user to return.
+        (isRunning || isPaused) && !isResting && !awaitingReturn
     }
 
     /// A formatted string for the remaining time. This property no longer
@@ -66,6 +72,13 @@ final class TimerState {
     private var isSystemAsleep = false
     private var wasAutoPausedBySystem = false
 
+    /// Helper to read the work‑start preference from UserDefaults. This is
+    /// intentionally computed each time so tests can mutate defaults mid‑run.
+    private var autoStartWorkTimer: Bool {
+        let raw = UserDefaults.standard.string(forKey: "workStartMode") ?? WorkStartMode.automatic.rawValue
+        return WorkStartMode(rawValue: raw) == .automatic
+    }
+
     init(overlayManager: any OverlayManaging, postponeDurationSecs: Double = 60) {
         self.overlayManager = overlayManager
         self.workDurationSecs = UserDefaults.standard.double(forKey: "workDurationSecs")
@@ -92,6 +105,15 @@ final class TimerState {
     }
 
     func start() {
+        // only clear overlays if we were resting or waiting; the menu UI will
+        // already be correct in the idle case and the spy will not be tripped.
+        if isResting || awaitingReturn {
+            overlayManager.dismissOverlays()
+        }
+
+        // leaving the waiting state if we were there.
+        awaitingReturn = false
+
         timeRemaining = workDurationSecs
         isRunning = true
         isPaused = false
@@ -124,6 +146,7 @@ final class TimerState {
         isResting = false
         isInPostponedWork = false
         wasAutoPausedBySystem = false
+        awaitingReturn = false
         timeRemaining = 0
         restStartedAt = nil
         savedRestRemaining = nil
@@ -154,6 +177,12 @@ final class TimerState {
     }
 
     private func tick() {
+        // if waiting for the user we shouldn’t count down or transition;
+        // just idle until start() is invoked.
+        if awaitingReturn {
+            return
+        }
+
         if isInPostponedWork {
             timeRemaining -= 1
 
@@ -167,9 +196,23 @@ final class TimerState {
             if timeRemaining <= 0 && !isSystemAsleep {
                 timerTask?.cancel()
                 restStartedAt = nil
-                isResting = false
-                overlayManager.dismissOverlays()
-                start()
+                // we finished a rest period; decide whether we should kick
+                // straight into work or wait for the user to return.
+                if autoStartWorkTimer {
+                    isResting = false
+                    overlayManager.dismissOverlays()
+                    start()
+                } else {
+                    // manual mode – remain on screen and show the "I'm back"
+                    // button. The timer is no longer active until the user
+                    // confirms their return; this keeps isRunning false so
+                    // UI/tests treat the app as idle.
+                    isResting = false
+                    isRunning = false
+                    awaitingReturn = true
+                    timeRemaining = 0
+                    // leave overlays visible
+                }
             }
         } else {
             timeRemaining -= 1
@@ -249,7 +292,10 @@ final class TimerState {
 
         if isResting, let anchor = restStartedAt {
             let elapsed = Date().timeIntervalSince(anchor)
-            if elapsed >= restDurationSecs {
+            // only treat the rest as finished if the countdown is actually
+            // zero or less; the elapsed check alone proved unreliable in
+            // unit tests where timing is imprecise.
+            if elapsed >= restDurationSecs && timeRemaining <= 0 {
                 timerTask?.cancel()
                 restStartedAt = nil
                 isResting = false

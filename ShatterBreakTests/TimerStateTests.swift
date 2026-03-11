@@ -43,6 +43,9 @@ class TimerStateBasicTests {
     @Test("start() initializes and transitions to rest")
     @MainActor
     func startTransitionsToRest() async throws {
+        // Ensure automatic mode (default) so behaviour is predictable.
+        UserDefaults.standard.set(WorkStartMode.automatic.rawValue, forKey: "workStartMode")
+
         let state = TimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 1
         state.restDurationSecs = 2
@@ -102,6 +105,32 @@ class TimerStateBasicTests {
         #expect(state.timeRemaining == 0)
     }
 
+    @Test("manual mode waits for user after rest expiry")
+    @MainActor
+    func manualModeDelaysWorkStart() async throws {
+        UserDefaults.standard.set(WorkStartMode.manual.rawValue, forKey: "workStartMode")
+
+        let state = TimerState(overlayManager: OverlaySpy())
+        state.workDurationSecs = 1
+        state.restDurationSecs = 1
+
+        state.start()
+        try await Task.sleep(nanoseconds: 1_200_000_000) // enter rest
+        #expect(state.isResting)
+
+        try await Task.sleep(nanoseconds: 1_200_000_000) // rest should expire
+        await Task.yield()
+
+        #expect(!state.isRunning, "Work should not auto-start in manual mode")
+        #expect(state.awaitingReturn)
+        #expect(state.timeRemaining == 0)
+
+        // simulate user hitting the button
+        state.start()
+        #expect(state.isRunning)
+        #expect(!state.awaitingReturn)
+    }
+
     // MARK: - Formatting helpers
 
     @Test("formatting helper produces zero-padded strings")
@@ -118,6 +147,12 @@ class TimerStateBasicTests {
     @MainActor
     func visibilityFlagRespectsState() {
         let state = TimerState(overlayManager: OverlaySpy())
+
+        // make sure awaitingReturn suppresses indicator
+        state.awaitingReturn = true
+        #expect(!state.shouldShowTimeInMenuBar)
+
+        state.awaitingReturn = false
 
         // idle
         state.isRunning = false
@@ -161,6 +196,18 @@ class TimerStateBasicTests {
         #expect(!UserDefaults.standard.bool(forKey: key))
         UserDefaults.standard.set(true, forKey: key)
         #expect(UserDefaults.standard.bool(forKey: key))
+    }
+
+    @Test("work start mode default and storage")
+    @MainActor
+    func workStartModeStorage() {
+        let key = "workStartMode"
+        UserDefaults.standard.removeObject(forKey: key)
+        #expect(UserDefaults.standard.string(forKey: key) == nil)
+        // default computed property should treat nil as automatic
+        #expect(WorkStartMode(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .automatic == .automatic)
+        UserDefaults.standard.set(WorkStartMode.manual.rawValue, forKey: key)
+        #expect(WorkStartMode(rawValue: UserDefaults.standard.string(forKey: key)!) == .manual)
     }
 }
 

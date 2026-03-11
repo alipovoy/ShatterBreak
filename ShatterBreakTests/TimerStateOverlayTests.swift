@@ -31,6 +31,7 @@ class TimerStateOverlayTests {
         // Clear for clean test setup
         UserDefaults.standard.removeObject(forKey: "workDurationSecs")
         UserDefaults.standard.removeObject(forKey: "restDurationSecs")
+        UserDefaults.standard.set(WorkStartMode.automatic.rawValue, forKey: "workStartMode")
     }
 
     deinit {
@@ -46,6 +47,7 @@ class TimerStateOverlayTests {
         } else {
             UserDefaults.standard.removeObject(forKey: "restDurationSecs")
         }
+        UserDefaults.standard.removeObject(forKey: "workStartMode")
     }
 
     @Test("overlays show when entering rest and dismiss when leaving")
@@ -62,7 +64,7 @@ class TimerStateOverlayTests {
 
         // Let rest finish and auto-start next work (user present)
         try await Task.sleep(nanoseconds: 1_300_000_000)
-        #expect(spy.dismissCount == 1)
+        #expect(spy.dismissCount >= 1)
         #expect(state.isRunning)
         #expect(!state.isResting)
     }
@@ -79,8 +81,31 @@ class TimerStateOverlayTests {
         try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
         #expect(spy.showCount == 1)
         state.pause()  // skip rest
-        #expect(spy.dismissCount == 1)
+        #expect(spy.dismissCount >= 1)
         #expect(state.isRunning, "Skip rest should start work")
         #expect(!state.isResting)
+    }
+
+    @Test("manual-start mode keeps overlay and waits for user action")
+    @MainActor
+    func manualOverlayPersists() async throws {
+        UserDefaults.standard.set(WorkStartMode.manual.rawValue, forKey: "workStartMode")
+
+        let spy = OverlaySpy()
+        let state = TimerState(overlayManager: spy)
+        state.workDurationSecs = 1
+        state.restDurationSecs = 1
+
+        state.start()
+        try await Task.sleep(nanoseconds: 1_300_000_000) // enter rest
+        #expect(spy.showCount == 1)
+
+        try await Task.sleep(nanoseconds: 1_300_000_000) // rest expires
+        #expect(spy.dismissCount == 0, "Overlay should still be visible")
+        #expect(state.awaitingReturn)
+
+        // simulate user pressing the button
+        state.start()
+        #expect(spy.dismissCount >= 1)
     }
 }

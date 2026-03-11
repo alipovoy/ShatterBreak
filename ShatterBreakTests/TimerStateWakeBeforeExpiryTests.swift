@@ -23,6 +23,7 @@ class TimerStateWakeBeforeExpiryTests {
         // Clear for clean test setup
         UserDefaults.standard.removeObject(forKey: "workDurationSecs")
         UserDefaults.standard.removeObject(forKey: "restDurationSecs")
+        UserDefaults.standard.set(WorkStartMode.automatic.rawValue, forKey: "workStartMode")
     }
 
     deinit {
@@ -38,6 +39,7 @@ class TimerStateWakeBeforeExpiryTests {
         } else {
             UserDefaults.standard.removeObject(forKey: "restDurationSecs")
         }
+        UserDefaults.standard.removeObject(forKey: "workStartMode")
     }
 
     @Test("wake during rest before expiry keeps overlay and rest")
