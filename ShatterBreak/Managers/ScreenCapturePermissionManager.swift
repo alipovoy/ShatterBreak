@@ -17,7 +17,6 @@ final class ScreenCapturePermissionManager {
     private var observationTask: Task<Void, Never>?
 
     init() {
-        requestPermissionIfFirstLaunch()
         refresh()
         observeAppActive()
     }
@@ -37,21 +36,31 @@ final class ScreenCapturePermissionManager {
         NSWorkspace.shared.open(url)
     }
 
-    private var hasLaunchedBefore: Bool {
-        UserDefaults.standard.bool(forKey: Self.launchKey)
-    }
-
-    private func requestPermissionIfFirstLaunch() {
+    func requestIfFirstLaunch() {
         guard !hasLaunchedBefore else { return }
         UserDefaults.standard.set(true, forKey: Self.launchKey)
         CGRequestScreenCaptureAccess()
     }
 
+    func requestNow() {
+        CGRequestScreenCaptureAccess()
+    }
+
+    private var hasLaunchedBefore: Bool {
+        UserDefaults.standard.bool(forKey: Self.launchKey)
+    }
+
     private func observeAppActive() {
         observationTask = Task { [weak self] in
             for await _ in NotificationCenter.default.notifications(named: NSApplication.didBecomeActiveNotification) {
-                self?.refresh()
+                await MainActor.run { self?.refresh() }
             }
         }
+    }
+
+
+    @MainActor
+    deinit {
+        observationTask?.cancel()
     }
 }

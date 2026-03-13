@@ -12,39 +12,26 @@ import Testing
 
 @Suite("ScreenCapturePermissionManager", .serialized)
 class ScreenCapturePermissionManagerTests {
-    private let savedWorkDuration: Double
-    private let savedRestDuration: Double
+    private let savedLaunchKey: Bool
+    private let launchKey = "com.shatterbreak.hasLaunchedBefore"
 
     init() {
-        // Save original UserDefaults values
-        self.savedWorkDuration = UserDefaults.standard.double(forKey: "workDurationSecs")
-        self.savedRestDuration = UserDefaults.standard.double(forKey: "restDurationSecs")
-
-        // Clear for clean test setup
-        UserDefaults.standard.removeObject(forKey: "workDurationSecs")
-        UserDefaults.standard.removeObject(forKey: "restDurationSecs")
+        self.savedLaunchKey = UserDefaults.standard.bool(forKey: launchKey)
+        UserDefaults.standard.removeObject(forKey: launchKey)
     }
 
     deinit {
-        // Restore original UserDefaults values
-        if savedWorkDuration > 0 {
-            UserDefaults.standard.set(savedWorkDuration, forKey: "workDurationSecs")
+        if savedLaunchKey {
+            UserDefaults.standard.set(true, forKey: launchKey)
         } else {
-            UserDefaults.standard.removeObject(forKey: "workDurationSecs")
-        }
-
-        if savedRestDuration > 0 {
-            UserDefaults.standard.set(savedRestDuration, forKey: "restDurationSecs")
-        } else {
-            UserDefaults.standard.removeObject(forKey: "restDurationSecs")
+            UserDefaults.standard.removeObject(forKey: launchKey)
         }
     }
 
-    @Test("first launch sets launch key")
+    @Test("requestIfFirstLaunch sets launch key on first call")
     @MainActor
     func firstLaunchSetsKey() async throws {
         let defaults = UserDefaults.standard
-        let launchKey = "com.shatterbreak.hasLaunchedBefore"
 
         defaults.removeObject(forKey: launchKey)
         #expect(!defaults.bool(forKey: launchKey))
@@ -55,6 +42,12 @@ class ScreenCapturePermissionManagerTests {
         // Ensure main-actor init work has run
         await Task.yield()
 
-        #expect(defaults.bool(forKey: launchKey), "First init should set hasLaunchedBefore")
+        #expect(!defaults.bool(forKey: launchKey), "Init should not set hasLaunchedBefore")
+
+        manager.requestIfFirstLaunch()
+        await Task.yield()
+
+        #expect(defaults.bool(forKey: launchKey), "requestIfFirstLaunch should set hasLaunchedBefore")
     }
 }
+

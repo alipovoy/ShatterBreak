@@ -12,6 +12,7 @@ struct ShatterBreakApp: App {
         MenuBarExtra {
             MenuView(state: timerState)
                 .environment(\.permissions, permissions)
+                .task { permissions.requestIfFirstLaunch() }
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "app.badge.clock")
@@ -27,6 +28,7 @@ struct ShatterBreakApp: App {
         Window("Preferences", id: "preferences") {
             PreferencesView()
                 .environment(\.permissions, permissions)
+                .task { permissions.requestIfFirstLaunch() }
         }
         .windowResizability(.contentSize)
     }

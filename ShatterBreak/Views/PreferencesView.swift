@@ -38,7 +38,7 @@ struct PreferencesView: View {
                     }
 
                     // Menu bar display preference
-                    Picker("When break ends", selection: $workStartMode) {
+                    Picker("Start work after break ends", selection: $workStartMode) {
                         ForEach(WorkStartMode.allCases) { mode in
                             Text(mode.rawValue).tag(mode)
                         }
