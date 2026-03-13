@@ -59,11 +59,11 @@ class TimerStateOverlayTests {
         state.restDurationSecs = 1
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
         #expect(spy.showCount == 1)
 
         // Let rest finish and auto-start next work (user present)
-        try await Task.sleep(nanoseconds: 1_300_000_000)
+        try await Task.sleep(for: .seconds(1.3))
         #expect(spy.dismissCount >= 1)
         #expect(state.isRunning)
         #expect(!state.isResting)
@@ -78,7 +78,7 @@ class TimerStateOverlayTests {
         state.restDurationSecs = 10
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
         #expect(spy.showCount == 1)
         state.pause()  // skip rest
         #expect(spy.dismissCount >= 1)
@@ -97,10 +97,10 @@ class TimerStateOverlayTests {
         state.restDurationSecs = 1
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000) // enter rest
+        try await Task.sleep(for: .seconds(1.3)) // enter rest
         #expect(spy.showCount == 1)
 
-        try await Task.sleep(nanoseconds: 1_300_000_000) // rest expires
+        try await Task.sleep(for: .seconds(1.3)) // rest expires
         #expect(spy.dismissCount == 0, "Overlay should still be visible")
         #expect(state.awaitingReturn)
 

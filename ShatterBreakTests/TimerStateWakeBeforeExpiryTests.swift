@@ -51,15 +51,15 @@ class TimerStateWakeBeforeExpiryTests {
         state.restDurationSecs = 5
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // entered rest
+        try await Task.sleep(for: .seconds(1.3))  // entered rest
         #expect(state.isResting)
         #expect(spy.showCount == 1)
 
         let nc = NSWorkspace.shared.notificationCenter
         nc.post(name: NSWorkspace.willSleepNotification, object: nil)
-        try await Task.sleep(nanoseconds: 500_000_000)  // not enough to expire rest
+        try await Task.sleep(for: .seconds(0.5))  // not enough to expire rest
         nc.post(name: NSWorkspace.didWakeNotification, object: nil)
-        try await Task.sleep(nanoseconds: 200_000_000)
+        try await Task.sleep(for: .seconds(0.2))
 
         #expect(state.isResting, "Rest should continue if not expired")
         #expect(spy.dismissCount == 0, "Overlay should remain until rest ends")

@@ -50,7 +50,7 @@ class TimerStatePostponeTests {
         state.restDurationSecs = 10
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
         #expect(state.isResting)
         #expect(!state.hasPostponeBeenUsedThisCycle)
 
@@ -69,7 +69,7 @@ class TimerStatePostponeTests {
         #expect(!state.isResting)
         #expect(!state.canPostpone, "Should not allow postpone when working")
 
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // finish work
+        try await Task.sleep(for: .seconds(1.3))  // finish work
         await Task.yield()
         #expect(state.isResting)
 
@@ -87,7 +87,7 @@ class TimerStatePostponeTests {
         state.restDurationSecs = 10
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
         #expect(state.canPostpone)
 
         state.postpone()
@@ -95,7 +95,7 @@ class TimerStatePostponeTests {
         #expect(!state.canPostpone, "Should not allow multiple postpones per cycle")
 
         // Complete postponed work and return to rest
-        try await Task.sleep(nanoseconds: 2_500_000_000)  // wait for postpone to expire
+        try await Task.sleep(for: .seconds(2.5))  // wait for postpone to expire
         await Task.yield()
         #expect(state.isResting)
         #expect(!state.canPostpone, "Should not allow postpone again in same rest cycle")
@@ -110,7 +110,7 @@ class TimerStatePostponeTests {
         state.restDurationSecs = 10
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
         #expect(state.isResting)
         #expect(spy.showCount == 1)
 
@@ -136,7 +136,7 @@ class TimerStatePostponeTests {
         #expect(state.timeRemaining == 1, "Should not change time when postponing during work")
 
         // Enter rest and use postpone once
-        try await Task.sleep(nanoseconds: 1_300_000_000)
+        try await Task.sleep(for: .seconds(1.3))
         await Task.yield()
         #expect(state.isResting)
 
@@ -158,7 +158,7 @@ class TimerStatePostponeTests {
         state.restDurationSecs = 10
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
         #expect(state.isResting)
         let originalRestTime = state.timeRemaining
 
@@ -166,7 +166,7 @@ class TimerStatePostponeTests {
         #expect(state.isRunning && state.timeRemaining <= postponeDurationSecs)
 
         // Wait for postpone to expire
-        try await Task.sleep(nanoseconds: 2_500_000_000)
+        try await Task.sleep(for: .seconds(2.5))
         await Task.yield()
 
         #expect(state.isResting, "Should resume rest after postpone expires")
@@ -184,7 +184,7 @@ class TimerStatePostponeTests {
 
         // First cycle
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
         state.postpone()
         #expect(state.hasPostponeBeenUsedThisCycle)
 
@@ -216,14 +216,14 @@ class TimerStatePostponeTests {
         state.restDurationSecs = 5
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
         #expect(state.canPostpone)
 
         state.postpone()
         #expect(!state.canPostpone)
 
         // Complete postpone and resume rest
-        try await Task.sleep(nanoseconds: 2_500_000_000)
+        try await Task.sleep(for: .seconds(2.5))
         await Task.yield()
         #expect(state.isResting)
         #expect(!state.canPostpone, "Should not allow postpone again in same rest period")
@@ -238,7 +238,7 @@ class TimerStatePostponeTests {
         state.restDurationSecs = 10
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
         state.postpone()
 
         #expect(!state.isResting)
@@ -260,7 +260,7 @@ class TimerStatePostponeTests {
         state.restDurationSecs = 10
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
         state.postpone()
 
         #expect(state.hasPostponeBeenUsedThisCycle)
@@ -283,7 +283,7 @@ class TimerStatePostponeTests {
         state.restDurationSecs = 10  // long rest
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
 
         let restTimeWhenPostponed = state.timeRemaining
         #expect(restTimeWhenPostponed > 9, "Should have ~9+ seconds of rest remaining")
@@ -291,7 +291,7 @@ class TimerStatePostponeTests {
         state.postpone()
 
         // Wait for postpone to expire and rest to resume
-        try await Task.sleep(nanoseconds: 2_500_000_000)
+        try await Task.sleep(for: .seconds(2.5))
         await Task.yield()
 
         #expect(state.isResting, "Postpone should expire")
@@ -308,8 +308,8 @@ class TimerStatePostponeTests {
         state.restDurationSecs = 2  // short rest
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest (1.3s elapsed)
-        try await Task.sleep(nanoseconds: 1_200_000_000)  // wait almost until rest expires (2.5s total, only 0.5s left)
+        try await Task.sleep(for: .seconds(1.3))  // enter rest (1.3s elapsed)
+        try await Task.sleep(for: .seconds(1.2))  // wait almost until rest expires (2.5s total, only 0.5s left)
 
         #expect(state.isResting)
         let remainingBeforePostpone = state.timeRemaining
@@ -334,17 +334,17 @@ class TimerStatePostponeTests {
         state.restDurationSecs = 5
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
         state.postpone()  // save rest time
 
-        try await Task.sleep(nanoseconds: 2_100_000_000)  // wait for postpone to expire (1.5s) + margin
+        try await Task.sleep(for: .seconds(2.1))  // wait for postpone to expire (1.5s) + margin
         await Task.yield()
 
         #expect(state.isResting, "Should have resumed rest after postpone expiry")
         let resumedRestTime = state.timeRemaining
 
         // Wait a known duration and verify countdown is accurate
-        try await Task.sleep(nanoseconds: 1_200_000_000)  // wait ~1.2 seconds for countdown
+        try await Task.sleep(for: .seconds(1.2))  // wait ~1.2 seconds for countdown
         await Task.yield()
 
         let timeDifference = resumedRestTime - state.timeRemaining
@@ -360,7 +360,7 @@ class TimerStatePostponeTests {
         state.restDurationSecs = 10
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
         state.postpone()
 
         let timeWhenSleep = state.timeRemaining
@@ -369,13 +369,13 @@ class TimerStatePostponeTests {
         // Simulate system sleep
         let nc = NSWorkspace.shared.notificationCenter
         nc.post(name: NSWorkspace.willSleepNotification, object: nil)
-        try await Task.sleep(nanoseconds: 500_000_000)
+        try await Task.sleep(for: .seconds(0.5))
 
         let timeWhenAsleep = state.timeRemaining
 
         // Wake system
         nc.post(name: NSWorkspace.didWakeNotification, object: nil)
-        try await Task.sleep(nanoseconds: 300_000_000)
+        try await Task.sleep(for: .seconds(0.3))
         await Task.yield()
 
         // Time should not have advanced significantly during sleep if timer was paused
@@ -391,13 +391,13 @@ class TimerStatePostponeTests {
         state.restDurationSecs = 8
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_300_000_000)  // enter rest
+        try await Task.sleep(for: .seconds(1.3))  // enter rest
 
         let timeBeforePostpone = state.timeRemaining
         state.postpone()
 
         // Verify rest time is restored after postpone
-        try await Task.sleep(nanoseconds: 1_500_000_000)  // wait for short postpone
+        try await Task.sleep(for: .seconds(1.5))  // wait for short postpone
         await Task.yield()
 
         #expect(state.isResting, "Should have resumed rest")
@@ -407,3 +407,4 @@ class TimerStatePostponeTests {
         #expect(abs(restoredTime - timeBeforePostpone) < 0.2, "Saved rest time should be accurately restored")
     }
 }
+

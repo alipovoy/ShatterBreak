@@ -56,7 +56,7 @@ class TimerStateBasicTests {
         #expect(!state.isResting)
         #expect(state.timeRemaining == 1)
 
-        try await Task.sleep(nanoseconds: 1_200_000_000)
+        try await Task.sleep(for: .seconds(1.2))
         await Task.yield()
 
         #expect(state.isResting, "Should enter rest after work completes")
@@ -73,17 +73,17 @@ class TimerStateBasicTests {
         state.restDurationSecs = 2
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_100_000_000)
+        try await Task.sleep(for: .seconds(1.1))
         state.pause()
         let snapshot = state.timeRemaining
 
         #expect(state.isPaused)
-        try await Task.sleep(nanoseconds: 1_100_000_000)
+        try await Task.sleep(for: .seconds(1.1))
 
         #expect(state.timeRemaining == snapshot, "timeRemaining should not change while paused")
 
         state.resume()
-        try await Task.sleep(nanoseconds: 1_200_000_000)
+        try await Task.sleep(for: .seconds(1.2))
 
         #expect(state.timeRemaining < snapshot, "timeRemaining should resume decreasing")
     }
@@ -96,7 +96,7 @@ class TimerStateBasicTests {
         state.restDurationSecs = 2
 
         state.start()
-        try await Task.sleep(nanoseconds: 500_000_000)
+        try await Task.sleep(for: .seconds(0.5))
         state.stop()
 
         #expect(!state.isRunning)
@@ -113,10 +113,10 @@ class TimerStateBasicTests {
         state.restDurationSecs = 1
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_200_000_000) // enter rest
+        try await Task.sleep(for: .seconds(1.2)) // enter rest
         #expect(state.isResting)
 
-        try await Task.sleep(nanoseconds: 1_200_000_000) // rest should expire
+        try await Task.sleep(for: .seconds(1.2)) // rest should expire
         await Task.yield()
 
         #expect(!state.isRunning, "Work should not auto-start in manual mode")
@@ -242,20 +242,20 @@ class TimerStateSleepWakeTests {
         state.restDurationSecs = 2
 
         state.start()
-        try await Task.sleep(nanoseconds: 800_000_000)
+        try await Task.sleep(for: .seconds(0.8))
         let nc = NSWorkspace.shared.notificationCenter
 
         nc.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
-        try await Task.sleep(nanoseconds: 300_000_000)
+        try await Task.sleep(for: .seconds(0.3))
         await Task.yield()
         #expect(state.isPaused, "Work should auto-pause on display sleep")
 
         nc.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
-        try await Task.sleep(nanoseconds: 400_000_000)
+        try await Task.sleep(for: .seconds(0.4))
         await Task.yield()
         #expect(!state.isPaused, "Work should auto-resume on display wake")
 
-        try await Task.sleep(nanoseconds: 3_000_000_000)
+        try await Task.sleep(for: .seconds(3))
         await Task.yield()
         #expect(state.isResting, "Should still transition to rest after resume")
     }
@@ -268,7 +268,7 @@ class TimerStateSleepWakeTests {
         state.restDurationSecs = 1
 
         state.start()
-        try await Task.sleep(nanoseconds: 1_500_000_000)
+        try await Task.sleep(for: .seconds(1.5))
         await Task.yield()
         #expect(state.isResting)
 
@@ -276,13 +276,14 @@ class TimerStateSleepWakeTests {
 
         nc.post(name: NSWorkspace.willSleepNotification, object: nil)
 
-        try await Task.sleep(nanoseconds: 1_500_000_000)
+        try await Task.sleep(for: .seconds(1.5))
 
         nc.post(name: NSWorkspace.didWakeNotification, object: nil)
-        try await Task.sleep(nanoseconds: 300_000_000)
+        try await Task.sleep(for: .seconds(0.3))
         await Task.yield()
 
         #expect(!state.isRunning, "After R2, app should be idle")
         #expect(!state.isResting, "Rest should be cleared after wake when expired")
     }
 }
+
