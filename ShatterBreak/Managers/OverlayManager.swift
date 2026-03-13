@@ -12,16 +12,22 @@ protocol OverlayManaging: AnyObject {
 class OverlayManager: OverlayManaging {
     private var windows: [NSWindow] = []
     private var captureTask: Task<Void, Never>?  // Manages the asynchronous screen capture process
+    
+    private var selectedEffectType: EffectType {
+        UserDefaults.standard.string(forKey: "effectType")
+            .flatMap(EffectType.init(rawValue:)) ?? .shatter
+    }
 
     func showOverlays(state: TimerState) {
         captureTask?.cancel()  // Cancel any ongoing capture tasks before starting a new one
 
         let hasScreenRecordingPermission = CGPreflightScreenCaptureAccess()
+        let shouldCaptureScreenshots = hasScreenRecordingPermission && selectedEffectType == .shatter
 
         captureTask = Task {
             var capturedImages: [CGDirectDisplayID: CGImage] = [:]
 
-            if hasScreenRecordingPermission {
+            if shouldCaptureScreenshots {
                 do {
                     // Capture content from all displays, excluding desktop windows
                     // Run at utility priority to avoid priority inversion with MainActor
