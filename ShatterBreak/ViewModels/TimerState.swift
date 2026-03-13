@@ -92,6 +92,11 @@ final class TimerState {
     convenience init(postponeDurationSecs: Double = 60) {
         self.init(overlayManager: OverlayManager(), postponeDurationSecs: postponeDurationSecs)
     }
+
+    isolated deinit {
+        timerTask?.cancel()
+        sleepObserverTasks.forEach { $0.cancel() }
+    }
     
     private static func loadDuration(forKey key: String, defaultValue: Double) -> Double {
         let value = UserDefaults.standard.double(forKey: key)
