@@ -51,6 +51,21 @@ struct TimerStateBasicTests {
 
         #expect(state.timeRemaining == snapshot - 1, "timeRemaining should resume decreasing.")
     }
+    
+    @Test("work countdown tracks elapsed time")
+    @MainActor
+    func workCountdownTracksElapsedTime() async {
+        let environment = TestEnvironment()
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        state.workDurationSecs = 3
+        
+        state.start()
+        await environment.advanceTime(by: 0.5)
+        #expect(state.timeRemaining == 2.5)
+        
+        await environment.advanceTime(by: 1.5)
+        #expect(state.timeRemaining == 1)
+    }
 
     @Test("stop() cancels and resets state")
     @MainActor
@@ -209,5 +224,34 @@ struct TimerStateSleepWakeTests {
         #expect(state.isRunning == false, "The app should be idle after waking from an expired rest.")
         #expect(state.isResting == false, "Rest should be cleared after wake when it expired asleep.")
         #expect(state.mode == .idle)
+    }
+    
+    @Test("wake during rest handles elapsed wall-clock time without needing a tick")
+    @MainActor
+    func wakeFromRestDoesNotNeedManualTick() async {
+        let environment = TestEnvironment()
+        let defaults = environment.defaults
+        defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
+        
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        state.workDurationSecs = 1
+        state.restDurationSecs = 1
+        
+        state.start()
+        await environment.advanceUntil(maxTicks: 2) { state.isResting }
+        #expect(state.isResting)
+        
+        let notificationCenter = environment.workspaceNotificationCenter
+        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        await Task.yield()
+        
+        environment.elapseTimeWithoutTick(by: 1)
+        
+        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        await Task.yield()
+        
+        #expect(state.mode == .idle)
+        #expect(state.isRunning == false)
+        #expect(state.isResting == false)
     }
 }

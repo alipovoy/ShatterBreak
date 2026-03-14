@@ -63,8 +63,8 @@ final class TimerState {
     
     // MARK: - Private State
     
+    private var activeDeadline: Date?
     private var savedRestRemaining: TimeInterval?
-    private var restStartedAt: Date?
     private var isSystemAsleep = false
     private var wasAutoPausedBySystem = false
     private var modeBeforeSleep: Mode?
@@ -139,35 +139,32 @@ final class TimerState {
         }
         
         mode = .running
-        timeRemaining = workDurationSecs
         wasAutoPausedBySystem = false
-        runTimer()
+        beginCountdown(for: workDurationSecs)
     }
     
     func pause() {
         if mode == .resting || mode == .postponedWork {
             // Skip rest/postponed work and start fresh work immediately
-            tickSource.stop()
-            restStartedAt = nil
+            clearCountdown()
             overlayManager.dismissOverlays()
             start()
         } else {
+            freezeCountdown()
             mode = .paused
-            tickSource.stop()
         }
     }
     
     func resume() {
         mode = .running
-        runTimer()
+        resumeCountdown()
     }
     
     func stop() {
-        tickSource.stop()
+        clearCountdown()
         mode = .idle
         wasAutoPausedBySystem = false
         timeRemaining = 0
-        restStartedAt = nil
         savedRestRemaining = nil
         hasPostponeBeenUsedThisCycle = false
         overlayManager.dismissOverlays()
@@ -176,11 +173,12 @@ final class TimerState {
     func postpone() {
         guard mode == .resting && !hasPostponeBeenUsedThisCycle else { return }
         
+        freezeCountdown()
         savedRestRemaining = timeRemaining
         mode = .postponedWork
         hasPostponeBeenUsedThisCycle = true
-        timeRemaining = postponeDurationSecs
         overlayManager.dismissOverlays()
+        beginCountdown(for: postponeDurationSecs)
     }
     
     // MARK: - Timer Control
@@ -192,55 +190,66 @@ final class TimerState {
     }
     
     private func tick() {
-        guard mode != .awaitingReturn else { return }
+        switch mode {
+        case .running, .resting, .postponedWork:
+            refreshCountdown()
+            handleCountdownExpiryIfNeeded()
+        case .idle, .paused, .awaitingReturn:
+            return
+        }
+    }
+    
+    private func beginCountdown(for duration: TimeInterval) {
+        let clampedDuration = max(0, duration)
+        timeRemaining = clampedDuration
+        activeDeadline = tickSource.now.addingTimeInterval(clampedDuration)
+        runTimer()
+    }
+    
+    private func resumeCountdown() {
+        beginCountdown(for: timeRemaining)
+    }
+    
+    private func freezeCountdown() {
+        refreshCountdown()
+        clearCountdown()
+    }
+    
+    private func refreshCountdown() {
+        guard let activeDeadline else { return }
+        timeRemaining = max(0, activeDeadline.timeIntervalSince(tickSource.now))
+    }
+    
+    private func clearCountdown() {
+        tickSource.stop()
+        activeDeadline = nil
+    }
+    
+    private func handleCountdownExpiryIfNeeded() {
+        guard timeRemaining <= 0 else { return }
         
         switch mode {
         case .postponedWork:
-            tickPostponedWork()
-        case .resting:
-            tickRest()
-        case .running:
-            tickWork()
-        default:
-            break // paused, idle - timer should not be running
-        }
-    }
-    
-    private func tickPostponedWork() {
-        timeRemaining -= 1
-        
-        if timeRemaining <= 0 {
-            tickSource.stop()
+            clearCountdown()
             resumeRest()
-        }
-    }
-    
-    private func tickRest() {
-        guard let anchor = restStartedAt else { return }
-        
-        timeRemaining = max(0, restDurationSecs - tickSource.now.timeIntervalSince(anchor))
-        
-        guard timeRemaining <= 0 && !isSystemAsleep else { return }
-        
-        tickSource.stop()
-        restStartedAt = nil
-        
-        if autoStartWorkTimer {
-            overlayManager.dismissOverlays()
-            start()
-        } else {
-            mode = .awaitingReturn
-            timeRemaining = 0
-            // Overlay remains visible for user to click "I'm back"
-        }
-    }
-    
-    private func tickWork() {
-        timeRemaining -= 1
-        
-        if timeRemaining <= 0 {
-            tickSource.stop()
+        case .resting:
+            guard isSystemAsleep == false else { return }
+            
+            clearCountdown()
+            
+            if autoStartWorkTimer {
+                overlayManager.dismissOverlays()
+                start()
+            } else {
+                mode = .awaitingReturn
+                timeRemaining = 0
+                // Overlay remains visible for user to click "I'm back"
+            }
+        case .running:
+            clearCountdown()
             enterRestPhase()
+        case .idle, .paused, .awaitingReturn:
+            break
         }
     }
     
@@ -250,25 +259,17 @@ final class TimerState {
         mode = .resting
         hasPostponeBeenUsedThisCycle = false
         savedRestRemaining = nil
-        restStartedAt = tickSource.now
-        timeRemaining = restDurationSecs
         overlayManager.showOverlays(state: self)
-        runTimer()
+        beginCountdown(for: restDurationSecs)
     }
     
     private func resumeRest() {
         guard let saved = savedRestRemaining else { return }
         
         mode = .resting
-        timeRemaining = saved
-        
-        // Calculate when rest actually started to maintain accurate remaining time
-        let elapsed = restDurationSecs - saved
-        restStartedAt = tickSource.now.addingTimeInterval(-elapsed)
-        
         savedRestRemaining = nil
         overlayManager.showOverlays(state: self)
-        runTimer()
+        beginCountdown(for: saved)
     }
     
     // MARK: - Sleep/Wake Handling
@@ -306,24 +307,24 @@ final class TimerState {
         
         guard mode == .running || mode == .postponedWork else { return }
         
+        freezeCountdown()
         modeBeforeSleep = mode
         mode = .paused
-        tickSource.stop()
         wasAutoPausedBySystem = true
     }
     
     private func handleWake() {
         isSystemAsleep = false
         
-        // If resting, check if rest expired while asleep
-        if mode == .resting, let anchor = restStartedAt {
-            let elapsed = tickSource.now.timeIntervalSince(anchor)
-            guard elapsed >= restDurationSecs && timeRemaining <= 0 else { return }
+        if mode == .resting {
+            refreshCountdown()
             
-            tickSource.stop()
-            restStartedAt = nil
-            mode = .idle
-            overlayManager.dismissOverlays()
+            if timeRemaining <= 0 {
+                clearCountdown()
+                mode = .idle
+                overlayManager.dismissOverlays()
+            }
+            
             return
         }
         
@@ -333,7 +334,7 @@ final class TimerState {
         wasAutoPausedBySystem = false
         mode = (modeBeforeSleep == .postponedWork) ? .postponedWork : .running
         modeBeforeSleep = nil
-        runTimer()
+        resumeCountdown()
     }
     
     // MARK: - Formatting

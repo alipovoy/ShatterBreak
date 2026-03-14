@@ -21,7 +21,7 @@ final class SystemTimerTickSource: TimerTickSource {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { break }
-                await handler()
+                handler()
             }
         }
     }
