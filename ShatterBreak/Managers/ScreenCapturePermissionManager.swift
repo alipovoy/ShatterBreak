@@ -5,6 +5,8 @@ import CoreGraphics
 @MainActor
 @Observable
 final class ScreenCapturePermissionManager {
+    static let shared = ScreenCapturePermissionManager()
+
     enum Status {
         case granted
         case denied

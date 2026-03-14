@@ -3,7 +3,6 @@ import SwiftUI
 struct MenuView: View {
     @Bindable var state: TimerState
     @Environment(\.openWindow) private var openWindow
-    @Environment(\.permissions) private var permissions
 
     var onQuit: () -> Void = { NSApp.terminate(nil) }
 

@@ -5,13 +5,12 @@ import SwiftUI
 struct ShatterBreakApp: App {
     // State is initialized on MainActor since App is @MainActor
     @State private var timerState = TimerState()
-    @State private var permissions = ScreenCapturePermissionManager()
+    @State private var permissions = ScreenCapturePermissionManager.shared
     @AppStorage("showTimerInMenuBar") private var showTimerInMenuBar: Bool = false
 
     var body: some Scene {
         MenuBarExtra {
             MenuView(state: timerState)
-                .environment(\.permissions, permissions)
                 .task { permissions.requestIfFirstLaunch() }
         } label: {
             HStack(spacing: 4) {
@@ -34,15 +33,16 @@ struct ShatterBreakApp: App {
     }
 }
 
-// Environment key with optional to avoid default initialization
+// Use the shared manager so missing injection does not silently create fresh state.
 private struct PermissionsKey: EnvironmentKey {
-    static let defaultValue: ScreenCapturePermissionManager? = nil
+    static var defaultValue: ScreenCapturePermissionManager {
+        MainActor.assumeIsolated { ScreenCapturePermissionManager.shared }
+    }
 }
 
 extension EnvironmentValues {
     var permissions: ScreenCapturePermissionManager {
-        get { self[PermissionsKey.self] ?? MainActor.assumeIsolated { ScreenCapturePermissionManager() } }
+        get { self[PermissionsKey.self] }
         set { self[PermissionsKey.self] = newValue }
     }
 }
-
