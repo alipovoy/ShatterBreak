@@ -66,40 +66,10 @@ final class DurationSliderViewModel {
 
     func updateValueFromInput(currentValue: inout Double, min: Double, max: Double) {
         let cleanInput = manualInput
-            .replacing("h", with: ":")
-            .replacing("m", with: ":")
-            .replacing("s", with: ":")
             .replacing(" ", with: "")
+            .lowercased()
 
-        let rawComponents = cleanInput.split(separator: ":")
-        var totalSeconds: Double = 0
-
-        if !rawComponents.isEmpty {
-            if rawComponents.count == 1 {
-                let val = Double(rawComponents[0]) ?? 0
-                if cleanInput.contains(":") {
-                    totalSeconds = val
-                } else {
-                    totalSeconds = val * 60
-                }
-            } else {
-                let reversed = Array(rawComponents.reversed())
-                let secs = Double(reversed[0]) ?? 0
-                totalSeconds += secs
-
-                if reversed.count > 1 {
-                    let mins = Double(reversed[1]) ?? 0
-                    totalSeconds += mins * 60
-                }
-
-                if reversed.count > 2 {
-                    let hrs = Double(reversed[2]) ?? 0
-                    totalSeconds += hrs * 3600
-                }
-            }
-        }
-
-        if totalSeconds > 0 {
+        if let totalSeconds = parsedSeconds(from: cleanInput), totalSeconds > 0 {
             currentValue = Swift.max(min, Swift.min(totalSeconds, max))
         }
 
@@ -159,5 +129,75 @@ final class DurationSliderViewModel {
 
     private func zeroPadded(_ value: Int) -> String {
         value.formatted(.number.precision(.integerLength(2...2)))
+    }
+
+    private func parsedSeconds(from input: String) -> Double? {
+        guard input.isEmpty == false else { return nil }
+
+        if input.contains("h") || input.contains("m") || input.contains("s") {
+            return parsedComponentSeconds(from: input)
+        }
+
+        return parsedColonSeparatedSeconds(from: input)
+    }
+
+    private func parsedComponentSeconds(from input: String) -> Double? {
+        let matches = input.matches(of: /(\d+(?:\.\d+)?)([hms])/)
+        guard matches.isEmpty == false else { return nil }
+
+        var consumedLength = 0
+        var totalSeconds = 0.0
+
+        for match in matches {
+            consumedLength += match.output.0.count
+
+            guard let value = Double(String(match.output.1)) else {
+                return nil
+            }
+
+            switch String(match.output.2) {
+            case "h":
+                totalSeconds += value * 3600
+            case "m":
+                totalSeconds += value * 60
+            case "s":
+                totalSeconds += value
+            default:
+                return nil
+            }
+        }
+
+        guard consumedLength == input.count else { return nil }
+        return totalSeconds
+    }
+
+    private func parsedColonSeparatedSeconds(from input: String) -> Double? {
+        let rawComponents = input.split(separator: ":")
+        guard rawComponents.isEmpty == false else { return nil }
+
+        if rawComponents.count == 1 {
+            guard let value = Double(rawComponents[0]) else { return nil }
+            return input.contains(":") ? value : value * 60
+        }
+
+        let reversed = rawComponents.reversed()
+        var totalSeconds = 0.0
+
+        for (index, component) in reversed.enumerated() {
+            guard let value = Double(String(component)) else { return nil }
+
+            switch index {
+            case 0:
+                totalSeconds += value
+            case 1:
+                totalSeconds += value * 60
+            case 2:
+                totalSeconds += value * 3600
+            default:
+                return nil
+            }
+        }
+
+        return totalSeconds
     }
 }

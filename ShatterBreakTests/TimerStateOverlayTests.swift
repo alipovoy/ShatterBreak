@@ -1,11 +1,4 @@
-//
-//  TimerStateOverlayTests.swift
-//  ShatterBreakTests
-//
-//  Created by Alexey Lipovoy on 3/6/26.
-//
-
-import AppKit
+import Foundation
 import Testing
 
 @testable import ShatterBreak
@@ -14,18 +7,23 @@ import Testing
 final class OverlaySpy: OverlayManaging {
     private(set) var showCount = 0
     private(set) var dismissCount = 0
-    func showOverlays(state: TimerState) { showCount += 1 }
-    func dismissOverlays() { dismissCount += 1 }
+
+    func showOverlays(state: TimerState) {
+        showCount += 1
+    }
+
+    func dismissOverlays() {
+        dismissCount += 1
+    }
 }
 
 @Suite("TimerState overlay behaviors")
-class TimerStateOverlayTests {
-    private let environment = TestEnvironment()
-    private var defaults: UserDefaults { environment.defaults }
-
+struct TimerStateOverlayTests {
     @Test("overlays show when entering rest and dismiss when leaving")
     @MainActor
-    func overlaysShowAndDismiss() async throws {
+    func overlaysShowAndDismiss() async {
+        let environment = TestEnvironment()
+        let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let spy = OverlaySpy()
@@ -34,19 +32,20 @@ class TimerStateOverlayTests {
         state.restDurationSecs = 1
 
         state.start()
-        try await Task.sleep(for: .seconds(1.3))  // enter rest
+        await environment.advanceTime()
         #expect(spy.showCount == 1)
 
-        // Let rest finish and auto-start next work (user present)
-        try await Task.sleep(for: .seconds(1.3))
-        #expect(spy.dismissCount >= 1)
+        await environment.advanceTime()
+        #expect(spy.dismissCount == 2)
         #expect(state.isRunning)
-        #expect(!state.isResting)
+        #expect(state.isResting == false)
     }
 
     @Test("pause during rest skips rest and dismisses overlays")
     @MainActor
-    func skipRestDismissesOverlay() async throws {
+    func skipRestDismissesOverlay() async {
+        let environment = TestEnvironment()
+        let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let spy = OverlaySpy()
@@ -55,17 +54,20 @@ class TimerStateOverlayTests {
         state.restDurationSecs = 10
 
         state.start()
-        try await Task.sleep(for: .seconds(1.3))  // enter rest
+        await environment.advanceTime()
         #expect(spy.showCount == 1)
-        state.pause()  // skip rest
-        #expect(spy.dismissCount >= 1)
-        #expect(state.isRunning, "Skip rest should start work")
-        #expect(!state.isResting)
+
+        state.pause()
+        #expect(spy.dismissCount == 2)
+        #expect(state.isRunning, "Skip rest should start work.")
+        #expect(state.isResting == false)
     }
 
     @Test("manual-start mode keeps overlay and waits for user action")
     @MainActor
-    func manualOverlayPersists() async throws {
+    func manualOverlayPersists() async {
+        let environment = TestEnvironment()
+        let defaults = environment.defaults
         defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let spy = OverlaySpy()
@@ -74,15 +76,14 @@ class TimerStateOverlayTests {
         state.restDurationSecs = 1
 
         state.start()
-        try await Task.sleep(for: .seconds(1.3)) // enter rest
+        await environment.advanceUntil(maxTicks: 2) { state.isResting }
         #expect(spy.showCount == 1)
 
-        try await Task.sleep(for: .seconds(1.3)) // rest expires
-        #expect(spy.dismissCount == 0, "Overlay should still be visible")
+        await environment.advanceUntil(maxTicks: 2) { state.awaitingReturn }
+        #expect(spy.dismissCount == 0, "The overlay should remain visible while waiting.")
         #expect(state.awaitingReturn)
 
-        // simulate user pressing the button
         state.start()
-        #expect(spy.dismissCount >= 1)
+        #expect(spy.dismissCount == 1)
     }
 }

@@ -7,6 +7,7 @@ final class TestEnvironment {
     let defaults: UserDefaults
     let workspaceNotificationCenter = NotificationCenter()
     let appNotificationCenter = NotificationCenter()
+    private var cachedTickSource: ManualTimerTickSource?
 
     init() {
         guard let defaults = UserDefaults(suiteName: suiteName) else {
@@ -22,6 +23,17 @@ final class TestEnvironment {
     }
 
     @MainActor
+    private var tickSource: ManualTimerTickSource {
+        if let cachedTickSource {
+            return cachedTickSource
+        }
+
+        let tickSource = ManualTimerTickSource()
+        cachedTickSource = tickSource
+        return tickSource
+    }
+
+    @MainActor
     func makeTimerState(
         overlayManager: any OverlayManaging,
         postponeDurationSecs: Double = 60
@@ -30,15 +42,37 @@ final class TestEnvironment {
             overlayManager: overlayManager,
             postponeDurationSecs: postponeDurationSecs,
             defaults: defaults,
+            tickSource: tickSource,
             workspaceNotificationCenter: workspaceNotificationCenter
         )
     }
 
     @MainActor
-    func makePermissionManager() -> ScreenCapturePermissionManager {
+    func advanceTime(by interval: TimeInterval = 1, ticks: Int = 1) async {
+        for _ in 0..<ticks {
+            tickSource.advance(by: interval)
+        }
+    }
+
+    @MainActor
+    func advanceUntil(
+        by interval: TimeInterval = 1,
+        maxTicks: Int = 5,
+        condition: () -> Bool
+    ) async {
+        for _ in 0..<maxTicks where condition() == false {
+            await advanceTime(by: interval)
+        }
+    }
+
+    @MainActor
+    func makePermissionManager(
+        permissionClient: ScreenCapturePermissionClient = .live
+    ) -> ScreenCapturePermissionManager {
         ScreenCapturePermissionManager(
             defaults: defaults,
-            appNotificationCenter: appNotificationCenter
+            appNotificationCenter: appNotificationCenter,
+            permissionClient: permissionClient
         )
     }
 }

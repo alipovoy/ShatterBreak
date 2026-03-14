@@ -1,23 +1,15 @@
-//
-//  TimerStateWakeBeforeExpiryTests.swift
-//  ShatterBreakTests
-//
-//  Created by Alexey Lipovoy on 3/6/26.
-//
-
 import AppKit
 import Testing
 
 @testable import ShatterBreak
 
 @Suite("TimerState wake before rest expiry")
-class TimerStateWakeBeforeExpiryTests {
-    private let environment = TestEnvironment()
-    private var defaults: UserDefaults { environment.defaults }
-
+struct TimerStateWakeBeforeExpiryTests {
     @Test("wake during rest before expiry keeps overlay and rest")
     @MainActor
-    func wakeDuringRestBeforeExpiryKeepsState() async throws {
+    func wakeDuringRestBeforeExpiryKeepsState() async {
+        let environment = TestEnvironment()
+        let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let spy = OverlaySpy()
@@ -26,17 +18,23 @@ class TimerStateWakeBeforeExpiryTests {
         state.restDurationSecs = 5
 
         state.start()
-        try await Task.sleep(for: .seconds(1.3))  // entered rest
+        await environment.advanceTime()
         #expect(state.isResting)
         #expect(spy.showCount == 1)
 
-        let nc = environment.workspaceNotificationCenter
-        nc.post(name: NSWorkspace.willSleepNotification, object: nil)
-        try await Task.sleep(for: .seconds(0.5))  // not enough to expire rest
-        nc.post(name: NSWorkspace.didWakeNotification, object: nil)
-        try await Task.sleep(for: .seconds(0.2))
+        await Task.yield()
 
-        #expect(state.isResting, "Rest should continue if not expired")
-        #expect(spy.dismissCount == 0, "Overlay should remain until rest ends")
+        let notificationCenter = environment.workspaceNotificationCenter
+        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        await Task.yield()
+
+        await environment.advanceTime(by: 0.5)
+
+        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        await Task.yield()
+
+        #expect(state.isResting, "Rest should continue if it did not expire asleep.")
+        #expect(state.timeRemaining > 0)
+        #expect(spy.dismissCount == 0, "Overlay should remain until rest ends.")
     }
 }

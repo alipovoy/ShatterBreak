@@ -1,13 +1,12 @@
 import Foundation
 import AppKit
-import CoreGraphics
 
 @MainActor
 @Observable
 final class ScreenCapturePermissionManager {
     static let shared = ScreenCapturePermissionManager()
 
-    enum Status {
+    enum Status: Equatable {
         case granted
         case denied
         case notDetermined
@@ -19,19 +18,22 @@ final class ScreenCapturePermissionManager {
     private var observationTask: Task<Void, Never>?
     private let defaults: UserDefaults
     private let appNotificationCenter: NotificationCenter
+    private let permissionClient: ScreenCapturePermissionClient
 
     init(
         defaults: UserDefaults = .standard,
-        appNotificationCenter: NotificationCenter = .default
+        appNotificationCenter: NotificationCenter = .default,
+        permissionClient: ScreenCapturePermissionClient = .live
     ) {
         self.defaults = defaults
         self.appNotificationCenter = appNotificationCenter
+        self.permissionClient = permissionClient
         refresh()
         observeAppActive()
     }
 
     func refresh() {
-        if CGPreflightScreenCaptureAccess() {
+        if permissionClient.preflightAccess() {
             status = .granted
         } else {
             status = hasLaunchedBefore ? .denied : .notDetermined
@@ -39,20 +41,17 @@ final class ScreenCapturePermissionManager {
     }
 
     func openSystemSettings() {
-        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") else {
-            return
-        }
-        NSWorkspace.shared.open(url)
+        permissionClient.openSystemSettings()
     }
 
     func requestIfFirstLaunch() {
         guard !hasLaunchedBefore else { return }
         defaults.set(true, forKey: Self.launchKey)
-        CGRequestScreenCaptureAccess()
+        _ = permissionClient.requestAccess()
     }
 
     func requestNow() {
-        CGRequestScreenCaptureAccess()
+        _ = permissionClient.requestAccess()
     }
 
     private var hasLaunchedBefore: Bool {

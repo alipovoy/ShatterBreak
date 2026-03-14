@@ -1,24 +1,15 @@
-//
-//  TimerStateTests.swift
-//  ShatterBreakTests
-//
-//  Created by Alexey Lipovoy on 3/6/26.
-//
-
 import AppKit
 import Testing
 
 @testable import ShatterBreak
 
 @Suite("TimerState basic flows")
-class TimerStateBasicTests {
-    private let environment = TestEnvironment()
-    private var defaults: UserDefaults { environment.defaults }
-
+struct TimerStateBasicTests {
     @Test("start() initializes and transitions to rest")
     @MainActor
-    func startTransitionsToRest() async throws {
-        // Ensure automatic mode (default) so behaviour is predictable.
+    func startTransitionsToRest() async {
+        let environment = TestEnvironment()
+        let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
@@ -27,60 +18,61 @@ class TimerStateBasicTests {
 
         state.start()
         #expect(state.isRunning)
-        #expect(!state.isPaused)
-        #expect(!state.isResting)
+        #expect(state.isPaused == false)
+        #expect(state.isResting == false)
         #expect(state.timeRemaining == 1)
 
-        try await Task.sleep(for: .seconds(1.2))
-        await Task.yield()
+        await environment.advanceTime()
 
-        #expect(state.isResting, "Should enter rest after work completes")
+        #expect(state.isResting, "Should enter rest after work completes.")
         #expect(state.isRunning)
-        #expect(
-            state.timeRemaining == 2, "On rest start, timeRemaining should reset to rest duration")
+        #expect(state.timeRemaining == 2, "Rest should start with the configured duration.")
     }
 
     @Test("pause during work freezes countdown; resume continues")
     @MainActor
-    func pauseAndResume() async throws {
+    func pauseAndResume() async {
+        let environment = TestEnvironment()
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 5
         state.restDurationSecs = 2
 
         state.start()
-        try await Task.sleep(for: .seconds(1.1))
+        await environment.advanceTime()
         state.pause()
         let snapshot = state.timeRemaining
 
         #expect(state.isPaused)
-        try await Task.sleep(for: .seconds(1.1))
-
-        #expect(state.timeRemaining == snapshot, "timeRemaining should not change while paused")
+        await environment.advanceTime(ticks: 2)
+        #expect(state.timeRemaining == snapshot, "timeRemaining should not change while paused.")
 
         state.resume()
-        try await Task.sleep(for: .seconds(1.2))
+        await environment.advanceTime()
 
-        #expect(state.timeRemaining < snapshot, "timeRemaining should resume decreasing")
+        #expect(state.timeRemaining == snapshot - 1, "timeRemaining should resume decreasing.")
     }
 
     @Test("stop() cancels and resets state")
     @MainActor
-    func stopResets() async throws {
+    func stopResets() {
+        let environment = TestEnvironment()
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 5
         state.restDurationSecs = 2
 
         state.start()
-        try await Task.sleep(for: .seconds(0.5))
         state.stop()
 
-        #expect(!state.isRunning)
+        #expect(state.isRunning == false)
+        #expect(state.mode == .idle)
         #expect(state.timeRemaining == 0)
     }
 
     @Test("manual mode waits for user after rest expiry")
     @MainActor
-    func manualModeDelaysWorkStart() async throws {
+    func manualModeDelaysWorkStart() async {
+        let environment = TestEnvironment()
+        let defaults = environment.defaults
         defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
@@ -88,23 +80,16 @@ class TimerStateBasicTests {
         state.restDurationSecs = 1
 
         state.start()
-        try await Task.sleep(for: .seconds(1.2)) // enter rest
-        #expect(state.isResting)
+        await environment.advanceUntil(maxTicks: 3) { state.awaitingReturn }
 
-        try await Task.sleep(for: .seconds(1.2)) // rest should expire
-        await Task.yield()
-
-        #expect(!state.isRunning, "Work should not auto-start in manual mode")
+        #expect(state.isRunning == false, "Work should not auto-start in manual mode.")
         #expect(state.awaitingReturn)
         #expect(state.timeRemaining == 0)
 
-        // simulate user hitting the button
         state.start()
         #expect(state.isRunning)
-        #expect(!state.awaitingReturn)
+        #expect(state.awaitingReturn == false)
     }
-
-    // MARK: - Formatting helpers
 
     @Test("formatting helper produces zero-padded strings")
     @MainActor
@@ -116,103 +101,90 @@ class TimerStateBasicTests {
         #expect(TimerState.format(timeInterval: 600) == "10:00")
     }
 
-    @Test("visibility flag reflects running vs resting")
+    @Test("visibility flag reflects each timer mode")
     @MainActor
     func visibilityFlagRespectsState() {
+        let environment = TestEnvironment()
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
 
-        // make sure awaitingReturn suppresses indicator
         state.mode = .awaitingReturn
-        #expect(!state.shouldShowTimeInMenuBar)
+        #expect(state.shouldShowTimeInMenuBar == false)
 
         state.mode = .idle
+        #expect(state.shouldShowTimeInMenuBar == false)
 
-        // idle
-        #expect(!state.shouldShowTimeInMenuBar)
-
-        // running work
         state.mode = .running
         #expect(state.shouldShowTimeInMenuBar)
 
-        // paused during work
         state.mode = .paused
         #expect(state.shouldShowTimeInMenuBar)
 
-        // resting, regardless of running/paused
+        state.mode = .postponedWork
+        #expect(state.shouldShowTimeInMenuBar)
+
         state.mode = .resting
-        #expect(!state.shouldShowTimeInMenuBar)
+        #expect(state.shouldShowTimeInMenuBar == false)
     }
 
     @Test("formattedTimeRemaining still produces string regardless of state")
     @MainActor
     func formattingUnaffectedByState() {
+        let environment = TestEnvironment()
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.timeRemaining = 75
         #expect(state.formattedTimeRemaining == "01:15")
 
-        // state changes shouldn't mutate formatted text
         state.mode = .running
         state.mode = .resting
         #expect(state.formattedTimeRemaining == "01:15")
     }
 
-    @Test("app storage key toggles correctly")
+    @Test("initialization loads stored durations and falls back for zero values")
     @MainActor
-    func appStorageKeyBehavior() {
-        let key = PreferenceKeys.showTimerInMenuBar
-        defaults.removeObject(forKey: key)
-        #expect(defaults.bool(forKey: key) == false)
-        defaults.set(true, forKey: key)
-        #expect(defaults.bool(forKey: key))
-    }
+    func initializationLoadsStoredDurations() {
+        let environment = TestEnvironment()
+        let defaults = environment.defaults
+        defaults.set(120.0, forKey: PreferenceKeys.workDurationSecs)
+        defaults.set(0.0, forKey: PreferenceKeys.restDurationSecs)
 
-    @Test("work start mode default and storage")
-    @MainActor
-    func workStartModeStorage() {
-        let key = PreferenceKeys.workStartMode
-        defaults.removeObject(forKey: key)
-        #expect(defaults.string(forKey: key) == nil)
-        // default computed property should treat nil as automatic
-        #expect(WorkStartMode(rawValue: defaults.string(forKey: key) ?? "") ?? .automatic == .automatic)
-        defaults.set(WorkStartMode.manual.rawValue, forKey: key)
-        #expect(WorkStartMode(rawValue: defaults.string(forKey: key)!) == .manual)
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+
+        #expect(state.workDurationSecs == 120)
+        #expect(state.restDurationSecs == 300)
     }
 }
 
 @Suite("TimerState sleep/wake behaviors")
-class TimerStateSleepWakeTests {
-    private let environment = TestEnvironment()
-    private var defaults: UserDefaults { environment.defaults }
-
+struct TimerStateSleepWakeTests {
     @Test("display sleep auto-pauses work; wake auto-resumes")
     @MainActor
-    func displaySleepAutoPauseAndResume() async throws {
+    func displaySleepAutoPauseAndResume() async {
+        let environment = TestEnvironment()
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 3
         state.restDurationSecs = 2
 
         state.start()
-        try await Task.sleep(for: .seconds(0.8))
-        let nc = environment.workspaceNotificationCenter
-
-        nc.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
-        try await Task.sleep(for: .seconds(0.3))
         await Task.yield()
-        #expect(state.isPaused, "Work should auto-pause on display sleep")
 
-        nc.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
-        try await Task.sleep(for: .seconds(0.4))
+        let notificationCenter = environment.workspaceNotificationCenter
+        notificationCenter.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
         await Task.yield()
-        #expect(!state.isPaused, "Work should auto-resume on display wake")
+        #expect(state.isPaused, "Work should auto-pause on display sleep.")
 
-        try await Task.sleep(for: .seconds(3))
+        notificationCenter.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
         await Task.yield()
-        #expect(state.isResting, "Should still transition to rest after resume")
+        #expect(state.isPaused == false, "Work should auto-resume on display wake.")
+
+        await environment.advanceTime(ticks: 3)
+        #expect(state.isResting, "The timer should still transition to rest after resume.")
     }
 
-    @Test("rest expires while system is asleep → returns to idle on wake (R2)")
+    @Test("rest expires while system is asleep returns to idle on wake")
     @MainActor
-    func restExpiresWhileAwayReturnsIdle() async throws {
+    func restExpiresWhileAwayReturnsIdle() async {
+        let environment = TestEnvironment()
+        let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
@@ -220,21 +192,22 @@ class TimerStateSleepWakeTests {
         state.restDurationSecs = 1
 
         state.start()
-        try await Task.sleep(for: .seconds(1.5))
-        await Task.yield()
+        await environment.advanceUntil(maxTicks: 2) { state.isResting }
         #expect(state.isResting)
 
-        let nc = environment.workspaceNotificationCenter
-
-        nc.post(name: NSWorkspace.willSleepNotification, object: nil)
-
-        try await Task.sleep(for: .seconds(1.5))
-
-        nc.post(name: NSWorkspace.didWakeNotification, object: nil)
-        try await Task.sleep(for: .seconds(0.3))
         await Task.yield()
 
-        #expect(!state.isRunning, "After R2, app should be idle")
-        #expect(!state.isResting, "Rest should be cleared after wake when expired")
+        let notificationCenter = environment.workspaceNotificationCenter
+        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        await Task.yield()
+
+        await environment.advanceTime()
+
+        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        await Task.yield()
+
+        #expect(state.isRunning == false, "The app should be idle after waking from an expired rest.")
+        #expect(state.isResting == false, "Rest should be cleared after wake when it expired asleep.")
+        #expect(state.mode == .idle)
     }
 }

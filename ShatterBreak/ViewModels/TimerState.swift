@@ -69,11 +69,11 @@ final class TimerState {
     private var wasAutoPausedBySystem = false
     private var modeBeforeSleep: Mode?
     
-    private var timerTask: Task<Void, Never>?
     private var sleepObserverTasks: [Task<Void, Never>] = []
     
     private let overlayManager: any OverlayManaging
     private let defaults: UserDefaults
+    private let tickSource: any TimerTickSource
     private let workspaceNotificationCenter: NotificationCenter
     
     private var autoStartWorkTimer: Bool {
@@ -87,11 +87,13 @@ final class TimerState {
         overlayManager: any OverlayManaging,
         postponeDurationSecs: Double = 60,
         defaults: UserDefaults = .standard,
+        tickSource: (any TimerTickSource)? = nil,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         self.overlayManager = overlayManager
         self.postponeDurationSecs = postponeDurationSecs
         self.defaults = defaults
+        self.tickSource = tickSource ?? SystemTimerTickSource()
         self.workspaceNotificationCenter = workspaceNotificationCenter
         self.workDurationSecs = Self.loadDuration(
             forKey: PreferenceKeys.workDurationSecs, defaultValue: 1500, defaults: defaults)
@@ -103,18 +105,20 @@ final class TimerState {
     convenience init(
         postponeDurationSecs: Double = 60,
         defaults: UserDefaults = .standard,
+        tickSource: (any TimerTickSource)? = nil,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         self.init(
             overlayManager: OverlayManager(),
             postponeDurationSecs: postponeDurationSecs,
             defaults: defaults,
+            tickSource: tickSource,
             workspaceNotificationCenter: workspaceNotificationCenter
         )
     }
 
     isolated deinit {
-        timerTask?.cancel()
+        tickSource.stop()
         sleepObserverTasks.forEach { $0.cancel() }
     }
     
@@ -143,13 +147,13 @@ final class TimerState {
     func pause() {
         if mode == .resting || mode == .postponedWork {
             // Skip rest/postponed work and start fresh work immediately
-            timerTask?.cancel()
+            tickSource.stop()
             restStartedAt = nil
             overlayManager.dismissOverlays()
             start()
         } else {
             mode = .paused
-            timerTask?.cancel()
+            tickSource.stop()
         }
     }
     
@@ -159,7 +163,7 @@ final class TimerState {
     }
     
     func stop() {
-        timerTask?.cancel()
+        tickSource.stop()
         mode = .idle
         wasAutoPausedBySystem = false
         timeRemaining = 0
@@ -182,13 +186,8 @@ final class TimerState {
     // MARK: - Timer Control
     
     private func runTimer() {
-        timerTask?.cancel()
-        timerTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
-                guard !Task.isCancelled else { break }
-                self?.tick()
-            }
+        tickSource.start { [weak self] in
+            self?.tick()
         }
     }
     
@@ -211,7 +210,7 @@ final class TimerState {
         timeRemaining -= 1
         
         if timeRemaining <= 0 {
-            timerTask?.cancel()
+            tickSource.stop()
             resumeRest()
         }
     }
@@ -219,11 +218,11 @@ final class TimerState {
     private func tickRest() {
         guard let anchor = restStartedAt else { return }
         
-        timeRemaining = max(0, restDurationSecs - Date().timeIntervalSince(anchor))
+        timeRemaining = max(0, restDurationSecs - tickSource.now.timeIntervalSince(anchor))
         
         guard timeRemaining <= 0 && !isSystemAsleep else { return }
         
-        timerTask?.cancel()
+        tickSource.stop()
         restStartedAt = nil
         
         if autoStartWorkTimer {
@@ -240,7 +239,7 @@ final class TimerState {
         timeRemaining -= 1
         
         if timeRemaining <= 0 {
-            timerTask?.cancel()
+            tickSource.stop()
             enterRestPhase()
         }
     }
@@ -251,7 +250,7 @@ final class TimerState {
         mode = .resting
         hasPostponeBeenUsedThisCycle = false
         savedRestRemaining = nil
-        restStartedAt = Date()
+        restStartedAt = tickSource.now
         timeRemaining = restDurationSecs
         overlayManager.showOverlays(state: self)
         runTimer()
@@ -265,7 +264,7 @@ final class TimerState {
         
         // Calculate when rest actually started to maintain accurate remaining time
         let elapsed = restDurationSecs - saved
-        restStartedAt = Date().addingTimeInterval(-elapsed)
+        restStartedAt = tickSource.now.addingTimeInterval(-elapsed)
         
         savedRestRemaining = nil
         overlayManager.showOverlays(state: self)
@@ -309,7 +308,7 @@ final class TimerState {
         
         modeBeforeSleep = mode
         mode = .paused
-        timerTask?.cancel()
+        tickSource.stop()
         wasAutoPausedBySystem = true
     }
     
@@ -318,10 +317,10 @@ final class TimerState {
         
         // If resting, check if rest expired while asleep
         if mode == .resting, let anchor = restStartedAt {
-            let elapsed = Date().timeIntervalSince(anchor)
+            let elapsed = tickSource.now.timeIntervalSince(anchor)
             guard elapsed >= restDurationSecs && timeRemaining <= 0 else { return }
             
-            timerTask?.cancel()
+            tickSource.stop()
             restStartedAt = nil
             mode = .idle
             overlayManager.dismissOverlays()
