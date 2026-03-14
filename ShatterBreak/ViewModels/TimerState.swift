@@ -22,11 +22,11 @@ final class TimerState {
     var mode: Mode = .idle
     
     var workDurationSecs: Double {
-        didSet { UserDefaults.standard.set(workDurationSecs, forKey: "workDurationSecs") }
+        didSet { defaults.set(workDurationSecs, forKey: "workDurationSecs") }
     }
     
     var restDurationSecs: Double {
-        didSet { UserDefaults.standard.set(restDurationSecs, forKey: "restDurationSecs") }
+        didSet { defaults.set(restDurationSecs, forKey: "restDurationSecs") }
     }
     
     var postponeDurationSecs: Double = 60
@@ -73,24 +73,44 @@ final class TimerState {
     private var sleepObserverTasks: [Task<Void, Never>] = []
     
     private let overlayManager: any OverlayManaging
+    private let defaults: UserDefaults
+    private let workspaceNotificationCenter: NotificationCenter
     
     private var autoStartWorkTimer: Bool {
-        UserDefaults.standard.string(forKey: "workStartMode")
+        defaults.string(forKey: "workStartMode")
             .flatMap { WorkStartMode(rawValue: $0) } ?? .automatic == .automatic
     }
     
     // MARK: - Initialization
     
-    init(overlayManager: any OverlayManaging, postponeDurationSecs: Double = 60) {
+    init(
+        overlayManager: any OverlayManaging,
+        postponeDurationSecs: Double = 60,
+        defaults: UserDefaults = .standard,
+        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
+    ) {
         self.overlayManager = overlayManager
         self.postponeDurationSecs = postponeDurationSecs
-        self.workDurationSecs = Self.loadDuration(forKey: "workDurationSecs", defaultValue: 1500)
-        self.restDurationSecs = Self.loadDuration(forKey: "restDurationSecs", defaultValue: 300)
+        self.defaults = defaults
+        self.workspaceNotificationCenter = workspaceNotificationCenter
+        self.workDurationSecs = Self.loadDuration(
+            forKey: "workDurationSecs", defaultValue: 1500, defaults: defaults)
+        self.restDurationSecs = Self.loadDuration(
+            forKey: "restDurationSecs", defaultValue: 300, defaults: defaults)
         setupSleepObservers()
     }
     
-    convenience init(postponeDurationSecs: Double = 60) {
-        self.init(overlayManager: OverlayManager(), postponeDurationSecs: postponeDurationSecs)
+    convenience init(
+        postponeDurationSecs: Double = 60,
+        defaults: UserDefaults = .standard,
+        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
+    ) {
+        self.init(
+            overlayManager: OverlayManager(),
+            postponeDurationSecs: postponeDurationSecs,
+            defaults: defaults,
+            workspaceNotificationCenter: workspaceNotificationCenter
+        )
     }
 
     isolated deinit {
@@ -98,8 +118,12 @@ final class TimerState {
         sleepObserverTasks.forEach { $0.cancel() }
     }
     
-    private static func loadDuration(forKey key: String, defaultValue: Double) -> Double {
-        let value = UserDefaults.standard.double(forKey: key)
+    private static func loadDuration(
+        forKey key: String,
+        defaultValue: Double,
+        defaults: UserDefaults
+    ) -> Double {
+        let value = defaults.double(forKey: key)
         return value > 0 ? value : defaultValue
     }
     
@@ -260,9 +284,9 @@ final class TimerState {
         
         for name in notifications {
             sleepObserverTasks.append(Task { [weak self] in
-                let center = NSWorkspace.shared.notificationCenter
-                for await _ in center.notifications(named: name) {
-                    self?.handleNotification(name)
+                guard let self else { return }
+                for await _ in workspaceNotificationCenter.notifications(named: name) {
+                    self.handleNotification(name)
                 }
             })
         }

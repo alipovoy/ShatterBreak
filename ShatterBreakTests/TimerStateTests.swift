@@ -10,43 +10,18 @@ import Testing
 
 @testable import ShatterBreak
 
-@Suite("TimerState basic flows", .serialized)
+@Suite("TimerState basic flows")
 class TimerStateBasicTests {
-    private let savedWorkDuration: Double
-    private let savedRestDuration: Double
-
-    init() {
-        // Save original UserDefaults values
-        self.savedWorkDuration = UserDefaults.standard.double(forKey: "workDurationSecs")
-        self.savedRestDuration = UserDefaults.standard.double(forKey: "restDurationSecs")
-
-        // Clear for clean test setup
-        UserDefaults.standard.removeObject(forKey: "workDurationSecs")
-        UserDefaults.standard.removeObject(forKey: "restDurationSecs")
-    }
-
-    deinit {
-        // Restore original UserDefaults values
-        if savedWorkDuration > 0 {
-            UserDefaults.standard.set(savedWorkDuration, forKey: "workDurationSecs")
-        } else {
-            UserDefaults.standard.removeObject(forKey: "workDurationSecs")
-        }
-
-        if savedRestDuration > 0 {
-            UserDefaults.standard.set(savedRestDuration, forKey: "restDurationSecs")
-        } else {
-            UserDefaults.standard.removeObject(forKey: "restDurationSecs")
-        }
-    }
+    private let environment = TestEnvironment()
+    private var defaults: UserDefaults { environment.defaults }
 
     @Test("start() initializes and transitions to rest")
     @MainActor
     func startTransitionsToRest() async throws {
         // Ensure automatic mode (default) so behaviour is predictable.
-        UserDefaults.standard.set(WorkStartMode.automatic.rawValue, forKey: "workStartMode")
+        defaults.set(WorkStartMode.automatic.rawValue, forKey: "workStartMode")
 
-        let state = TimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 1
         state.restDurationSecs = 2
 
@@ -68,7 +43,7 @@ class TimerStateBasicTests {
     @Test("pause during work freezes countdown; resume continues")
     @MainActor
     func pauseAndResume() async throws {
-        let state = TimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 5
         state.restDurationSecs = 2
 
@@ -91,7 +66,7 @@ class TimerStateBasicTests {
     @Test("stop() cancels and resets state")
     @MainActor
     func stopResets() async throws {
-        let state = TimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 5
         state.restDurationSecs = 2
 
@@ -106,9 +81,9 @@ class TimerStateBasicTests {
     @Test("manual mode waits for user after rest expiry")
     @MainActor
     func manualModeDelaysWorkStart() async throws {
-        UserDefaults.standard.set(WorkStartMode.manual.rawValue, forKey: "workStartMode")
+        defaults.set(WorkStartMode.manual.rawValue, forKey: "workStartMode")
 
-        let state = TimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
@@ -144,7 +119,7 @@ class TimerStateBasicTests {
     @Test("visibility flag reflects running vs resting")
     @MainActor
     func visibilityFlagRespectsState() {
-        let state = TimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
 
         // make sure awaitingReturn suppresses indicator
         state.mode = .awaitingReturn
@@ -171,7 +146,7 @@ class TimerStateBasicTests {
     @Test("formattedTimeRemaining still produces string regardless of state")
     @MainActor
     func formattingUnaffectedByState() {
-        let state = TimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.timeRemaining = 75
         #expect(state.formattedTimeRemaining == "01:15")
 
@@ -185,65 +160,40 @@ class TimerStateBasicTests {
     @MainActor
     func appStorageKeyBehavior() {
         let key = "showTimerInMenuBar"
-        UserDefaults.standard.removeObject(forKey: key)
-        #expect(!UserDefaults.standard.bool(forKey: key))
-        UserDefaults.standard.set(true, forKey: key)
-        #expect(UserDefaults.standard.bool(forKey: key))
+        defaults.removeObject(forKey: key)
+        #expect(defaults.bool(forKey: key) == false)
+        defaults.set(true, forKey: key)
+        #expect(defaults.bool(forKey: key))
     }
 
     @Test("work start mode default and storage")
     @MainActor
     func workStartModeStorage() {
         let key = "workStartMode"
-        UserDefaults.standard.removeObject(forKey: key)
-        #expect(UserDefaults.standard.string(forKey: key) == nil)
+        defaults.removeObject(forKey: key)
+        #expect(defaults.string(forKey: key) == nil)
         // default computed property should treat nil as automatic
-        #expect(WorkStartMode(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .automatic == .automatic)
-        UserDefaults.standard.set(WorkStartMode.manual.rawValue, forKey: key)
-        #expect(WorkStartMode(rawValue: UserDefaults.standard.string(forKey: key)!) == .manual)
+        #expect(WorkStartMode(rawValue: defaults.string(forKey: key) ?? "") ?? .automatic == .automatic)
+        defaults.set(WorkStartMode.manual.rawValue, forKey: key)
+        #expect(WorkStartMode(rawValue: defaults.string(forKey: key)!) == .manual)
     }
 }
 
-@Suite("TimerState sleep/wake behaviors", .serialized)
+@Suite("TimerState sleep/wake behaviors")
 class TimerStateSleepWakeTests {
-    private let savedWorkDuration: Double
-    private let savedRestDuration: Double
-
-    init() {
-        // Save original UserDefaults values
-        self.savedWorkDuration = UserDefaults.standard.double(forKey: "workDurationSecs")
-        self.savedRestDuration = UserDefaults.standard.double(forKey: "restDurationSecs")
-
-        // Clear for clean test setup
-        UserDefaults.standard.removeObject(forKey: "workDurationSecs")
-        UserDefaults.standard.removeObject(forKey: "restDurationSecs")
-    }
-
-    deinit {
-        // Restore original UserDefaults values
-        if savedWorkDuration > 0 {
-            UserDefaults.standard.set(savedWorkDuration, forKey: "workDurationSecs")
-        } else {
-            UserDefaults.standard.removeObject(forKey: "workDurationSecs")
-        }
-
-        if savedRestDuration > 0 {
-            UserDefaults.standard.set(savedRestDuration, forKey: "restDurationSecs")
-        } else {
-            UserDefaults.standard.removeObject(forKey: "restDurationSecs")
-        }
-    }
+    private let environment = TestEnvironment()
+    private var defaults: UserDefaults { environment.defaults }
 
     @Test("display sleep auto-pauses work; wake auto-resumes")
     @MainActor
     func displaySleepAutoPauseAndResume() async throws {
-        let state = TimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 3
         state.restDurationSecs = 2
 
         state.start()
         try await Task.sleep(for: .seconds(0.8))
-        let nc = NSWorkspace.shared.notificationCenter
+        let nc = environment.workspaceNotificationCenter
 
         nc.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
         try await Task.sleep(for: .seconds(0.3))
@@ -263,7 +213,9 @@ class TimerStateSleepWakeTests {
     @Test("rest expires while system is asleep → returns to idle on wake (R2)")
     @MainActor
     func restExpiresWhileAwayReturnsIdle() async throws {
-        let state = TimerState(overlayManager: OverlaySpy())
+        defaults.set(WorkStartMode.automatic.rawValue, forKey: "workStartMode")
+
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
@@ -272,7 +224,7 @@ class TimerStateSleepWakeTests {
         await Task.yield()
         #expect(state.isResting)
 
-        let nc = NSWorkspace.shared.notificationCenter
+        let nc = environment.workspaceNotificationCenter
 
         nc.post(name: NSWorkspace.willSleepNotification, object: nil)
 
@@ -286,4 +238,3 @@ class TimerStateSleepWakeTests {
         #expect(!state.isResting, "Rest should be cleared after wake when expired")
     }
 }
-

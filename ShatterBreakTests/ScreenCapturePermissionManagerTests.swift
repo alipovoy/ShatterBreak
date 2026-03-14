@@ -10,33 +10,19 @@ import Testing
 
 @testable import ShatterBreak
 
-@Suite("ScreenCapturePermissionManager", .serialized)
+@Suite("ScreenCapturePermissionManager")
 class ScreenCapturePermissionManagerTests {
-    private let savedLaunchKey: Bool
     private let launchKey = "com.shatterbreak.hasLaunchedBefore"
-
-    init() {
-        self.savedLaunchKey = UserDefaults.standard.bool(forKey: launchKey)
-        UserDefaults.standard.removeObject(forKey: launchKey)
-    }
-
-    deinit {
-        if savedLaunchKey {
-            UserDefaults.standard.set(true, forKey: launchKey)
-        } else {
-            UserDefaults.standard.removeObject(forKey: launchKey)
-        }
-    }
+    private let environment = TestEnvironment()
+    private var defaults: UserDefaults { environment.defaults }
 
     @Test("requestIfFirstLaunch sets launch key on first call")
     @MainActor
     func firstLaunchSetsKey() async throws {
-        let defaults = UserDefaults.standard
-
         defaults.removeObject(forKey: launchKey)
         #expect(!defaults.bool(forKey: launchKey))
 
-        let manager = ScreenCapturePermissionManager()
+        let manager = environment.makePermissionManager()
         _ = manager  // silence unused
 
         // Ensure main-actor init work has run
@@ -50,4 +36,3 @@ class ScreenCapturePermissionManagerTests {
         #expect(defaults.bool(forKey: launchKey), "requestIfFirstLaunch should set hasLaunchedBefore")
     }
 }
-

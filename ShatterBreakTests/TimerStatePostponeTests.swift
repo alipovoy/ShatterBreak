@@ -10,42 +10,19 @@ import Testing
 
 @testable import ShatterBreak
 
-@Suite("TimerState postpone behaviors", .serialized)
+@Suite("TimerState postpone behaviors")
 class TimerStatePostponeTests {
     let postponeDurationSecs = 1.5
-    private let savedWorkDuration: Double
-    private let savedRestDuration: Double
-
-    init() {
-        // Save original UserDefaults values
-        self.savedWorkDuration = UserDefaults.standard.double(forKey: "workDurationSecs")
-        self.savedRestDuration = UserDefaults.standard.double(forKey: "restDurationSecs")
-
-        // Clear for clean test setup
-        UserDefaults.standard.removeObject(forKey: "workDurationSecs")
-        UserDefaults.standard.removeObject(forKey: "restDurationSecs")
-    }
-
-    deinit {
-        // Restore original UserDefaults values
-        if savedWorkDuration > 0 {
-            UserDefaults.standard.set(savedWorkDuration, forKey: "workDurationSecs")
-        } else {
-            UserDefaults.standard.removeObject(forKey: "workDurationSecs")
-        }
-
-        if savedRestDuration > 0 {
-            UserDefaults.standard.set(savedRestDuration, forKey: "restDurationSecs")
-        } else {
-            UserDefaults.standard.removeObject(forKey: "restDurationSecs")
-        }
-    }
+    private let environment = TestEnvironment()
 
     @Test("canPostpone returns true when resting and not used this cycle")
     @MainActor
     func canPostponeTrueWhenRestingAndNotUsed() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -61,7 +38,10 @@ class TimerStatePostponeTests {
     @MainActor
     func canPostponeFalseWhenNotResting() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -82,7 +62,10 @@ class TimerStatePostponeTests {
     @MainActor
     func canPostponeFalseWhenAlreadyUsed() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -105,7 +88,10 @@ class TimerStatePostponeTests {
     @MainActor
     func postponeTransitionsStateAndDismissesOverlays() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -125,7 +111,10 @@ class TimerStatePostponeTests {
     @MainActor
     func postponeDoesNothingIfConditionsNotMet() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -153,7 +142,10 @@ class TimerStatePostponeTests {
     @MainActor
     func postponeExpiresAndResumesRest() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -178,7 +170,10 @@ class TimerStatePostponeTests {
     @MainActor
     func postponeFlagResetsOnNewCycle() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
@@ -211,7 +206,10 @@ class TimerStatePostponeTests {
     @MainActor
     func postponePreventsMultipleUsesInCycle() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 5
 
@@ -233,7 +231,10 @@ class TimerStatePostponeTests {
     @MainActor
     func pauseDuringPostponedWork() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -255,7 +256,10 @@ class TimerStatePostponeTests {
     @MainActor
     func stopDuringPostponedWork() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -278,7 +282,10 @@ class TimerStatePostponeTests {
     @MainActor
     func earlyPostponePreservesRestTime() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 10  // long rest
 
@@ -303,7 +310,10 @@ class TimerStatePostponeTests {
     @MainActor
     func postponeNearRestExpiry() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 2  // short rest
 
@@ -329,7 +339,10 @@ class TimerStatePostponeTests {
     @MainActor
     func restCountdownAccuracyAfterResume() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 5
 
@@ -355,7 +368,10 @@ class TimerStatePostponeTests {
     @MainActor
     func systemSleepDuringPostpone() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: postponeDurationSecs)
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: postponeDurationSecs
+        )
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -367,7 +383,7 @@ class TimerStatePostponeTests {
         #expect(timeWhenSleep <= postponeDurationSecs)
 
         // Simulate system sleep
-        let nc = NSWorkspace.shared.notificationCenter
+        let nc = environment.workspaceNotificationCenter
         nc.post(name: NSWorkspace.willSleepNotification, object: nil)
         try await Task.sleep(for: .seconds(0.5))
 
@@ -386,7 +402,10 @@ class TimerStatePostponeTests {
     @MainActor
     func savedRestRemainingPreservation() async throws {
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy, postponeDurationSecs: 1)  // very short postpone to test preservation
+        let state = environment.makeTimerState(
+            overlayManager: spy,
+            postponeDurationSecs: 1
+        )  // very short postpone to test preservation
         state.workDurationSecs = 1
         state.restDurationSecs = 8
 
@@ -407,4 +426,3 @@ class TimerStatePostponeTests {
         #expect(abs(restoredTime - timeBeforePostpone) < 0.2, "Saved rest time should be accurately restored")
     }
 }
-

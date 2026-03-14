@@ -10,43 +10,18 @@ import Testing
 
 @testable import ShatterBreak
 
-@Suite("TimerState wake before rest expiry", .serialized)
+@Suite("TimerState wake before rest expiry")
 class TimerStateWakeBeforeExpiryTests {
-    private let savedWorkDuration: Double
-    private let savedRestDuration: Double
-
-    init() {
-        // Save original UserDefaults values
-        self.savedWorkDuration = UserDefaults.standard.double(forKey: "workDurationSecs")
-        self.savedRestDuration = UserDefaults.standard.double(forKey: "restDurationSecs")
-
-        // Clear for clean test setup
-        UserDefaults.standard.removeObject(forKey: "workDurationSecs")
-        UserDefaults.standard.removeObject(forKey: "restDurationSecs")
-        UserDefaults.standard.set(WorkStartMode.automatic.rawValue, forKey: "workStartMode")
-    }
-
-    deinit {
-        // Restore original UserDefaults values
-        if savedWorkDuration > 0 {
-            UserDefaults.standard.set(savedWorkDuration, forKey: "workDurationSecs")
-        } else {
-            UserDefaults.standard.removeObject(forKey: "workDurationSecs")
-        }
-
-        if savedRestDuration > 0 {
-            UserDefaults.standard.set(savedRestDuration, forKey: "restDurationSecs")
-        } else {
-            UserDefaults.standard.removeObject(forKey: "restDurationSecs")
-        }
-        UserDefaults.standard.removeObject(forKey: "workStartMode")
-    }
+    private let environment = TestEnvironment()
+    private var defaults: UserDefaults { environment.defaults }
 
     @Test("wake during rest before expiry keeps overlay and rest")
     @MainActor
     func wakeDuringRestBeforeExpiryKeepsState() async throws {
+        defaults.set(WorkStartMode.automatic.rawValue, forKey: "workStartMode")
+
         let spy = OverlaySpy()
-        let state = TimerState(overlayManager: spy)
+        let state = environment.makeTimerState(overlayManager: spy)
         state.workDurationSecs = 1
         state.restDurationSecs = 5
 
@@ -55,7 +30,7 @@ class TimerStateWakeBeforeExpiryTests {
         #expect(state.isResting)
         #expect(spy.showCount == 1)
 
-        let nc = NSWorkspace.shared.notificationCenter
+        let nc = environment.workspaceNotificationCenter
         nc.post(name: NSWorkspace.willSleepNotification, object: nil)
         try await Task.sleep(for: .seconds(0.5))  // not enough to expire rest
         nc.post(name: NSWorkspace.didWakeNotification, object: nil)

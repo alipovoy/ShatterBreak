@@ -17,8 +17,15 @@ final class ScreenCapturePermissionManager {
 
     private static let launchKey = "com.shatterbreak.hasLaunchedBefore"
     private var observationTask: Task<Void, Never>?
+    private let defaults: UserDefaults
+    private let appNotificationCenter: NotificationCenter
 
-    init() {
+    init(
+        defaults: UserDefaults = .standard,
+        appNotificationCenter: NotificationCenter = .default
+    ) {
+        self.defaults = defaults
+        self.appNotificationCenter = appNotificationCenter
         refresh()
         observeAppActive()
     }
@@ -40,7 +47,7 @@ final class ScreenCapturePermissionManager {
 
     func requestIfFirstLaunch() {
         guard !hasLaunchedBefore else { return }
-        UserDefaults.standard.set(true, forKey: Self.launchKey)
+        defaults.set(true, forKey: Self.launchKey)
         CGRequestScreenCaptureAccess()
     }
 
@@ -49,13 +56,16 @@ final class ScreenCapturePermissionManager {
     }
 
     private var hasLaunchedBefore: Bool {
-        UserDefaults.standard.bool(forKey: Self.launchKey)
+        defaults.bool(forKey: Self.launchKey)
     }
 
     private func observeAppActive() {
         observationTask = Task { [weak self] in
-            for await _ in NotificationCenter.default.notifications(named: NSApplication.didBecomeActiveNotification) {
-                await MainActor.run { self?.refresh() }
+            guard let self else { return }
+            for await _ in appNotificationCenter.notifications(
+                named: NSApplication.didBecomeActiveNotification
+            ) {
+                self.refresh()
             }
         }
     }
