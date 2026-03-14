@@ -4,12 +4,12 @@ struct PreferencesView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.permissions) private var permissions
 
-    @AppStorage("playSound") private var playSound: Bool = true
-    @AppStorage("effectType") private var effectType: EffectType = .shatter
-    @AppStorage("softOverlay") private var softOverlay: Bool = false
-    @AppStorage("allowPostpone") private var allowPostpone: Bool = false
-    @AppStorage("showTimerInMenuBar") private var showTimerInMenuBar: Bool = false
-    @AppStorage("workStartMode") private var workStartMode: WorkStartMode = .automatic
+    @AppStorage(PreferenceKeys.playSound) private var playSound: Bool = true
+    @AppStorage(PreferenceKeys.effectType) private var effectType: EffectType = .shatter
+    @AppStorage(PreferenceKeys.softOverlay) private var softOverlay: Bool = false
+    @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone: Bool = false
+    @AppStorage(PreferenceKeys.showTimerInMenuBar) private var showTimerInMenuBar: Bool = false
+    @AppStorage(PreferenceKeys.workStartMode) private var workStartMode: WorkStartMode = .automatic
 
     @State private var showPermissionAlert = false
 
@@ -23,7 +23,7 @@ struct PreferencesView: View {
 
                     Picker("Effect Type", selection: $effectType) {
                         ForEach(EffectType.allCases) { effect in
-                            Text(effect.rawValue).tag(effect)
+                            Text(effect.displayName).tag(effect)
                         }
                     }
                     .pickerStyle(.radioGroup)
@@ -40,7 +40,7 @@ struct PreferencesView: View {
                     // Menu bar display preference
                     Picker("Start work after break ends", selection: $workStartMode) {
                         ForEach(WorkStartMode.allCases) { mode in
-                            Text(mode.rawValue).tag(mode)
+                            Text(mode.displayName).tag(mode)
                         }
                     }
                     .pickerStyle(.radioGroup)

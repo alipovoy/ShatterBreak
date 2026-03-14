@@ -26,7 +26,7 @@ class TimerStateOverlayTests {
     @Test("overlays show when entering rest and dismiss when leaving")
     @MainActor
     func overlaysShowAndDismiss() async throws {
-        defaults.set(WorkStartMode.automatic.rawValue, forKey: "workStartMode")
+        defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let spy = OverlaySpy()
         let state = environment.makeTimerState(overlayManager: spy)
@@ -47,7 +47,7 @@ class TimerStateOverlayTests {
     @Test("pause during rest skips rest and dismisses overlays")
     @MainActor
     func skipRestDismissesOverlay() async throws {
-        defaults.set(WorkStartMode.automatic.rawValue, forKey: "workStartMode")
+        defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let spy = OverlaySpy()
         let state = environment.makeTimerState(overlayManager: spy)
@@ -66,7 +66,7 @@ class TimerStateOverlayTests {
     @Test("manual-start mode keeps overlay and waits for user action")
     @MainActor
     func manualOverlayPersists() async throws {
-        defaults.set(WorkStartMode.manual.rawValue, forKey: "workStartMode")
+        defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let spy = OverlaySpy()
         let state = environment.makeTimerState(overlayManager: spy)

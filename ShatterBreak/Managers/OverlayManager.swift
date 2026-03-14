@@ -14,7 +14,7 @@ class OverlayManager: OverlayManaging {
     private var captureTask: Task<Void, Never>?  // Manages the asynchronous screen capture process
     
     private var selectedEffectType: EffectType {
-        UserDefaults.standard.string(forKey: "effectType")
+        UserDefaults.standard.string(forKey: PreferenceKeys.effectType)
             .flatMap(EffectType.init(rawValue:)) ?? .shatter
     }
 
@@ -46,7 +46,7 @@ class OverlayManager: OverlayManaging {
                         .canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary,
                     ]
                     // Determine window level based on "Soft Overlay" preference
-                    let softOverlay = UserDefaults.standard.bool(forKey: "softOverlay")
+                    let softOverlay = UserDefaults.standard.bool(forKey: PreferenceKeys.softOverlay)
                     if softOverlay {
                         window.level = NSWindow.Level(Int(NSWindow.Level.mainMenu.rawValue) - 1)  // Place below menu bar
                     } else {

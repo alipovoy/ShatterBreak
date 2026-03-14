@@ -22,11 +22,11 @@ final class TimerState {
     var mode: Mode = .idle
     
     var workDurationSecs: Double {
-        didSet { defaults.set(workDurationSecs, forKey: "workDurationSecs") }
+        didSet { defaults.set(workDurationSecs, forKey: PreferenceKeys.workDurationSecs) }
     }
     
     var restDurationSecs: Double {
-        didSet { defaults.set(restDurationSecs, forKey: "restDurationSecs") }
+        didSet { defaults.set(restDurationSecs, forKey: PreferenceKeys.restDurationSecs) }
     }
     
     var postponeDurationSecs: Double = 60
@@ -77,7 +77,7 @@ final class TimerState {
     private let workspaceNotificationCenter: NotificationCenter
     
     private var autoStartWorkTimer: Bool {
-        defaults.string(forKey: "workStartMode")
+        defaults.string(forKey: PreferenceKeys.workStartMode)
             .flatMap { WorkStartMode(rawValue: $0) } ?? .automatic == .automatic
     }
     
@@ -94,9 +94,9 @@ final class TimerState {
         self.defaults = defaults
         self.workspaceNotificationCenter = workspaceNotificationCenter
         self.workDurationSecs = Self.loadDuration(
-            forKey: "workDurationSecs", defaultValue: 1500, defaults: defaults)
+            forKey: PreferenceKeys.workDurationSecs, defaultValue: 1500, defaults: defaults)
         self.restDurationSecs = Self.loadDuration(
-            forKey: "restDurationSecs", defaultValue: 300, defaults: defaults)
+            forKey: PreferenceKeys.restDurationSecs, defaultValue: 300, defaults: defaults)
         setupSleepObservers()
     }
     

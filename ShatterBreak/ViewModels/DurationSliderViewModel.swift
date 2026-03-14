@@ -135,21 +135,29 @@ final class DurationSliderViewModel {
         if totalMinutes >= 60 {
             let hours = totalMinutes / 60
             let mins = totalMinutes % 60
-            
+
+            var components = [
+                "\(hours.formatted(.number))h",
+                "\(mins.formatted(.number))m"
+            ]
+
             if remainingSeconds > 0 {
-                return "\(hours)h \(String(format: "%02d", mins))m \(String(format: "%02d", remainingSeconds))s"
-                    .replacingOccurrences(of: " 0", with: " ")
-            } else {
-                return "\(hours)h \(String(format: "%02d", mins))m"
+                components.append("\(remainingSeconds.formatted(.number))s")
             }
+
+            return components.joined(separator: " ")
         }
         
-        return "\(String(format: "%02d", totalMinutes)):\(String(format: "%02d", remainingSeconds))"
+        return "\(zeroPadded(totalMinutes)):\(zeroPadded(remainingSeconds))"
     }
 
     private func formatTimeMMSS(seconds: Double) -> String {
         let totalMinutes = Int(seconds) / 60
         let remainingSeconds = Int(seconds) % 60
-        return "\(String(format: "%02d", totalMinutes)):\(String(format: "%02d", remainingSeconds))"
+        return "\(zeroPadded(totalMinutes)):\(zeroPadded(remainingSeconds))"
+    }
+
+    private func zeroPadded(_ value: Int) -> String {
+        value.formatted(.number.precision(.integerLength(2...2)))
     }
 }

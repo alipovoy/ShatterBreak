@@ -9,9 +9,9 @@ struct OverlayView: View {
     @State private var phase = 0
     @State private var shakeOffset: CGFloat = 0
 
-    @AppStorage("playSound") private var playSound: Bool = true
-    @AppStorage("effectType") private var effectType: EffectType = .shatter
-    @AppStorage("allowPostpone") private var allowPostpone: Bool = false
+    @AppStorage(PreferenceKeys.playSound) private var playSound: Bool = true
+    @AppStorage(PreferenceKeys.effectType) private var effectType: EffectType = .shatter
+    @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone: Bool = false
 
     var body: some View {
         ZStack {
@@ -221,4 +221,3 @@ struct CrackedGlassView: View {
 #Preview("CrackedGlassView") {
     CrackedGlassView()
 }
-

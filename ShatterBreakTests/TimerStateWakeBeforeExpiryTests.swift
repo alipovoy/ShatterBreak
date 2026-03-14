@@ -18,7 +18,7 @@ class TimerStateWakeBeforeExpiryTests {
     @Test("wake during rest before expiry keeps overlay and rest")
     @MainActor
     func wakeDuringRestBeforeExpiryKeepsState() async throws {
-        defaults.set(WorkStartMode.automatic.rawValue, forKey: "workStartMode")
+        defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let spy = OverlaySpy()
         let state = environment.makeTimerState(overlayManager: spy)

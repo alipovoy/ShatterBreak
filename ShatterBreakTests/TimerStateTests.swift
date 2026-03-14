@@ -19,7 +19,7 @@ class TimerStateBasicTests {
     @MainActor
     func startTransitionsToRest() async throws {
         // Ensure automatic mode (default) so behaviour is predictable.
-        defaults.set(WorkStartMode.automatic.rawValue, forKey: "workStartMode")
+        defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 1
@@ -81,7 +81,7 @@ class TimerStateBasicTests {
     @Test("manual mode waits for user after rest expiry")
     @MainActor
     func manualModeDelaysWorkStart() async throws {
-        defaults.set(WorkStartMode.manual.rawValue, forKey: "workStartMode")
+        defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 1
@@ -159,7 +159,7 @@ class TimerStateBasicTests {
     @Test("app storage key toggles correctly")
     @MainActor
     func appStorageKeyBehavior() {
-        let key = "showTimerInMenuBar"
+        let key = PreferenceKeys.showTimerInMenuBar
         defaults.removeObject(forKey: key)
         #expect(defaults.bool(forKey: key) == false)
         defaults.set(true, forKey: key)
@@ -169,7 +169,7 @@ class TimerStateBasicTests {
     @Test("work start mode default and storage")
     @MainActor
     func workStartModeStorage() {
-        let key = "workStartMode"
+        let key = PreferenceKeys.workStartMode
         defaults.removeObject(forKey: key)
         #expect(defaults.string(forKey: key) == nil)
         // default computed property should treat nil as automatic
@@ -213,7 +213,7 @@ class TimerStateSleepWakeTests {
     @Test("rest expires while system is asleep → returns to idle on wake (R2)")
     @MainActor
     func restExpiresWhileAwayReturnsIdle() async throws {
-        defaults.set(WorkStartMode.automatic.rawValue, forKey: "workStartMode")
+        defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 1
