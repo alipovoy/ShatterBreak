@@ -16,8 +16,9 @@ struct MenuView: View {
                         state.isPaused ? state.resume() : state.pause()
                     } label: {
                         Label(
-                            state.isPaused ? "Resume" : "Pause",
-                            systemImage: state.isPaused ? "play.fill" : "pause.fill"
+                            state.isPaused ? "Resume" : (state.isResting ? "Skip Rest" : "Pause"),
+                            systemImage: state.isPaused
+                                ? "play.fill" : (state.isResting ? "forward.fill" : "pause.fill")
                         )
                         .frame(maxWidth: .infinity)
                     }

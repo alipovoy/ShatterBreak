@@ -37,7 +37,8 @@ When the timer is inactive, the menu bar UI must provide:
 #### Active or paused state
 When a timer is active or paused, the menu bar UI must provide:
 * a prominent countdown display
-* a `Pause` action when the timer is active
+* a `Pause` action during running work and postponed work
+* a `Skip Rest` action during rest
 * a `Resume` action when the timer is paused
 * a `Stop` action
 
@@ -98,17 +99,16 @@ The timer system must support the following modes:
     * in manual mode, the application must keep the overlay visible and wait for the user to confirm return
 
 ### 5.2 Pause Semantics
-* `Pause` must freeze the currently active phase.
-* `Pause` must not convert the current phase into a different phase.
-* `Resume` must continue the same phase that was paused.
+* `Pause` must freeze running work and postponed work.
+* `Resume` must continue the same work phase that was paused.
+* `Pause` and `Resume` do not need to apply to the resting phase.
 * `Stop` must clear the active timer, dismiss overlays, and reset cycle-specific state.
 
-### 5.3 Paused Rest Behavior
-* If rest is paused, the application must preserve the current rest state.
-* If a rest overlay is already visible, pausing must not recreate or restart that overlay.
-* Resuming a paused rest must continue the existing break.
-* Resuming a paused rest must not replay the shatter animation.
-* Resuming a paused rest must not replay the break sound.
+### 5.3 Rest Skip Behavior
+* During the resting phase, the primary menu bar action must be `Skip Rest`.
+* `Skip Rest` must immediately dismiss the active break overlay.
+* `Skip Rest` must cancel the remaining rest time.
+* `Skip Rest` must start a fresh work timer.
 
 ## 6. Break Overlay Requirements
 ### 6.1 Overlay Creation
@@ -192,6 +192,7 @@ The application must include automated tests for the core timer and overlay logi
 The test suite must validate:
 * timer state transitions
 * pause and resume behavior
+* skip-rest behavior during the resting phase
 * stop behavior
 * postpone eligibility rules
 * postponed-work resumption into the saved rest time

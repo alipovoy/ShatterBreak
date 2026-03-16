@@ -136,7 +136,7 @@ final class TimerState {
     // MARK: - User Actions
     
     func start() {
-        if mode == .resting || mode == .awaitingReturn || modeBeforePause == .resting {
+        if mode == .resting || mode == .awaitingReturn {
             overlayManager.dismissOverlays()
         }
         
@@ -148,12 +148,16 @@ final class TimerState {
     
     func pause() {
         switch mode {
-        case .running, .resting, .postponedWork:
+        case .running, .postponedWork:
             let previousMode = mode
             freezeCountdown()
             modeBeforePause = previousMode
             mode = .paused
             wasAutoPausedBySystem = false
+        case .resting:
+            clearCountdown()
+            overlayManager.dismissOverlays()
+            start()
         case .idle, .paused, .awaitingReturn:
             return
         }

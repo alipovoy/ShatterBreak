@@ -41,9 +41,9 @@ struct TimerStateOverlayTests {
         #expect(state.isResting == false)
     }
 
-    @Test("pause during rest freezes countdown and resumes without recreating overlay")
+    @Test("pause during rest skips rest and dismisses overlays")
     @MainActor
-    func pauseDuringRestKeepsOverlayAndResumesRest() async {
+    func skipRestDismissesOverlay() async {
         let environment = TestEnvironment()
         let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
@@ -58,20 +58,9 @@ struct TimerStateOverlayTests {
         #expect(spy.showCount == 1)
 
         state.pause()
-        let snapshot = state.timeRemaining
-
-        #expect(state.isPaused, "Pausing rest should freeze the countdown.")
-        #expect(spy.dismissCount == 0, "Pausing rest should leave the existing overlay in place.")
-
-        await environment.advanceTime(ticks: 2)
-        #expect(state.timeRemaining == snapshot, "The rest timer should stay frozen while paused.")
-
-        state.resume()
-        #expect(state.isResting, "Resume should return to the interrupted rest phase.")
-        #expect(spy.showCount == 1, "Resuming rest should continue the existing overlay without replaying it.")
-
-        await environment.advanceTime()
-        #expect(state.timeRemaining == snapshot - 1, "Rest should keep counting down after resume.")
+        #expect(spy.dismissCount == 2)
+        #expect(state.isRunning, "Skip rest should start work.")
+        #expect(state.isResting == false)
     }
 
     @Test("manual-start mode keeps overlay and waits for user action")
