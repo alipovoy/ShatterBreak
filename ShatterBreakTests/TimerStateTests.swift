@@ -206,6 +206,7 @@ struct TimerStateSleepWakeTests {
         state.workDurationSecs = 3
         state.restDurationSecs = 2
 
+        await Task.yield()
         state.start()
         await Task.yield()
 

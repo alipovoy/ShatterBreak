@@ -17,11 +17,18 @@ final class SystemTimerTickSource: TimerTickSource {
 
     func start(_ handler: @escaping @MainActor @Sendable () -> Void) {
         stop()
-        task = Task {
+        // Keep the sleep loop off the main actor so the first visible second
+        // doesn't wait behind UI work and appear to skip a value.
+        task = Task.detached(priority: .userInitiated) {
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
-                guard !Task.isCancelled else { break }
-                handler()
+                do {
+                    try await Task.sleep(for: .seconds(1))
+                    try Task.checkCancellation()
+                } catch {
+                    return
+                }
+
+                await handler()
             }
         }
     }

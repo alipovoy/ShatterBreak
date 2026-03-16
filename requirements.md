@@ -126,14 +126,18 @@ The timer system must support the following modes:
     * `Shatter`
     * `Overlay`
 * If the selected effect is `Shatter` and permission is available, the application should:
-    * capture screenshots for the active displays
-    * display a shake/shatter intro
+    * present overlay windows immediately
+    * capture screenshots for the active displays without capturing the application's own overlay windows
+    * avoid showing the dark fallback overlay as a temporary loading state while screenshot capture is pending
+    * begin the shake/shatter intro only after capture results are available for the current break session
+    * start the shatter intro for all active displays in sync
     * optionally play a glass sound
 * If the selected effect is `Overlay`, the application must display a dark overlay without screenshot capture.
 
 ### 6.4 Fallback Behavior
-* If screen recording permission is unavailable, the application must fall back to the plain overlay instead of failing the break flow.
+* If screen recording permission is unavailable, screenshot-based background capture must be disabled, but the break flow must continue.
 * If ScreenCaptureKit fails to enumerate displays or capture one or more screenshots, the application must fall back gracefully instead of cancelling the break flow.
+* In shatter mode, a display that does not receive a captured screenshot may fall back to a dark background on that display while still completing the shatter sequence.
 * Per-display capture failures may fall back on a display-by-display basis.
 
 ### 6.5 Overlay Content
@@ -141,6 +145,7 @@ During a break overlay, the application must display:
 * the remaining rest time
 * a `Postpone` action only when postponing is enabled and still available for the current cycle
 * an `I'm back` action when the application is waiting for manual return
+* In `Shatter` mode, the break controls and countdown may remain hidden until the shatter intro completes.
 
 ## 7. Postpone Requirements
 * Postponing must be optional and user-configurable.
@@ -197,6 +202,7 @@ The test suite must validate:
 * postpone eligibility rules
 * postponed-work resumption into the saved rest time
 * overlay lifecycle behavior
+* shatter presentation-state behavior, including fallback when a screenshot is unavailable
 * sleep and wake edge cases
 * permission manager behavior
 * duration parsing and slider snapping behavior
@@ -209,5 +215,6 @@ The following implementation choices are approved by this blueprint:
 * ScreenCaptureKit for screenshot-based shatter visuals
 * `UserDefaults` and `@AppStorage` for local preference persistence
 * Observation-based state with a central timer state model
+* Excluding the current application from ScreenCaptureKit capture filters to avoid recursive overlay capture
 
 Alternative implementations may be used only if they preserve the product behavior defined above.

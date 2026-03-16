@@ -3,23 +3,23 @@ import AppKit
 
 struct OverlayView: View {
     @Bindable var state: TimerState
-    var bgImage: CGImage?
-    var hasPermission: Bool
+    @Bindable var presentation: OverlayPresentationState
 
-    @State private var phase = 0
+    @State private var hasPlayedSound = false
     @State private var shakeOffset: CGFloat = 0
 
     @AppStorage(PreferenceKeys.playSound) private var playSound: Bool = true
-    @AppStorage(PreferenceKeys.effectType) private var effectType: EffectType = .shatter
     @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone: Bool = false
 
     var body: some View {
         ZStack {
             backgroundLayer
 
-            if phase == 2 || (!hasPermission && phase > 0) {
+            if presentation.showsCracks {
                 CrackedGlassView()
+            }
 
+            if showsForegroundContent {
                 VStack(spacing: 24) {
                     Text("Time to rest")
                         .font(.largeTitle)
@@ -55,42 +55,77 @@ struct OverlayView: View {
                 }
             }
         }
-        .task {
-            await runAnimationSequence()
+        .task(id: presentation.phase) {
+            await handlePresentationPhase()
         }
     }
 
     @ViewBuilder
     private var backgroundLayer: some View {
-        if effectType == .shatter, hasPermission, let cgImage = bgImage {
-            Image(nsImage: NSImage(cgImage: cgImage, size: .zero))
-                .resizable()
-                .offset(x: phase == 1 ? shakeOffset : 0, y: phase == 1 ? -shakeOffset : 0)
+        backgroundSurface
+            .offset(
+                x: presentation.phase == .shatterIntro ? shakeOffset : 0,
+                y: presentation.phase == .shatterIntro ? -shakeOffset : 0
+            )
+    }
+
+    @ViewBuilder
+    private var backgroundSurface: some View {
+        if presentation.isShatterEffect {
+            if let cgImage = presentation.backgroundImage,
+               presentation.phase != .plain {
+                Image(nsImage: NSImage(cgImage: cgImage, size: .zero))
+                    .resizable()
+            } else if presentation.phase == .plain {
+                Color.clear
+            } else {
+                Color.black.opacity(0.85)
+            }
         } else {
             Color.black.opacity(0.85)
         }
     }
 
-    private func runAnimationSequence() async {
-        if effectType == .shatter && hasPermission {
-            if Task.isCancelled { return }
+    private var showsForegroundContent: Bool {
+        if presentation.isShatterEffect {
+            return presentation.phase == .shattered
+        }
 
-            phase = 1
-            withAnimation(Animation.spring(duration: 0.05).repeatCount(20, autoreverses: true)) {
+        return true
+    }
+
+    private func handlePresentationPhase() async {
+        switch presentation.phase {
+        case .plain:
+            shakeOffset = 0
+            if playSound, presentation.isShatterEffect == false, hasPlayedSound == false {
+                hasPlayedSound = true
+                NSSound(named: "Glass")?.play()
+            }
+        case .shatterIntro:
+            shakeOffset = 0
+
+            withAnimation(.spring(duration: 0.05).repeatCount(20, autoreverses: true)) {
                 shakeOffset = 10
             }
-            if Task.isCancelled { return }
+
             do {
                 try await Task.sleep(for: .milliseconds(900))
                 try Task.checkCancellation()
             } catch {
                 return
             }
-        }
-        phase = 2
 
-        if playSound {
-            NSSound(named: "Glass")?.play()
+            guard presentation.phase == .shatterIntro else { return }
+            shakeOffset = 0
+            presentation.finishShatterIntro()
+
+            if playSound, hasPlayedSound == false {
+                hasPlayedSound = true
+                NSSound(named: "Glass")?.play()
+            }
+        case .shattered:
+            shakeOffset = 0
         }
     }
 
@@ -208,11 +243,23 @@ struct CrackedGlassView: View {
     awaitingState.mode = .awaitingReturn
 
     return VStack {
-        OverlayView(state: restingState, bgImage: nil, hasPermission: true)
+        OverlayView(
+            state: restingState,
+            presentation: OverlayPresentationState(
+                effectType: .overlay,
+                allowsShatterUpgrade: false
+            )
+        )
             .frame(width: 400, height: 300)
             .padding()
 
-        OverlayView(state: awaitingState, bgImage: nil, hasPermission: true)
+        OverlayView(
+            state: awaitingState,
+            presentation: OverlayPresentationState(
+                effectType: .overlay,
+                allowsShatterUpgrade: false
+            )
+        )
             .frame(width: 400, height: 300)
             .padding()
     }
