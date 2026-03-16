@@ -114,6 +114,8 @@ struct TimerStateBasicTests {
         #expect(TimerState.format(timeInterval: 65) == "01:05")
         #expect(TimerState.format(timeInterval: 599) == "09:59")
         #expect(TimerState.format(timeInterval: 600) == "10:00")
+        #expect(TimerState.format(timeInterval: 8.999) == "00:09")
+        #expect(TimerState.format(timeInterval: 0.1) == "00:01")
     }
 
     @Test("visibility flag reflects each timer mode")

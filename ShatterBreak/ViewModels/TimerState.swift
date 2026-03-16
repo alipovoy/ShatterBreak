@@ -355,8 +355,9 @@ final class TimerState {
     // MARK: - Formatting
     
     nonisolated static func format(timeInterval interval: TimeInterval) -> String {
-        let minutes = max(0, Int(interval) / 60)
-        let seconds = max(0, Int(interval) % 60)
+        let displayInterval = Int(ceil(max(0, interval)))
+        let minutes = displayInterval / 60
+        let seconds = displayInterval % 60
         let minutesStr = minutes.formatted(.number.precision(.integerLength(2...2)))
         let secondsStr = seconds.formatted(.number.precision(.integerLength(2...2)))
         return "\(minutesStr):\(secondsStr)"
