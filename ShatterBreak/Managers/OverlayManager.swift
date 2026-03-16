@@ -46,7 +46,8 @@ class OverlayManager: OverlayManaging {
                         .canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary,
                     ]
                     // Determine window level based on "Soft Overlay" preference
-                    let softOverlay = UserDefaults.standard.bool(forKey: PreferenceKeys.softOverlay)
+                    let softOverlay =
+                        UserDefaults.standard.object(forKey: PreferenceKeys.softOverlay) as? Bool ?? true
                     if softOverlay {
                         window.level = NSWindow.Level(Int(NSWindow.Level.mainMenu.rawValue) - 1)  // Place below menu bar
                     } else {
@@ -75,7 +76,7 @@ class OverlayManager: OverlayManaging {
             } catch is CancellationError {
                 return
             } catch {
-                print("ScreenCaptureKit error: \(error.localizedDescription)")
+                print("Overlay presentation error: \(error.localizedDescription)")
             }
         }
     }
@@ -97,8 +98,16 @@ class OverlayManager: OverlayManaging {
         guard shouldCaptureScreenshots else { return [:] }
 
         try Task.checkCancellation()
-        let shareableContent = try await SCShareableContent.excludingDesktopWindows(
-            false, onScreenWindowsOnly: false)
+        let shareableContent: SCShareableContent
+        do {
+            shareableContent = try await SCShareableContent.excludingDesktopWindows(
+                false, onScreenWindowsOnly: false)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            print("Falling back to plain overlay after screen enumeration failed: \(error.localizedDescription)")
+            return [:]
+        }
 
         var capturedImages: [CGDirectDisplayID: CGImage] = [:]
 
@@ -108,9 +117,15 @@ class OverlayManager: OverlayManaging {
             let filter = SCContentFilter(
                 display: display, excludingApplications: [], exceptingWindows: [])
             let config = screenshotConfiguration(for: display)
-            let cgImage = try await SCScreenshotManager.captureImage(
-                contentFilter: filter, configuration: config)
-            capturedImages[display.displayID] = cgImage
+            do {
+                let cgImage = try await SCScreenshotManager.captureImage(
+                    contentFilter: filter, configuration: config)
+                capturedImages[display.displayID] = cgImage
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                print("Falling back to plain overlay for display \(display.displayID): \(error.localizedDescription)")
+            }
         }
 
         return capturedImages

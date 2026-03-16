@@ -178,7 +178,7 @@ struct TimerStatePostponeTests {
         #expect(state.hasPostponeBeenUsedThisCycle == false, "The flag should reset for a new cycle.")
     }
 
-    @Test("pause during postponed work cancels postpone and starts fresh work")
+    @Test("pause during postponed work freezes and resumes postponed work")
     @MainActor
     func pauseDuringPostponedWork() async {
         let environment = TestEnvironment()
@@ -192,12 +192,22 @@ struct TimerStatePostponeTests {
         state.start()
         await environment.advanceUntil(maxTicks: 2) { state.isResting }
         state.postpone()
+        let snapshot = state.timeRemaining
 
         state.pause()
 
-        #expect(state.mode == .running)
-        #expect(state.timeRemaining == 1)
+        #expect(state.mode == .paused)
+        #expect(state.timeRemaining == snapshot)
         #expect(state.canPostpone == false, "The postpone flag should stay set for the cycle.")
+
+        await environment.advanceTime(ticks: 2)
+        #expect(state.timeRemaining == snapshot, "The postponed-work timer should stay frozen while paused.")
+
+        state.resume()
+        #expect(state.mode == .postponedWork, "Resume should restore the postponed-work phase.")
+
+        await environment.advanceTime(ticks: 2)
+        #expect(state.isResting, "After the postponed work finishes, the app should resume rest.")
     }
 
     @Test("stop during postponed work clears all postpone state")

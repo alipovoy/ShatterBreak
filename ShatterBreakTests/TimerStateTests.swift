@@ -141,6 +141,31 @@ struct TimerStateBasicTests {
         #expect(state.shouldShowTimeInMenuBar == false)
     }
 
+    @Test("duration editing is only available while inactive")
+    @MainActor
+    func durationEditingIsOnlyAvailableWhileInactive() {
+        let environment = TestEnvironment()
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+
+        state.mode = .idle
+        #expect(state.canEditDurations)
+
+        state.mode = .running
+        #expect(state.canEditDurations == false)
+
+        state.mode = .paused
+        #expect(state.canEditDurations == false)
+
+        state.mode = .resting
+        #expect(state.canEditDurations == false)
+
+        state.mode = .postponedWork
+        #expect(state.canEditDurations == false)
+
+        state.mode = .awaitingReturn
+        #expect(state.canEditDurations == false)
+    }
+
     @Test("formattedTimeRemaining still produces string regardless of state")
     @MainActor
     func formattingUnaffectedByState() {

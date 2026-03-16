@@ -44,6 +44,7 @@ final class TimerState {
     var isPaused: Bool { mode == .paused }
     var isResting: Bool { mode == .resting }
     var awaitingReturn: Bool { mode == .awaitingReturn }
+    var canEditDurations: Bool { mode == .idle }
     
     var hasPostponeBeenUsedThisCycle = false
     var timeRemaining: TimeInterval = 0
@@ -66,6 +67,7 @@ final class TimerState {
     private var activeDeadline: Date?
     private var savedRestRemaining: TimeInterval?
     private var isSystemAsleep = false
+    private var modeBeforePause: Mode?
     private var wasAutoPausedBySystem = false
     private var modeBeforeSleep: Mode?
     
@@ -134,35 +136,42 @@ final class TimerState {
     // MARK: - User Actions
     
     func start() {
-        if mode == .resting || mode == .awaitingReturn {
+        if mode == .resting || mode == .awaitingReturn || modeBeforePause == .resting {
             overlayManager.dismissOverlays()
         }
         
         mode = .running
+        modeBeforePause = nil
         wasAutoPausedBySystem = false
         beginCountdown(for: workDurationSecs)
     }
     
     func pause() {
-        if mode == .resting || mode == .postponedWork {
-            // Skip rest/postponed work and start fresh work immediately
-            clearCountdown()
-            overlayManager.dismissOverlays()
-            start()
-        } else {
+        switch mode {
+        case .running, .resting, .postponedWork:
+            let previousMode = mode
             freezeCountdown()
+            modeBeforePause = previousMode
             mode = .paused
+            wasAutoPausedBySystem = false
+        case .idle, .paused, .awaitingReturn:
+            return
         }
     }
     
     func resume() {
-        mode = .running
+        guard mode == .paused else { return }
+
+        let resumedMode = modeBeforePause ?? .running
+        modeBeforePause = nil
+        mode = resumedMode
         resumeCountdown()
     }
     
     func stop() {
         clearCountdown()
         mode = .idle
+        modeBeforePause = nil
         wasAutoPausedBySystem = false
         timeRemaining = 0
         savedRestRemaining = nil
@@ -257,6 +266,7 @@ final class TimerState {
     
     private func enterRestPhase() {
         mode = .resting
+        modeBeforePause = nil
         hasPostponeBeenUsedThisCycle = false
         savedRestRemaining = nil
         overlayManager.showOverlays(state: self)
@@ -267,6 +277,7 @@ final class TimerState {
         guard let saved = savedRestRemaining else { return }
         
         mode = .resting
+        modeBeforePause = nil
         savedRestRemaining = nil
         overlayManager.showOverlays(state: self)
         beginCountdown(for: saved)

@@ -16,9 +16,8 @@ struct MenuView: View {
                         state.isPaused ? state.resume() : state.pause()
                     } label: {
                         Label(
-                            state.isPaused ? "Resume" : (state.isResting ? "Skip Rest" : "Pause"),
-                            systemImage: state.isPaused
-                                ? "play.fill" : (state.isResting ? "forward.fill" : "pause.fill")
+                            state.isPaused ? "Resume" : "Pause",
+                            systemImage: state.isPaused ? "play.fill" : "pause.fill"
                         )
                         .frame(maxWidth: .infinity)
                     }
@@ -52,7 +51,7 @@ struct MenuView: View {
                     value: $state.workDurationSecs,
                     min: 5,
                     max: 7200,
-                    disabled: state.isRunning
+                    disabled: !state.canEditDurations
                 )
 
                 DurationSliderView(
@@ -61,7 +60,7 @@ struct MenuView: View {
                     value: $state.restDurationSecs,
                     min: 5,
                     max: 3600,
-                    disabled: state.isRunning
+                    disabled: !state.canEditDurations
                 )
             }
 

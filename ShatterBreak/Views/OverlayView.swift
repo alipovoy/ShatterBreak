@@ -80,7 +80,12 @@ struct OverlayView: View {
                 shakeOffset = 10
             }
             if Task.isCancelled { return }
-            try? await Task.sleep(for: .milliseconds(900))
+            do {
+                try await Task.sleep(for: .milliseconds(900))
+                try Task.checkCancellation()
+            } catch {
+                return
+            }
         }
         phase = 2
 

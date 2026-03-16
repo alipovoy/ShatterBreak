@@ -6,7 +6,7 @@ struct PreferencesView: View {
 
     @AppStorage(PreferenceKeys.playSound) private var playSound: Bool = true
     @AppStorage(PreferenceKeys.effectType) private var effectType: EffectType = .shatter
-    @AppStorage(PreferenceKeys.softOverlay) private var softOverlay: Bool = false
+    @AppStorage(PreferenceKeys.softOverlay) private var softOverlay: Bool = true
     @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone: Bool = false
     @AppStorage(PreferenceKeys.showTimerInMenuBar) private var showTimerInMenuBar: Bool = false
     @AppStorage(PreferenceKeys.workStartMode) private var workStartMode: WorkStartMode = .automatic
