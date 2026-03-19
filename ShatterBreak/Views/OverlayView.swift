@@ -1,6 +1,36 @@
 import SwiftUI
 import AppKit
 
+enum OverlayPhaseAction: Equatable {
+    case idle
+    case playSound
+    case animateShatterIntro
+    case finishShatterIntro(playSound: Bool)
+
+    static func resolve(
+        phase: OverlayPresentationState.Phase,
+        isShatterEffect: Bool,
+        reduceMotion: Bool,
+        playSoundEnabled: Bool,
+        hasPlayedSound: Bool
+    ) -> Self {
+        let shouldPlaySound = playSoundEnabled && hasPlayedSound == false
+
+        switch phase {
+        case .plain:
+            return isShatterEffect ? .idle : (shouldPlaySound ? .playSound : .idle)
+        case .shatterIntro:
+            if reduceMotion {
+                return .finishShatterIntro(playSound: shouldPlaySound)
+            }
+
+            return .animateShatterIntro
+        case .shattered:
+            return .idle
+        }
+    }
+}
+
 struct OverlayView: View {
     @Bindable var state: TimerState
     @Bindable var presentation: OverlayPresentationState
@@ -8,6 +38,7 @@ struct OverlayView: View {
     @State private var hasPlayedSound = false
     @State private var shakeOffset: CGFloat = 0
 
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @AppStorage(PreferenceKeys.playSound) private var playSound: Bool = true
     @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone: Bool = false
 
@@ -95,16 +126,22 @@ struct OverlayView: View {
     }
 
     private func handlePresentationPhase() async {
-        switch presentation.phase {
-        case .plain:
+        switch OverlayPhaseAction.resolve(
+            phase: presentation.phase,
+            isShatterEffect: presentation.isShatterEffect,
+            reduceMotion: accessibilityReduceMotion,
+            playSoundEnabled: playSound,
+            hasPlayedSound: hasPlayedSound
+        ) {
+        case .idle:
             shakeOffset = 0
-            if playSound, presentation.isShatterEffect == false, hasPlayedSound == false {
-                hasPlayedSound = true
-                NSSound(named: "Glass")?.play()
-            }
-        case .shatterIntro:
+        case .playSound:
             shakeOffset = 0
-
+            playGlassSoundIfNeeded()
+        case .finishShatterIntro(let playSound):
+            completeShatterIntro(playSound: playSound)
+        case .animateShatterIntro:
+            shakeOffset = 0
             withAnimation(.spring(duration: 0.05).repeatCount(20, autoreverses: true)) {
                 shakeOffset = 10
             }
@@ -117,16 +154,22 @@ struct OverlayView: View {
             }
 
             guard presentation.phase == .shatterIntro else { return }
-            shakeOffset = 0
-            presentation.finishShatterIntro()
-
-            if playSound, hasPlayedSound == false {
-                hasPlayedSound = true
-                NSSound(named: "Glass")?.play()
-            }
-        case .shattered:
-            shakeOffset = 0
+            completeShatterIntro(playSound: true)
         }
+    }
+
+    private func completeShatterIntro(playSound: Bool) {
+        shakeOffset = 0
+        presentation.finishShatterIntro()
+        if playSound {
+            playGlassSoundIfNeeded()
+        }
+    }
+
+    private func playGlassSoundIfNeeded() {
+        guard playSound, hasPlayedSound == false else { return }
+        hasPlayedSound = true
+        NSSound(named: "Glass")?.play()
     }
 
     private func formattedTime(_ interval: TimeInterval) -> String {

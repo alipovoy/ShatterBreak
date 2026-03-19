@@ -59,6 +59,45 @@ struct OverlayPresentationStateTests {
         #expect(state.showsCracks)
     }
 
+    @Test("shatter intro skips motion when Reduce Motion is enabled")
+    func shatterIntroSkipsMotionWhenReduceMotionIsEnabled() {
+        let action = OverlayPhaseAction.resolve(
+            phase: .shatterIntro,
+            isShatterEffect: true,
+            reduceMotion: true,
+            playSoundEnabled: true,
+            hasPlayedSound: false
+        )
+
+        #expect(action == .finishShatterIntro(playSound: true))
+    }
+
+    @Test("shatter intro can skip motion without replaying sound")
+    func shatterIntroSkipMotionRespectsPlayedSoundState() {
+        let action = OverlayPhaseAction.resolve(
+            phase: .shatterIntro,
+            isShatterEffect: true,
+            reduceMotion: true,
+            playSoundEnabled: true,
+            hasPlayedSound: true
+        )
+
+        #expect(action == .finishShatterIntro(playSound: false))
+    }
+
+    @Test("shatter intro still animates when Reduce Motion is disabled")
+    func shatterIntroStillAnimatesWithoutReduceMotion() {
+        let action = OverlayPhaseAction.resolve(
+            phase: .shatterIntro,
+            isShatterEffect: true,
+            reduceMotion: false,
+            playSoundEnabled: true,
+            hasPlayedSound: false
+        )
+
+        #expect(action == .animateShatterIntro)
+    }
+
     private func makeTestImage(width: Int) -> CGImage? {
         guard
             let context = CGContext(

@@ -131,6 +131,7 @@ The timer system must support the following modes:
     * avoid showing the dark fallback overlay as a temporary loading state while screenshot capture is pending
     * begin the shake/shatter intro only after capture results are available for the current break session
     * start the shatter intro for all active displays in sync
+    * if macOS `Reduce Motion` is enabled, skip the shake animation and long shatter intro delay, transition directly to the cracked final state, and keep the overlay mode otherwise unchanged
     * optionally play a glass sound
 * If the selected effect is `Overlay`, the application must display a dark overlay without screenshot capture.
 
@@ -203,6 +204,7 @@ The test suite must validate:
 * postponed-work resumption into the saved rest time
 * overlay lifecycle behavior
 * shatter presentation-state behavior, including fallback when a screenshot is unavailable
+* Reduce Motion fallback for shatter presentation behavior
 * sleep and wake edge cases
 * permission manager behavior
 * duration parsing and slider snapping behavior
