@@ -66,8 +66,8 @@ final class DurationSliderViewModel {
 
     func updateValueFromInput(currentValue: inout Double, min: Double, max: Double) {
         let cleanInput = manualInput
-            .replacing(" ", with: "")
             .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
 
         if let totalSeconds = parsedSeconds(from: cleanInput), totalSeconds > 0 {
             currentValue = Swift.max(min, Swift.min(totalSeconds, max))
@@ -142,7 +142,7 @@ final class DurationSliderViewModel {
     }
 
     private func parsedComponentSeconds(from input: String) -> Double? {
-        let matches = input.matches(of: /(\d+(?:\.\d+)?)([hms])/)
+        let matches = input.matches(of: /(\d+(?:\.\d+)?)([hms])\s*/)
         guard matches.isEmpty == false else { return nil }
 
         var consumedLength = 0
@@ -172,32 +172,32 @@ final class DurationSliderViewModel {
     }
 
     private func parsedColonSeparatedSeconds(from input: String) -> Double? {
-        let rawComponents = input.split(separator: ":")
-        guard rawComponents.isEmpty == false else { return nil }
+        let hasColon = input.contains(":")
 
-        if rawComponents.count == 1 {
-            guard let value = Double(rawComponents[0]) else { return nil }
-            return input.contains(":") ? value : value * 60
+        if hasColon == false {
+            guard let value = Double(input) else { return nil }
+            return value * 60
         }
 
-        let reversed = rawComponents.reversed()
-        var totalSeconds = 0.0
+        let rawComponents = input.split(separator: ":", omittingEmptySubsequences: false)
+        guard rawComponents.count == 2 || rawComponents.count == 3 else { return nil }
 
-        for (index, component) in reversed.enumerated() {
-            guard let value = Double(String(component)) else { return nil }
+        let components = rawComponents.compactMap(strictClockComponent)
+        guard components.count == rawComponents.count else { return nil }
 
-            switch index {
-            case 0:
-                totalSeconds += value
-            case 1:
-                totalSeconds += value * 60
-            case 2:
-                totalSeconds += value * 3600
-            default:
-                return nil
-            }
+        return switch components.count {
+        case 2:
+            Double(components[0] * 60 + components[1])
+        case 3:
+            Double(components[0] * 3600 + components[1] * 60 + components[2])
+        default:
+            nil
         }
+    }
 
-        return totalSeconds
+    private func strictClockComponent(_ component: Substring) -> Int? {
+        guard component.isEmpty == false else { return nil }
+        guard component.allSatisfy({ $0.isASCII && $0.isNumber }) else { return nil }
+        return Int(component)
     }
 }
