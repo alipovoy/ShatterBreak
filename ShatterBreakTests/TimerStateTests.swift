@@ -194,6 +194,22 @@ struct TimerStateBasicTests {
         #expect(state.workDurationSecs == 120)
         #expect(state.restDurationSecs == 300)
     }
+
+    @Test("timer state deallocates while sleep observers are idle")
+    @MainActor
+    func timerStateDeallocatesWhileObservingSleepNotifications() async {
+        let environment = TestEnvironment()
+        weak var weakState: TimerState?
+
+        do {
+            let state = environment.makeTimerState(overlayManager: OverlaySpy())
+            weakState = state
+            await Task.yield()
+        }
+
+        await Task.yield()
+        #expect(weakState == nil)
+    }
 }
 
 @Suite("TimerState sleep/wake behaviors")

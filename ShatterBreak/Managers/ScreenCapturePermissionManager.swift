@@ -59,11 +59,12 @@ final class ScreenCapturePermissionManager {
     }
 
     private func observeAppActive() {
-        observationTask = Task { [weak self] in
-            guard let self else { return }
-            for await _ in appNotificationCenter.notifications(
+        let notificationCenter = appNotificationCenter
+        observationTask = Task { [weak self, notificationCenter] in
+            for await _ in notificationCenter.notifications(
                 named: NSApplication.didBecomeActiveNotification
             ) {
+                guard let self else { return }
                 self.refresh()
             }
         }

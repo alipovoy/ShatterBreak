@@ -217,6 +217,8 @@ The following implementation choices are approved by this blueprint:
 * ScreenCaptureKit for screenshot-based shatter visuals
 * `UserDefaults` and `@AppStorage` for local preference persistence
 * Observation-based state with a central timer state model
+* Long-lived `NotificationCenter` observation in app-owned models may use stored async `Task` handles directly rather than introducing extra observer layers
+* Such observer tasks must capture the owning model weakly, strengthen it only while handling a delivered notification, and be cancelled during teardown so model deinitialization remains reachable
 * Excluding the current application from ScreenCaptureKit capture filters to avoid recursive overlay capture
 
 Alternative implementations may be used only if they preserve the product behavior defined above.

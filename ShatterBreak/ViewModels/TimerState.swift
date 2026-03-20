@@ -296,11 +296,12 @@ final class TimerState {
             NSWorkspace.didWakeNotification,
             NSWorkspace.screensDidWakeNotification
         ]
+        let notificationCenter = workspaceNotificationCenter
         
         for name in notifications {
-            sleepObserverTasks.append(Task { [weak self] in
-                guard let self else { return }
-                for await _ in workspaceNotificationCenter.notifications(named: name) {
+            sleepObserverTasks.append(Task { [weak self, notificationCenter] in
+                for await _ in notificationCenter.notifications(named: name) {
+                    guard let self else { return }
                     self.handleNotification(name)
                 }
             })

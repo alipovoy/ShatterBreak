@@ -136,4 +136,21 @@ struct ScreenCapturePermissionManagerTests {
         #expect(manager.status == .granted)
         #expect(spy.preflightCallCount == 2)
     }
+
+    @Test("manager deallocates while the app-active observer task is idle")
+    @MainActor
+    func managerDeallocatesWhileObserving() async {
+        let environment = TestEnvironment()
+        let spy = ScreenCapturePermissionClientSpy()
+        weak var weakManager: ScreenCapturePermissionManager?
+
+        do {
+            let manager = environment.makePermissionManager(permissionClient: spy.client)
+            weakManager = manager
+            await Task.yield()
+        }
+
+        await Task.yield()
+        #expect(weakManager == nil)
+    }
 }
