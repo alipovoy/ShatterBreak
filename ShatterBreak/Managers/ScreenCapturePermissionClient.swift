@@ -7,6 +7,7 @@ struct ScreenCapturePermissionClient {
     var requestAccess: () -> Bool
     var openSystemSettings: () -> Void
 
+    @MainActor
     static let live = Self(
         preflightAccess: {
             CGPreflightScreenCaptureAccess()

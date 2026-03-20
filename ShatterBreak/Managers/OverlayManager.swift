@@ -163,43 +163,35 @@ class OverlayManager: OverlayManaging {
 
         let excludedApplications = excludedApplications(from: shareableContent)
 
-        return try await withThrowingTaskGroup(of: (CGDirectDisplayID, CGImage?).self) { group in
-            for display in shareableContent.displays where displayIDs.contains(display.displayID) {
-                group.addTask(priority: .utility) {
-                    try Task.checkCancellation()
+        var capturedImages: [CGDirectDisplayID: CGImage] = [:]
 
-                    let filter = SCContentFilter(
-                        display: display,
-                        excludingApplications: excludedApplications,
-                        exceptingWindows: []
-                    )
-                    let config = screenshotConfiguration(for: display)
-                    do {
-                        let cgImage = try await SCScreenshotManager.captureImage(
-                            contentFilter: filter,
-                            configuration: config
-                        )
-                        try Task.checkCancellation()
-                        return (display.displayID, cgImage)
-                    } catch is CancellationError {
-                        throw CancellationError()
-                    } catch {
-                        print(
-                            "Falling back to plain overlay for display \(display.displayID): \(error.localizedDescription)"
-                        )
-                        return (display.displayID, nil)
-                    }
-                }
-            }
+        for display in shareableContent.displays where displayIDs.contains(display.displayID) {
+            try Task.checkCancellation()
 
-            var capturedImages: [CGDirectDisplayID: CGImage] = [:]
-            for try await (displayID, image) in group {
-                if let image {
-                    capturedImages[displayID] = image
-                }
+            let filter = SCContentFilter(
+                display: display,
+                excludingApplications: excludedApplications,
+                exceptingWindows: []
+            )
+            let config = screenshotConfiguration(for: display)
+
+            do {
+                let cgImage = try await SCScreenshotManager.captureImage(
+                    contentFilter: filter,
+                    configuration: config
+                )
+                try Task.checkCancellation()
+                capturedImages[display.displayID] = cgImage
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                print(
+                    "Falling back to plain overlay for display \(display.displayID): \(error.localizedDescription)"
+                )
             }
-            return capturedImages
         }
+
+        return capturedImages
     }
 
     nonisolated private static func excludedApplications(
