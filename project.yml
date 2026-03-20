@@ -28,6 +28,7 @@ targets:
 
     settings:
       base:
+        PRODUCT_MODULE_NAME: ShatterBreak
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
 
@@ -43,10 +44,14 @@ targets:
         ENABLE_PREVIEWS: YES
       configs:
         Debug:
+          PRODUCT_NAME: ShatterBreak Dev
           PRODUCT_BUNDLE_IDENTIFIER: me.lipovoy.shatterbreak.dev
+          INFOPLIST_KEY_CFBundleName: ShatterBreak Dev
           INFOPLIST_KEY_CFBundleDisplayName: ShatterBreak Dev
         Release:
+          PRODUCT_NAME: ShatterBreak
           PRODUCT_BUNDLE_IDENTIFIER: me.lipovoy.shatterbreak
+          INFOPLIST_KEY_CFBundleName: ShatterBreak
           INFOPLIST_KEY_CFBundleDisplayName: ShatterBreak
 
     scheme:
@@ -68,3 +73,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.lipovoy.shatterbreak.tests
         GENERATE_INFOPLIST_FILE: YES
+        BUNDLE_LOADER: $(TEST_HOST)
+      configs:
+        Debug:
+          TEST_HOST: $(BUILT_PRODUCTS_DIR)/ShatterBreak Dev.app/Contents/MacOS/ShatterBreak Dev
+        Release:
+          TEST_HOST: $(BUILT_PRODUCTS_DIR)/ShatterBreak.app/Contents/MacOS/ShatterBreak
