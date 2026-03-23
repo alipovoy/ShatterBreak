@@ -67,6 +67,19 @@ struct TimerStateBasicTests {
         #expect(state.timeRemaining == 1)
     }
 
+    @Test("work countdown reflects elapsed time without model ticks")
+    @MainActor
+    func workCountdownReflectsElapsedTimeWithoutTick() {
+        let environment = TestEnvironment()
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        state.workDurationSecs = 3
+
+        state.start()
+        environment.elapseTimeWithoutTick(by: 1.5)
+
+        #expect(state.timeRemaining == 1.5)
+    }
+
     @Test("stop() cancels and resets state")
     @MainActor
     func stopResets() {

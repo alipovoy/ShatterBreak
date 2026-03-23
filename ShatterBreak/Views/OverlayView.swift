@@ -57,7 +57,7 @@ struct OverlayView: View {
                         .foregroundStyle(.white)
                         .shadow(color: .black, radius: 5)
 
-                    Text(formattedTime(state.timeRemaining))
+                    CountdownTextView(state: state)
                         .font(.system(size: 80, weight: .bold, design: .monospaced))
                         .foregroundStyle(.white)
                         .shadow(color: .black, radius: 5)
@@ -170,10 +170,6 @@ struct OverlayView: View {
         guard playSound, hasPlayedSound == false else { return }
         hasPlayedSound = true
         NSSound(named: "Glass")?.play()
-    }
-
-    private func formattedTime(_ interval: TimeInterval) -> String {
-        TimerState.format(timeInterval: interval)
     }
 }
 

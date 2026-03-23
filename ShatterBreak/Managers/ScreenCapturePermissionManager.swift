@@ -15,7 +15,7 @@ final class ScreenCapturePermissionManager {
     private(set) var status: Status = .notDetermined
 
     private static let launchKey = "com.shatterbreak.hasLaunchedBefore"
-    private var observationTask: Task<Void, Never>?
+    private var appActiveObserver: AppActiveObserver?
     private let defaults: UserDefaults
     private let appNotificationCenter: NotificationCenter
     private let permissionClient: ScreenCapturePermissionClient
@@ -29,7 +29,6 @@ final class ScreenCapturePermissionManager {
         self.appNotificationCenter = appNotificationCenter
         self.permissionClient = permissionClient
         refresh()
-        observeAppActive()
     }
 
     func refresh() {
@@ -38,6 +37,8 @@ final class ScreenCapturePermissionManager {
         } else {
             status = hasLaunchedBefore ? .denied : .notDetermined
         }
+
+        updateAppActiveObservation()
     }
 
     func openSystemSettings() {
@@ -47,10 +48,12 @@ final class ScreenCapturePermissionManager {
     func requestIfFirstLaunch() {
         guard !hasLaunchedBefore else { return }
         defaults.set(true, forKey: Self.launchKey)
+        updateAppActiveObservation()
         _ = permissionClient.requestAccess()
     }
 
     func requestNow() {
+        updateAppActiveObservation()
         _ = permissionClient.requestAccess()
     }
 
@@ -58,21 +61,60 @@ final class ScreenCapturePermissionManager {
         defaults.bool(forKey: Self.launchKey)
     }
 
-    private func observeAppActive() {
-        let notificationCenter = appNotificationCenter
-        observationTask = Task { [weak self, notificationCenter] in
-            for await _ in notificationCenter.notifications(
-                named: NSApplication.didBecomeActiveNotification
-            ) {
-                guard let self else { return }
-                self.refresh()
-            }
+    private func updateAppActiveObservation() {
+        guard status != .granted else {
+            // Screen recording permission changes typically require relaunch before
+            // the running process sees a new effective access state.
+            appActiveObserver = nil
+            return
         }
+
+        observeAppActiveIfNeeded()
     }
 
+    private func observeAppActiveIfNeeded() {
+        guard appActiveObserver == nil else { return }
 
-    @MainActor
+        let observer = AppActiveObserver(
+            manager: self,
+            notificationCenter: appNotificationCenter
+        )
+        observer.startObserving()
+        appActiveObserver = observer
+    }
+}
+
+@MainActor
+private final class AppActiveObserver: NSObject {
+    private weak var manager: ScreenCapturePermissionManager?
+    private let notificationCenter: NotificationCenter
+    private var isObserving = false
+
+    init(
+        manager: ScreenCapturePermissionManager,
+        notificationCenter: NotificationCenter
+    ) {
+        self.manager = manager
+        self.notificationCenter = notificationCenter
+    }
+
+    func startObserving() {
+        guard isObserving == false else { return }
+
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(handleAppDidBecomeActive),
+            name: NSApplication.didBecomeActiveNotification,
+            object: nil
+        )
+        isObserving = true
+    }
+
+    @objc private func handleAppDidBecomeActive() {
+        manager?.refresh()
+    }
+
     deinit {
-        observationTask?.cancel()
+        notificationCenter.removeObserver(self)
     }
 }

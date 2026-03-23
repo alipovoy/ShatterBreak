@@ -115,9 +115,9 @@ struct ScreenCapturePermissionManagerTests {
         #expect(spy.openSettingsCallCount == 1)
     }
 
-    @Test("becoming active refreshes permission status")
+    @Test("becoming active refreshes permission status while unresolved")
     @MainActor
-    func appDidBecomeActiveRefreshesStatus() async {
+    func appDidBecomeActiveRefreshesStatusWhileUnresolved() {
         let environment = TestEnvironment()
         let defaults = environment.defaults
         defaults.set(true, forKey: launchKey)
@@ -126,18 +126,31 @@ struct ScreenCapturePermissionManagerTests {
         let manager = environment.makePermissionManager(permissionClient: spy.client)
 
         #expect(manager.status == .denied)
-
-        await Task.yield()
-
-        spy.preflightAccess = true
         environment.appNotificationCenter.post(name: NSApplication.didBecomeActiveNotification, object: nil)
-        await Task.yield()
 
-        #expect(manager.status == .granted)
+        #expect(manager.status == .denied)
         #expect(spy.preflightCallCount == 2)
     }
 
-    @Test("manager deallocates while the app-active observer task is idle")
+    @Test("granted permission stops app-active observation")
+    @MainActor
+    func grantedStatusStopsObservingAppActive() {
+        let environment = TestEnvironment()
+        let spy = ScreenCapturePermissionClientSpy()
+        spy.preflightAccess = true
+
+        let manager = environment.makePermissionManager(permissionClient: spy.client)
+
+        #expect(manager.status == .granted)
+        #expect(spy.preflightCallCount == 1)
+
+        environment.appNotificationCenter.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+
+        #expect(manager.status == .granted)
+        #expect(spy.preflightCallCount == 1)
+    }
+
+    @Test("manager deallocates while the app-active observer is registered")
     @MainActor
     func managerDeallocatesWhileObserving() async {
         let environment = TestEnvironment()

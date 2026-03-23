@@ -7,6 +7,7 @@ final class ManualTimerTickSource: TimerTickSource {
     private var handler: (@MainActor @Sendable () -> Void)?
 
     var now: Date
+    let usesManualTicks = true
 
     nonisolated init(now: Date = .init(timeIntervalSince1970: 0)) {
         self.now = now

@@ -17,9 +17,9 @@ struct ShatterBreakApp: App {
                 Image(systemName: "app.badge.clock")
 
                 if showTimerInMenuBar && timerState.shouldShowTimeInMenuBar {
-                Text(timerState.formattedTimeRemaining)
-                    .font(.system(.body, design: .monospaced))
-            }
+                    CountdownTextView(state: timerState)
+                        .font(.system(.body, design: .monospaced))
+                }
             }
         }
         .menuBarExtraStyle(.window)

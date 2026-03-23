@@ -170,13 +170,14 @@ During a break overlay, the application must display:
 * When waking from sleep during rest:
     * if the rest timer expired while the system was asleep, the application must dismiss overlays and return to idle
     * if the rest timer did not expire while the system was asleep, the application must continue the remaining break time
-* The application must refresh permission state when the app becomes active.
+* The application must refresh permission state when the app becomes active while screen recording permission remains unresolved.
 
 ## 9. Screen Capture Permission Requirements
 * The application must ask for screen capture permission at first launch.
 * To indicate that the initial permission request has already been attempted, a first-launch flag may be used.
 * The application must continue working even if the permission is denied.
 * Denied permission must disable screenshot-based shatter capture, but must not disable the break flow itself.
+* Changes made in System Settings may require relaunching the app before the running process observes the new effective screen recording permission state.
 
 ## 10. Persistence Requirements
 The application must persist the following user preferences:

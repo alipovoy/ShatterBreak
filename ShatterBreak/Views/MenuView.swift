@@ -1,8 +1,10 @@
+import AppKit
 import SwiftUI
 
 struct MenuView: View {
     @Bindable var state: TimerState
     @Environment(\.openWindow) private var openWindow
+    @State private var isWindowVisible = false
 
     var onQuit: () -> Void = { NSApp.terminate(nil) }
 
@@ -71,13 +73,14 @@ struct MenuView: View {
         }
         .padding()
         .frame(width: 320)
+        .background(MenuWindowVisibilityObserver(isVisible: $isWindowVisible))
     }
 
     @ViewBuilder
     private var timerDisplay: some View {
         Group {
             if state.isRunning || state.isPaused {
-                Text(formattedTime(state.timeRemaining))
+                CountdownTextView(state: state, isActive: isWindowVisible)
                     .font(.system(size: 48, weight: .light, design: .monospaced))
                     .foregroundStyle(state.isResting ? .green : .primary)
             } else {
@@ -87,11 +90,6 @@ struct MenuView: View {
             }
         }
         .frame(height: 60)
-    }
-
-    private func formattedTime(_ interval: TimeInterval) -> String {
-        // delegate to TimerState helper so formatting remains consistent
-        return TimerState.format(timeInterval: interval)
     }
 
     @ViewBuilder
@@ -122,6 +120,106 @@ struct IconButtonStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.5 : 1.0)
             .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
             .animation(.easeInOut(duration: 0.05), value: configuration.isPressed)
+    }
+}
+
+private struct MenuWindowVisibilityObserver: NSViewRepresentable {
+    @Binding var isVisible: Bool
+
+    @MainActor
+    func makeCoordinator() -> Coordinator {
+        Coordinator(isVisible: $isVisible)
+    }
+
+    @MainActor
+    func makeNSView(context: Context) -> WindowTrackingView {
+        let view = WindowTrackingView()
+        view.onWindowChange = { window in
+            context.coordinator.observe(window: window)
+        }
+        return view
+    }
+
+    @MainActor
+    func updateNSView(_ nsView: WindowTrackingView, context: Context) {
+        context.coordinator.isVisible = $isVisible
+        context.coordinator.updateVisibility()
+    }
+
+    @MainActor
+    final class Coordinator: NSObject {
+        var isVisible: Binding<Bool>
+        private weak var window: NSWindow?
+
+        init(isVisible: Binding<Bool>) {
+            self.isVisible = isVisible
+        }
+
+        func observe(window: NSWindow?) {
+            guard self.window !== window else {
+                updateVisibility()
+                return
+            }
+
+            removeObservers()
+            self.window = window
+
+            guard let window else {
+                isVisible.wrappedValue = false
+                return
+            }
+
+            let center = NotificationCenter.default
+            let names: [NSNotification.Name] = [
+                NSWindow.didBecomeKeyNotification,
+                NSWindow.didResignKeyNotification,
+                NSWindow.didChangeOcclusionStateNotification,
+                NSWindow.didMiniaturizeNotification,
+                NSWindow.didDeminiaturizeNotification
+            ]
+
+            names.forEach { name in
+                center.addObserver(
+                    self,
+                    selector: #selector(handleWindowNotification(_:)),
+                    name: name,
+                    object: window
+                )
+            }
+
+            updateVisibility()
+        }
+
+        @objc private func handleWindowNotification(_ notification: Notification) {
+            updateVisibility()
+        }
+
+        func updateVisibility() {
+            guard let window else {
+                if isVisible.wrappedValue {
+                    isVisible.wrappedValue = false
+                }
+                return
+            }
+
+            let nextValue = window.isVisible && window.occlusionState.contains(.visible)
+            if isVisible.wrappedValue != nextValue {
+                isVisible.wrappedValue = nextValue
+            }
+        }
+
+        private func removeObservers() {
+            NotificationCenter.default.removeObserver(self)
+        }
+    }
+}
+
+private final class WindowTrackingView: NSView {
+    var onWindowChange: ((NSWindow?) -> Void)?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        onWindowChange?(window)
     }
 }
 
