@@ -44,7 +44,12 @@ struct OverlayView: View {
 
     var body: some View {
         ZStack {
-            backgroundLayer
+            OverlayBackgroundView(
+                isShatterEffect: presentation.isShatterEffect,
+                backgroundImage: presentation.backgroundImage,
+                phase: presentation.phase,
+                shakeOffset: shakeOffset
+            )
 
             if presentation.showsCracks {
                 CrackedGlassView()
@@ -88,32 +93,6 @@ struct OverlayView: View {
         }
         .task(id: presentation.phase) {
             await handlePresentationPhase()
-        }
-    }
-
-    @ViewBuilder
-    private var backgroundLayer: some View {
-        backgroundSurface
-            .offset(
-                x: presentation.phase == .shatterIntro ? shakeOffset : 0,
-                y: presentation.phase == .shatterIntro ? -shakeOffset : 0
-            )
-    }
-
-    @ViewBuilder
-    private var backgroundSurface: some View {
-        if presentation.isShatterEffect {
-            if let cgImage = presentation.backgroundImage,
-               presentation.phase != .plain {
-                Image(nsImage: NSImage(cgImage: cgImage, size: .zero))
-                    .resizable()
-            } else if presentation.phase == .plain {
-                Color.clear
-            } else {
-                Color.black.opacity(0.85)
-            }
-        } else {
-            Color.black.opacity(0.85)
         }
     }
 

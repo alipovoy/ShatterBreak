@@ -10,7 +10,7 @@ struct MenuView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            timerDisplay
+            TimerDisplayView(state: state, isActive: isWindowVisible)
 
             HStack(spacing: 12) {
                 if state.isRunning || state.isPaused {
@@ -69,46 +69,26 @@ struct MenuView: View {
 
             Divider()
 
-            footer
+            // Keep these local actions inline; a separate footer view would add only pass-through inputs.
+            HStack {
+                Button("Preferences", systemImage: "gearshape", action: openPreferences)
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(IconButtonStyle())
+                    .keyboardShortcut(",", modifiers: .command)
+
+                Spacer()
+
+                Button("Quit", action: onQuit)
+                    .buttonStyle(.borderedProminent)
+            }
         }
         .padding()
         .frame(width: 320)
         .background(MenuWindowVisibilityObserver(isVisible: $isWindowVisible))
     }
 
-    @ViewBuilder
-    private var timerDisplay: some View {
-        Group {
-            if state.isRunning || state.isPaused {
-                CountdownTextView(state: state, isActive: isWindowVisible)
-                    .font(.system(size: 48, weight: .light, design: .monospaced))
-                    .foregroundStyle(state.isResting ? .green : .primary)
-            } else {
-                Text("Ready")
-                    .font(.system(size: 48, weight: .light))
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(height: 60)
-    }
-
-    @ViewBuilder
-    private var footer: some View {
-        HStack {
-            Button("Preferences", systemImage: "gearshape") {
-                openWindow(id: "preferences")
-            }
-            .labelStyle(.iconOnly)
-            .buttonStyle(IconButtonStyle())
-            .keyboardShortcut(",", modifiers: .command)
-
-            Spacer()
-
-            Button("Quit") {
-                onQuit()
-            }
-            .buttonStyle(.borderedProminent)
-        }
+    private func openPreferences() {
+        openWindow(id: "preferences")
     }
 }
 

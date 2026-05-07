@@ -34,7 +34,7 @@ struct PreferencesView: View {
                     }
 
                     if permissions.status == .denied {
-                        permissionWarning
+                        PermissionWarningView(onOpenSystemSettings: openSystemSettings)
                     }
 
                     // Menu bar display preference
@@ -65,31 +65,15 @@ struct PreferencesView: View {
         .fixedSize()
         .onAppear { permissions.refresh() }
         .alert("Screen Recording Permission Required", isPresented: $showPermissionAlert) {
-            Button("Open System Settings") {
-                permissions.openSystemSettings()
-            }
+            Button("Open System Settings", action: openSystemSettings)
             Button("Later", role: .cancel) { }
         } message: {
             Text("Shatter requires Screen Recording permission. Enable it in System Settings → Privacy & Security → Screen & System Audio Recording.")
         }
     }
 
-    @ViewBuilder
-    private var permissionWarning: some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.yellow)
-                Text("Shatter requires Screen Recording permission.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Button("Open System Settings to grant permission") {
-                permissions.openSystemSettings()
-            }
-            .buttonStyle(.link)
-            .font(.caption)
-        }
+    private func openSystemSettings() {
+        permissions.openSystemSettings()
     }
 }
 
