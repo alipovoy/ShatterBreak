@@ -3,6 +3,24 @@ import Testing
 
 @testable import ShatterBreak
 
+private let menuBarVisibilityCases: [(mode: TimerState.Mode, shouldShowTimeInMenuBar: Bool)] = [
+    (.awaitingReturn, false),
+    (.idle, false),
+    (.running, true),
+    (.paused, true),
+    (.postponedWork, true),
+    (.resting, false),
+]
+
+private let durationEditingCases: [(mode: TimerState.Mode, canEditDurations: Bool)] = [
+    (.idle, true),
+    (.running, false),
+    (.paused, false),
+    (.resting, false),
+    (.postponedWork, false),
+    (.awaitingReturn, false),
+]
+
 @Suite("TimerState basic flows")
 struct TimerStateBasicTests {
     @Test("start() initializes and transitions to rest")
@@ -131,54 +149,36 @@ struct TimerStateBasicTests {
         #expect(TimerState.format(timeInterval: 0.1) == "00:01")
     }
 
-    @Test("visibility flag reflects each timer mode")
+    @Test("visibility flag reflects each timer mode", arguments: menuBarVisibilityCases)
     @MainActor
-    func visibilityFlagRespectsState() {
+    func visibilityFlagRespectsState(
+        _ testCase: (mode: TimerState.Mode, shouldShowTimeInMenuBar: Bool)
+    ) {
         let environment = TestEnvironment()
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
 
-        state.mode = .awaitingReturn
-        #expect(state.shouldShowTimeInMenuBar == false)
+        state.mode = testCase.mode
 
-        state.mode = .idle
-        #expect(state.shouldShowTimeInMenuBar == false)
-
-        state.mode = .running
-        #expect(state.shouldShowTimeInMenuBar)
-
-        state.mode = .paused
-        #expect(state.shouldShowTimeInMenuBar)
-
-        state.mode = .postponedWork
-        #expect(state.shouldShowTimeInMenuBar)
-
-        state.mode = .resting
-        #expect(state.shouldShowTimeInMenuBar == false)
+        #expect(
+            state.shouldShowTimeInMenuBar == testCase.shouldShowTimeInMenuBar,
+            "Mode \(String(describing: testCase.mode)) should \(testCase.shouldShowTimeInMenuBar ? "" : "not ")show time in the menu bar."
+        )
     }
 
-    @Test("duration editing is only available while inactive")
+    @Test("duration editing is only available while inactive", arguments: durationEditingCases)
     @MainActor
-    func durationEditingIsOnlyAvailableWhileInactive() {
+    func durationEditingIsOnlyAvailableWhileInactive(
+        _ testCase: (mode: TimerState.Mode, canEditDurations: Bool)
+    ) {
         let environment = TestEnvironment()
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
 
-        state.mode = .idle
-        #expect(state.canEditDurations)
+        state.mode = testCase.mode
 
-        state.mode = .running
-        #expect(state.canEditDurations == false)
-
-        state.mode = .paused
-        #expect(state.canEditDurations == false)
-
-        state.mode = .resting
-        #expect(state.canEditDurations == false)
-
-        state.mode = .postponedWork
-        #expect(state.canEditDurations == false)
-
-        state.mode = .awaitingReturn
-        #expect(state.canEditDurations == false)
+        #expect(
+            state.canEditDurations == testCase.canEditDurations,
+            "Mode \(String(describing: testCase.mode)) should \(testCase.canEditDurations ? "" : "not ")allow duration edits."
+        )
     }
 
     @Test("formattedTimeRemaining still produces string regardless of state")

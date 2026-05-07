@@ -33,16 +33,9 @@ struct ShatterBreakApp: App {
     }
 }
 
-// Use the shared manager so missing injection does not silently create fresh state.
-private struct PermissionsKey: EnvironmentKey {
-    static var defaultValue: ScreenCapturePermissionManager {
-        MainActor.assumeIsolated { ScreenCapturePermissionManager.shared }
-    }
-}
-
 extension EnvironmentValues {
-    var permissions: ScreenCapturePermissionManager {
-        get { self[PermissionsKey.self] }
-        set { self[PermissionsKey.self] = newValue }
+    // Use the shared manager so missing injection does not silently create fresh state.
+    @Entry var permissions: ScreenCapturePermissionManager = MainActor.assumeIsolated {
+        ScreenCapturePermissionManager.shared
     }
 }
