@@ -132,10 +132,8 @@ class OverlayManager: OverlayManaging {
             do {
                 let images = try await captureImages(displayIDs: displayIDs)
                 await applyCapture(images, sessionID)
-            } catch is CancellationError {
-                return
             } catch {
-                print("Overlay presentation error: \(error.localizedDescription)")
+                return
             }
         }
     }
@@ -155,9 +153,6 @@ class OverlayManager: OverlayManaging {
         } catch is CancellationError {
             throw CancellationError()
         } catch {
-            print(
-                "Falling back to plain overlay after screen enumeration failed: \(error.localizedDescription)"
-            )
             return [:]
         }
 
@@ -185,9 +180,7 @@ class OverlayManager: OverlayManaging {
             } catch is CancellationError {
                 throw CancellationError()
             } catch {
-                print(
-                    "Falling back to plain overlay for display \(display.displayID): \(error.localizedDescription)"
-                )
+                continue
             }
         }
 

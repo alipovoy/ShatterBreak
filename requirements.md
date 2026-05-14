@@ -147,8 +147,7 @@ intro begins only when capture results return for the active session.
 Fallback behavior:
 * Without screen recording permission, shatter still progresses using dark fallback
   backgrounds.
-* If display enumeration fails, the app logs the error with `print()` today and
-  falls back to no captured images.
+* If display enumeration fails, the app falls back to no captured images.
 * If capture fails for a display, that display falls back independently while the
   rest of the break flow continues.
 * Stale capture results are ignored by checking the active session id.
