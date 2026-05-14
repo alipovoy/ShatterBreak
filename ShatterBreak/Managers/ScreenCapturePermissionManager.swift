@@ -81,4 +81,3 @@ final class ScreenCapturePermissionManager {
         appActiveObserver = observer
     }
 }
-

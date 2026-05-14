@@ -8,7 +8,7 @@ struct CrackedGlassView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            Canvas { context, size in
+            Canvas { context, _ in
                 guard isGenerated else { return }
 
                 context.stroke(mainCracks, with: .color(.black.opacity(0.5)), lineWidth: 3)
@@ -43,8 +43,8 @@ struct CrackedGlassView: View {
         let numMainCracks = Int.random(in: 12...18)
         let maxRadius = max(size.width, size.height) * 1.2
 
-        for i in 0..<numMainCracks {
-            let baseAngle = (Double(i) / Double(numMainCracks)) * .pi * 2.0
+        for crackIndex in 0..<numMainCracks {
+            let baseAngle = (Double(crackIndex) / Double(numMainCracks)) * .pi * 2.0
             let angle = baseAngle + Double.random(in: -0.2...0.2)
 
             var currentPoint = center

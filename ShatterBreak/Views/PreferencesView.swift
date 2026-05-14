@@ -27,7 +27,7 @@ struct PreferencesView: View {
                         }
                     }
                     .pickerStyle(.radioGroup)
-                    .onChange(of: effectType) { oldValue, newValue in
+                    .onChange(of: effectType) { _, newValue in
                         guard newValue == .shatter else { return }
                         guard permissions.status != .granted else { return }
                         showPermissionAlert = true
@@ -44,7 +44,12 @@ struct PreferencesView: View {
                         }
                     }
                     .pickerStyle(.radioGroup)
-                    .help("Choose whether the work timer should automatically start when your rest finishes or wait until you press a button.")
+                    .help(
+                        """
+                        Choose whether the work timer should automatically \
+                        start when your rest finishes or wait until you press a button.
+                        """
+                    )
 
                     Toggle("Show timer in menu bar", isOn: $showTimerInMenuBar)
                         .help("When enabled, the remaining time will be shown next to the app icon in the menu bar.")
@@ -68,7 +73,12 @@ struct PreferencesView: View {
             Button("Open System Settings", action: openSystemSettings)
             Button("Later", role: .cancel) { }
         } message: {
-            Text("Shatter requires Screen Recording permission. Enable it in System Settings → Privacy & Security → Screen & System Audio Recording.")
+            Text(
+            """
+            Shatter requires Screen Recording permission. \
+            Enable it in System Settings → Privacy & Security → Screen & System Audio Recording.
+            """
+            )
         }
     }
 

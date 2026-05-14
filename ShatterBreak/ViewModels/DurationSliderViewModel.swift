@@ -47,7 +47,7 @@ final class DurationSliderViewModel {
     func formatTime(seconds: Double) -> String {
         let totalMinutes = Int(seconds) / 60
         let remainingSeconds = Int(seconds) % 60
-        
+
         if totalMinutes >= 60 {
             let hours = totalMinutes / 60
             let mins = totalMinutes % 60
@@ -63,7 +63,7 @@ final class DurationSliderViewModel {
 
             return components.joined(separator: " ")
         }
-        
+
         return "\(zeroPadded(totalMinutes)):\(zeroPadded(remainingSeconds))"
     }
 

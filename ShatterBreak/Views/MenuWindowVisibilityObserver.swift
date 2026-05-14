@@ -85,8 +85,8 @@ struct MenuWindowVisibilityObserver: NSViewRepresentable {
                 isVisible.wrappedValue = nextValue
             }
         }
-
         private func removeObservers() {
+            // swiftlint:disable:next notification_center_detachment
             NotificationCenter.default.removeObserver(self)
         }
     }

@@ -14,7 +14,7 @@ class OverlayManager: OverlayManaging {
     private var overlayStates: [CGDirectDisplayID: OverlayPresentationState] = [:]
     private var captureTask: Task<Void, Never>?
     private var activeSessionID = UUID()
-    
+
     private var selectedEffectType: EffectType {
         UserDefaults.standard.string(forKey: PreferenceKeys.effectType)
             .flatMap(EffectType.init(rawValue:)) ?? .shatter
@@ -100,7 +100,7 @@ class OverlayManager: OverlayManaging {
 
         // Allow overlaying native fullscreen spaces.
         window.collectionBehavior = [
-            .canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary,
+            .canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary
         ]
 
         let softOverlay =

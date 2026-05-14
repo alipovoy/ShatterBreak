@@ -53,7 +53,7 @@ final class TestEnvironment {
             tickSource.advance(by: interval)
         }
     }
-    
+
     @MainActor
     func elapseTimeWithoutTick(by interval: TimeInterval) {
         tickSource.elapse(by: interval)

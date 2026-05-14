@@ -71,7 +71,10 @@ final class OverlayPresentationViewModel {
         playSoundEnabled: Bool
     ) async {
         shakeOffset = 0
-        withAnimation(.spring(duration: Constants.shakeDuration).repeatCount(Constants.shakeRepeatCount, autoreverses: true)) {
+        withAnimation(
+            .spring(duration: Constants.shakeDuration)
+            .repeatCount(Constants.shakeRepeatCount, autoreverses: true)
+            ) {
             shakeOffset = Constants.shakeDistance
         }
 

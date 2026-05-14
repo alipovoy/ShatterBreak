@@ -13,15 +13,15 @@ struct PiecewiseTimer: Sendable {
         SliderAnchor(stop: 1.0, value: 7200)
     ]
 
-    static func seconds(from t: Double) -> Double {
+    static func seconds(from timestamp: Double) -> Double {
         guard anchors.count >= 2 else { return anchors.first?.value ?? 0 }
 
-        for i in 0..<anchors.count - 1 {
-            let start = anchors[i]
-            let end = anchors[i + 1]
+        for anchorIndex in 0..<anchors.count - 1 {
+            let start = anchors[anchorIndex]
+            let end = anchors[anchorIndex + 1]
 
-            if t <= end.stop {
-                let localT = (t - start.stop) / (end.stop - start.stop)
+            if timestamp <= end.stop {
+                let localT = (timestamp - start.stop) / (end.stop - start.stop)
                 return start.value + localT * (end.value - start.value)
             }
         }
@@ -34,9 +34,9 @@ struct PiecewiseTimer: Sendable {
         if seconds <= first.value { return first.stop }
         if seconds >= last.value { return last.stop }
 
-        for i in 0..<anchors.count - 1 {
-            let start = anchors[i]
-            let end = anchors[i + 1]
+        for anchorIndex in 0..<anchors.count - 1 {
+            let start = anchors[anchorIndex]
+            let end = anchors[anchorIndex + 1]
 
             if seconds <= end.value {
                 let localT = (seconds - start.value) / (end.value - start.value)

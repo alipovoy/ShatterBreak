@@ -25,7 +25,7 @@ final class ManualTimerTickSource: TimerTickSource {
         now = now.addingTimeInterval(interval)
         handler?()
     }
-    
+
     func elapse(by interval: TimeInterval) {
         now = now.addingTimeInterval(interval)
     }

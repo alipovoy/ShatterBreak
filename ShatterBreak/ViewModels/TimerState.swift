@@ -1,3 +1,5 @@
+// swiftlint:disable file_length
+// swiftlint:disable type_body_length
 import SwiftUI
 
 /// Manages the timer state machine for work/rest cycles with postpone capability.
@@ -5,7 +7,7 @@ import SwiftUI
 @Observable
 final class TimerState {
     // MARK: - Types
-    
+
     /// Represents the current operational state of the timer.
     enum Mode: Equatable {
         case idle           // No active timer
@@ -15,37 +17,37 @@ final class TimerState {
         case postponedWork  // Postponed rest, counting down work period
         case awaitingReturn // Manual mode: rest complete, waiting for user
     }
-    
+
     // MARK: - Properties
-    
+
     /// The current operational mode. All boolean state flags derive from this.
     var mode: Mode = .idle
-    
+
     var workDurationSecs: Double {
         didSet { defaults.set(workDurationSecs, forKey: PreferenceKeys.workDurationSecs) }
     }
-    
+
     var restDurationSecs: Double {
         didSet { defaults.set(restDurationSecs, forKey: PreferenceKeys.restDurationSecs) }
     }
-    
+
     var postponeDurationSecs: Double = 60
-    
+
     /// Whether postpone is available: only when resting and not yet used this cycle.
     var canPostpone: Bool {
         mode == .resting && !hasPostponeBeenUsedThisCycle
     }
-    
+
     /// Whether the timer is actively counting down (work, rest, or postponed work).
     var isRunning: Bool {
         mode == .running || mode == .resting || mode == .postponedWork
     }
-    
+
     var isPaused: Bool { mode == .paused }
     var isResting: Bool { mode == .resting }
     var awaitingReturn: Bool { mode == .awaitingReturn }
     var canEditDurations: Bool { mode == .idle }
-    
+
     var hasPostponeBeenUsedThisCycle = false
     var timeRemaining: TimeInterval {
         get {
@@ -60,7 +62,7 @@ final class TimerState {
             startCountdownMonitoring()
         }
     }
-    
+
     var shouldShowTimeInMenuBar: Bool {
         switch mode {
         case .running, .paused, .postponedWork:
@@ -69,13 +71,13 @@ final class TimerState {
             return false
         }
     }
-    
+
     var formattedTimeRemaining: String {
         formattedTimeRemaining(at: tickSource.now)
     }
-    
+
     // MARK: - Private State
-    
+
     private var activeDeadline: Date?
     private var frozenTimeRemaining: TimeInterval = 0
     private var savedRestRemaining: TimeInterval?
@@ -83,22 +85,22 @@ final class TimerState {
     private var modeBeforePause: Mode?
     private var wasAutoPausedBySystem = false
     private var modeBeforeSleep: Mode?
-    
+
     private var expiryTask: Task<Void, Never>?
     private var sleepObserverTasks: [Task<Void, Never>] = []
-    
+
     private let overlayManager: any OverlayManaging
     private let defaults: UserDefaults
     private let tickSource: any TimerTickSource
     private let workspaceNotificationCenter: NotificationCenter
-    
+
     private var autoStartWorkTimer: Bool {
         defaults.string(forKey: PreferenceKeys.workStartMode)
             .flatMap { WorkStartMode(rawValue: $0) } ?? .automatic == .automatic
     }
-    
+
     // MARK: - Initialization
-    
+
     init(
         overlayManager: any OverlayManaging,
         postponeDurationSecs: Double = 60,
@@ -116,7 +118,7 @@ final class TimerState {
         self.restDurationSecs = Self.loadDuration(
             forKey: PreferenceKeys.restDurationSecs, defaultValue: 300, defaults: defaults)
     }
-    
+
     convenience init(
         postponeDurationSecs: Double = 60,
         defaults: UserDefaults = .standard,
@@ -137,7 +139,7 @@ final class TimerState {
         activeDeadline = nil
         deactivateSleepObservers()
     }
-    
+
     private static func loadDuration(
         forKey key: String,
         defaultValue: Double,
@@ -146,20 +148,20 @@ final class TimerState {
         let value = defaults.double(forKey: key)
         return value > 0 ? value : defaultValue
     }
-    
+
     // MARK: - User Actions
-    
+
     func start() {
         if mode == .resting || mode == .awaitingReturn {
             overlayManager.dismissOverlays()
         }
-        
+
         mode = .running
         modeBeforePause = nil
         wasAutoPausedBySystem = false
         beginCountdown(for: workDurationSecs)
     }
-    
+
     func pause() {
         switch mode {
         case .running, .postponedWork:
@@ -176,7 +178,7 @@ final class TimerState {
             return
         }
     }
-    
+
     func resume() {
         guard mode == .paused else { return }
 
@@ -185,7 +187,7 @@ final class TimerState {
         mode = resumedMode
         resumeCountdown()
     }
-    
+
     func stop() {
         clearCountdown()
         mode = .idle
@@ -196,10 +198,10 @@ final class TimerState {
         overlayManager.dismissOverlays()
         deactivateSleepObservers()
     }
-    
+
     func postpone() {
         guard mode == .resting && !hasPostponeBeenUsedThisCycle else { return }
-        
+
         let remainingRest = timeRemaining
         freezeCountdown()
         savedRestRemaining = remainingRest
@@ -208,17 +210,17 @@ final class TimerState {
         overlayManager.dismissOverlays()
         beginCountdown(for: postponeDurationSecs)
     }
-    
+
     // MARK: - Timer Control
-    
+
     func timeRemaining(at referenceDate: Date) -> TimeInterval {
         currentRemainingTime(at: referenceDate)
     }
-    
+
     func formattedTimeRemaining(at referenceDate: Date) -> String {
         Self.format(timeInterval: timeRemaining(at: referenceDate))
     }
-    
+
     private func beginCountdown(for duration: TimeInterval) {
         let clampedDuration = max(0, duration)
         activateSleepObserversIfNeeded()
@@ -227,22 +229,22 @@ final class TimerState {
         startCountdownMonitoring()
         handleCountdownExpiryIfNeeded()
     }
-    
+
     private func resumeCountdown() {
         beginCountdown(for: timeRemaining)
     }
-    
+
     private func freezeCountdown() {
         frozenTimeRemaining = currentRemainingTime(at: tickSource.now)
         stopCountdownMonitoring()
         activeDeadline = nil
     }
-    
+
     private func currentRemainingTime(at referenceDate: Date) -> TimeInterval {
         guard let activeDeadline, isRunning else { return frozenTimeRemaining }
         return max(0, activeDeadline.timeIntervalSince(referenceDate))
     }
-    
+
     private func clearCountdown() {
         frozenTimeRemaining = 0
         stopCountdownMonitoring()
@@ -254,19 +256,19 @@ final class TimerState {
         expiryTask = nil
         tickSource.stop()
     }
-    
+
     private func handleCountdownExpiryIfNeeded() {
         guard currentRemainingTime(at: tickSource.now) <= 0 else { return }
-        
+
         switch mode {
         case .postponedWork:
             clearCountdown()
             resumeRest()
         case .resting:
             guard isSystemAsleep == false else { return }
-            
+
             clearCountdown()
-            
+
             if autoStartWorkTimer {
                 overlayManager.dismissOverlays()
                 start()
@@ -282,9 +284,9 @@ final class TimerState {
             break
         }
     }
-    
+
     // MARK: - Phase Transitions
-    
+
     private func enterRestPhase() {
         mode = .resting
         modeBeforePause = nil
@@ -293,19 +295,19 @@ final class TimerState {
         overlayManager.showOverlays(state: self)
         beginCountdown(for: restDurationSecs)
     }
-    
+
     private func resumeRest() {
         guard let saved = savedRestRemaining else { return }
-        
+
         mode = .resting
         modeBeforePause = nil
         savedRestRemaining = nil
         overlayManager.showOverlays(state: self)
         beginCountdown(for: saved)
     }
-    
+
     // MARK: - Sleep/Wake Handling
-    
+
     private func activateSleepObserversIfNeeded() {
         guard sleepObserverTasks.isEmpty else { return }
 
@@ -316,7 +318,7 @@ final class TimerState {
             NSWorkspace.screensDidWakeNotification
         ]
         let notificationCenter = workspaceNotificationCenter
-        
+
         for name in notifications {
             sleepObserverTasks.append(Task { [weak self, notificationCenter] in
                 for await _ in notificationCenter.notifications(named: name) {
@@ -331,7 +333,7 @@ final class TimerState {
         sleepObserverTasks.forEach { $0.cancel() }
         sleepObserverTasks.removeAll()
     }
-    
+
     private func handleNotification(_ name: NSNotification.Name) {
         switch name {
         case NSWorkspace.willSleepNotification, NSWorkspace.screensDidSleepNotification:
@@ -341,21 +343,21 @@ final class TimerState {
         default: break
         }
     }
-    
+
     private func handleSleep() {
         isSystemAsleep = true
-        
+
         guard mode == .running || mode == .postponedWork else { return }
-        
+
         freezeCountdown()
         modeBeforeSleep = mode
         mode = .paused
         wasAutoPausedBySystem = true
     }
-    
+
     private func handleWake() {
         isSystemAsleep = false
-        
+
         if mode == .resting {
             if currentRemainingTime(at: tickSource.now) <= 0 {
                 clearCountdown()
@@ -363,13 +365,13 @@ final class TimerState {
                 overlayManager.dismissOverlays()
                 deactivateSleepObservers()
             }
-            
+
             return
         }
-        
+
         // Resume if auto-paused by system during work or postponed work
         guard wasAutoPausedBySystem else { return }
-        
+
         wasAutoPausedBySystem = false
         mode = (modeBeforeSleep == .postponedWork) ? .postponedWork : .running
         modeBeforeSleep = nil
@@ -410,9 +412,9 @@ final class TimerState {
         guard activeDeadline == deadline else { return }
         handleCountdownExpiryIfNeeded()
     }
-    
+
     // MARK: - Formatting
-    
+
     nonisolated static func format(timeInterval interval: TimeInterval) -> String {
         let displayInterval = Int(ceil(max(0, interval)))
         let minutes = displayInterval / 60
@@ -422,3 +424,4 @@ final class TimerState {
         return "\(minutesStr):\(secondsStr)"
     }
 }
+// swiftlint:enable type_body_length

@@ -123,4 +123,3 @@ struct OverlayView: View {
             .padding()
     }
 }
-
