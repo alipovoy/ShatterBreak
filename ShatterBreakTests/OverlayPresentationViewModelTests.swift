@@ -24,7 +24,7 @@ private final class OverlayPresentationViewModelSpy {
 }
 
 @MainActor
-@Suite("Overlay presentation view model")
+@Suite("Overlay presentation view model", .tags(.overlays))
 struct OverlayPresentationViewModelTests {
     @Test("plain overlay plays the sound once")
     func plainOverlayPlaysSoundOnce() async {

@@ -32,7 +32,7 @@ private final class ScreenCapturePermissionClientSpy {
     }
 }
 
-@Suite("ScreenCapturePermissionManager")
+@Suite("ScreenCapturePermissionManager", .tags(.permissions))
 struct ScreenCapturePermissionManagerTests {
     private let launchKey = "com.shatterbreak.hasLaunchedBefore"
 

@@ -3,7 +3,7 @@ import Testing
 
 @testable import ShatterBreak
 
-@Suite("TimerState postpone behaviors")
+@Suite("TimerState postpone behaviors", .tags(.timerState), .timeLimit(.minutes(1)))
 struct TimerStatePostponeTests {
     private let postponeDurationSecs = 1.5
 

@@ -17,7 +17,7 @@ final class OverlaySpy: OverlayManaging {
     }
 }
 
-@Suite("TimerState overlay behaviors")
+@Suite("TimerState overlay behaviors", .tags(.timerState, .overlays))
 struct TimerStateOverlayTests {
     @Test("overlays show when entering rest and dismiss when leaving")
     @MainActor

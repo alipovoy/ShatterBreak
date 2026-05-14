@@ -3,7 +3,7 @@ import Testing
 
 @testable import ShatterBreak
 
-@Suite("TimerState wake before rest expiry")
+@Suite("TimerState wake before rest expiry", .tags(.timerState, .sleepWake, .overlays))
 struct TimerStateWakeBeforeExpiryTests {
     @Test("wake during rest before expiry keeps overlay and rest")
     @MainActor

@@ -19,7 +19,7 @@ struct SliderSnapCase: Sendable {
     let expectedValue: Double
 }
 
-@Suite("DurationSliderViewModel")
+@Suite("DurationSliderViewModel", .tags(.parsing))
 struct DurationSliderViewModelTests {
     @Test(arguments: [
         ManualInputCase(input: "1h", initialValue: 1500, expectedValue: 3600, expectedDisplay: "1h 0m"),

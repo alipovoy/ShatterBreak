@@ -21,7 +21,7 @@ private let durationEditingCases: [(mode: TimerState.Mode, canEditDurations: Boo
     (.awaitingReturn, false),
 ]
 
-@Suite("TimerState basic flows")
+@Suite("TimerState basic flows", .tags(.timerState), .timeLimit(.minutes(1)))
 struct TimerStateBasicTests {
     @Test("start() initializes and transitions to rest")
     @MainActor
@@ -225,7 +225,7 @@ struct TimerStateBasicTests {
     }
 }
 
-@Suite("TimerState sleep/wake behaviors")
+@Suite("TimerState sleep/wake behaviors", .tags(.timerState, .sleepWake), .timeLimit(.minutes(1)))
 struct TimerStateSleepWakeTests {
     @Test("display sleep auto-pauses work; wake auto-resumes")
     @MainActor
