@@ -33,12 +33,12 @@ struct TimerStateOverlayTests {
 
         state.start()
         await environment.advanceTime()
-        #expect(spy.showCount == 1)
+        #expect(spy.showCount == 1, "Entering rest should show overlays once.")
 
         await environment.advanceTime()
-        #expect(spy.dismissCount == 2)
-        #expect(state.isRunning)
-        #expect(state.isResting == false)
+        #expect(spy.dismissCount == 2, "Leaving rest should dismiss both managed overlays.")
+        #expect(state.isRunning, "Automatic mode should start the next work interval.")
+        #expect(state.isResting == false, "Automatic mode should leave rest after rest expires.")
     }
 
     @Test("pause during rest skips rest and dismisses overlays")
@@ -55,12 +55,12 @@ struct TimerStateOverlayTests {
 
         state.start()
         await environment.advanceTime()
-        #expect(spy.showCount == 1)
+        #expect(spy.showCount == 1, "Entering rest should show overlays before skipping.")
 
         state.pause()
-        #expect(spy.dismissCount == 2)
+        #expect(spy.dismissCount == 2, "Skipping rest should dismiss both managed overlays.")
         #expect(state.isRunning, "Skip rest should start work.")
-        #expect(state.isResting == false)
+        #expect(state.isResting == false, "Skip rest should clear the resting state.")
     }
 
     @Test("manual-start mode keeps overlay and waits for user action")
@@ -77,13 +77,13 @@ struct TimerStateOverlayTests {
 
         state.start()
         await environment.advanceUntil(maxTicks: 2) { state.isResting }
-        #expect(spy.showCount == 1)
+        #expect(spy.showCount == 1, "Entering rest should show the manual-mode overlay.")
 
         await environment.advanceUntil(maxTicks: 2) { state.awaitingReturn }
         #expect(spy.dismissCount == 0, "The overlay should remain visible while waiting.")
-        #expect(state.awaitingReturn)
+        #expect(state.awaitingReturn, "Manual mode should wait for the user to return after rest expires.")
 
         state.start()
-        #expect(spy.dismissCount == 1)
+        #expect(spy.dismissCount == 1, "Starting work from awaiting return should dismiss the overlay once.")
     }
 }

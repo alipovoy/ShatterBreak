@@ -32,7 +32,7 @@ struct DurationSliderViewModelTests {
         ManualInputCase(input: "1:02:03", initialValue: 1500, expectedValue: 3723, expectedDisplay: "1h 2m 3s"),
         ManualInputCase(input: "1:00:60", initialValue: 1500, expectedValue: 3660, expectedDisplay: "1h 1m"),
         ManualInputCase(input: "1:60:00", initialValue: 1500, expectedValue: 7200, expectedDisplay: "2h 0m"),
-        ManualInputCase(input: "9999h", initialValue: 1500, expectedValue: 7200, expectedDisplay: "2h 0m"),
+        ManualInputCase(input: "9999h", initialValue: 1500, expectedValue: 7200, expectedDisplay: "2h 0m")
     ])
     @MainActor
     func updateValueFromInputAppliesAcceptedInput(_ testCase: ManualInputCase) {
@@ -42,8 +42,11 @@ struct DurationSliderViewModelTests {
 
         viewModel.updateValueFromInput(currentValue: &value, min: 5, max: 7200)
 
-        #expect(value == testCase.expectedValue)
-        #expect(viewModel.manualInput == testCase.expectedDisplay)
+        #expect(value == testCase.expectedValue, "Accepted input should update the backing duration.")
+        #expect(
+            viewModel.manualInput == testCase.expectedDisplay,
+            "Accepted input should normalize the display string."
+        )
     }
 
     @Test(arguments: [
@@ -65,7 +68,7 @@ struct DurationSliderViewModelTests {
         InvalidManualInputCase(input: "10 10"),
         InvalidManualInputCase(input: "1 h"),
         InvalidManualInputCase(input: "1m30"),
-        InvalidManualInputCase(input: "1h-5m"),
+        InvalidManualInputCase(input: "1h-5m")
     ])
     @MainActor
     func updateValueFromInputPreservesPreviousValueAfterRejectedInput(_ testCase: InvalidManualInputCase) {
@@ -75,28 +78,37 @@ struct DurationSliderViewModelTests {
 
         viewModel.updateValueFromInput(currentValue: &value, min: 5, max: 7200)
 
-        #expect(value == 1507)
-        #expect(viewModel.manualInput == "25:07")
+        #expect(value == 1507, "The initial valid value should parse before invalid-input checks.")
+        #expect(
+            viewModel.manualInput == "25:07",
+            "The initial valid display should be normalized before invalid-input checks."
+        )
 
         viewModel.manualInput = testCase.input
 
         viewModel.updateValueFromInput(currentValue: &value, min: 5, max: 7200)
 
-        #expect(value == 1507)
-        #expect(viewModel.manualInput == "25:07")
+        #expect(value == 1507, "Invalid input should preserve the previous parsed value.")
+        #expect(viewModel.manualInput == "25:07", "Invalid input should preserve the previous display value.")
     }
 
     @Test(arguments: PiecewiseTimer.anchors)
     func piecewiseTimerRoundTripsAnchors(_ anchor: SliderAnchor) {
-        #expect(PiecewiseTimer.seconds(from: anchor.stop) == anchor.value)
-        #expect(PiecewiseTimer.position(from: anchor.value) == anchor.stop)
+        #expect(
+            PiecewiseTimer.seconds(from: anchor.stop) == anchor.value,
+            "Each slider anchor should map back to its duration."
+        )
+        #expect(
+            PiecewiseTimer.position(from: anchor.value) == anchor.stop,
+            "Each anchor duration should map back to its slider stop."
+        )
     }
 
     @Test(arguments: [
         SliderSnapCase(rawSeconds: 33, expectedValue: 35),
         SliderSnapCase(rawSeconds: 73, expectedValue: 60),
         SliderSnapCase(rawSeconds: 615, expectedValue: 600),
-        SliderSnapCase(rawSeconds: 1490, expectedValue: 1500),
+        SliderSnapCase(rawSeconds: 1490, expectedValue: 1500)
     ])
     @MainActor
     func sliderBindingSnapsToExpectedStep(_ testCase: SliderSnapCase) {
@@ -110,7 +122,7 @@ struct DurationSliderViewModelTests {
 
         sliderBinding.wrappedValue = PiecewiseTimer.position(from: testCase.rawSeconds)
 
-        #expect(value == testCase.expectedValue)
+        #expect(value == testCase.expectedValue, "Slider movement should snap to the expected duration step.")
     }
 
     @Test("syncManualInput uses MM:SS while the field is focused")
@@ -120,7 +132,7 @@ struct DurationSliderViewModelTests {
 
         viewModel.syncManualInput(with: 3900, isInputFocused: true)
 
-        #expect(viewModel.manualInput == "65:00")
+        #expect(viewModel.manualInput == "65:00", "Focused manual input should use editable clock formatting.")
     }
 
     @Test("syncManualInput uses friendly formatting when the field is not focused")
@@ -130,6 +142,6 @@ struct DurationSliderViewModelTests {
 
         viewModel.syncManualInput(with: 3900, isInputFocused: false)
 
-        #expect(viewModel.manualInput == "1h 5m")
+        #expect(viewModel.manualInput == "1h 5m", "Unfocused manual input should use friendly duration formatting.")
     }
 }

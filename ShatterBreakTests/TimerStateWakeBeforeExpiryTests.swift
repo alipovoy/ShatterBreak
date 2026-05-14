@@ -19,8 +19,8 @@ struct TimerStateWakeBeforeExpiryTests {
 
         state.start()
         await environment.advanceTime()
-        #expect(state.isResting)
-        #expect(spy.showCount == 1)
+        #expect(state.isResting, "The test setup should enter rest before sleep.")
+        #expect(spy.showCount == 1, "Entering rest should show the overlay before sleep.")
 
         await Task.yield()
 
@@ -34,7 +34,7 @@ struct TimerStateWakeBeforeExpiryTests {
         await Task.yield()
 
         #expect(state.isResting, "Rest should continue if it did not expire asleep.")
-        #expect(state.timeRemaining > 0)
+        #expect(state.timeRemaining > 0, "Rest should keep positive time remaining after waking before expiry.")
         #expect(spy.dismissCount == 0, "Overlay should remain until rest ends.")
     }
 }

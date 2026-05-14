@@ -16,14 +16,20 @@ struct OverlayPresentationStateTests {
         let secondImage = try #require(makeTestImage(width: 2))
 
         state.startShatter(with: firstImage)
-        #expect(state.phase == .shatterIntro)
-        #expect(state.backgroundImage?.width == firstImage.width)
+        #expect(state.phase == .shatterIntro, "Starting shatter should enter the intro phase.")
+        #expect(
+            state.backgroundImage?.width == firstImage.width,
+            "The first screenshot should be retained for the shatter effect."
+        )
 
         state.startShatter(with: secondImage)
-        #expect(state.backgroundImage?.width == firstImage.width)
+        #expect(
+            state.backgroundImage?.width == firstImage.width,
+            "A second shatter start should not replace the captured screenshot."
+        )
 
         state.finishShatterIntro()
-        #expect(state.phase == .shattered)
+        #expect(state.phase == .shattered, "Finishing the intro should advance to the shattered phase.")
     }
 
     @Test("plain overlay ignores captured screenshots")
@@ -37,8 +43,8 @@ struct OverlayPresentationStateTests {
 
         state.startShatter(with: image)
 
-        #expect(state.phase == .plain)
-        #expect(state.backgroundImage == nil)
+        #expect(state.phase == .plain, "Plain overlays should stay in the plain phase.")
+        #expect(state.backgroundImage == nil, "Plain overlays should ignore captured screenshots.")
     }
 
     @Test("shatter effect still transitions without a screenshot")
@@ -51,12 +57,12 @@ struct OverlayPresentationStateTests {
 
         state.startShatter(with: nil)
 
-        #expect(state.phase == .shatterIntro)
-        #expect(state.backgroundImage == nil)
+        #expect(state.phase == .shatterIntro, "Shatter should enter the intro phase even without a screenshot.")
+        #expect(state.backgroundImage == nil, "Missing screenshots should leave the background image empty.")
 
         state.finishShatterIntro()
-        #expect(state.phase == .shattered)
-        #expect(state.showsCracks)
+        #expect(state.phase == .shattered, "Finishing the intro should enter the shattered phase.")
+        #expect(state.showsCracks, "The shattered phase should display cracks.")
     }
 
     @Test("shatter intro skips motion when Reduce Motion is enabled")
@@ -69,7 +75,10 @@ struct OverlayPresentationStateTests {
             hasPlayedSound: false
         )
 
-        #expect(action == .finishShatterIntro(playSound: true))
+        #expect(
+            action == .finishShatterIntro(playSound: true),
+            "Reduce Motion should skip directly to the finished shatter state."
+        )
     }
 
     @Test("shatter intro can skip motion without replaying sound")
@@ -82,7 +91,10 @@ struct OverlayPresentationStateTests {
             hasPlayedSound: true
         )
 
-        #expect(action == .finishShatterIntro(playSound: false))
+        #expect(
+            action == .finishShatterIntro(playSound: false),
+            "Skipping motion should not replay a sound that already played."
+        )
     }
 
     @Test("shatter intro still animates when Reduce Motion is disabled")
@@ -95,7 +107,7 @@ struct OverlayPresentationStateTests {
             hasPlayedSound: false
         )
 
-        #expect(action == .animateShatterIntro)
+        #expect(action == .animateShatterIntro, "Without Reduce Motion, shatter intro should animate.")
     }
 
     private func makeTestImage(width: Int) -> CGImage? {

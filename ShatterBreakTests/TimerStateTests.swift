@@ -9,7 +9,7 @@ private let menuBarVisibilityCases: [(mode: TimerState.Mode, shouldShowTimeInMen
     (.running, true),
     (.paused, true),
     (.postponedWork, true),
-    (.resting, false),
+    (.resting, false)
 ]
 
 private let durationEditingCases: [(mode: TimerState.Mode, canEditDurations: Bool)] = [
@@ -18,7 +18,7 @@ private let durationEditingCases: [(mode: TimerState.Mode, canEditDurations: Boo
     (.paused, false),
     (.resting, false),
     (.postponedWork, false),
-    (.awaitingReturn, false),
+    (.awaitingReturn, false)
 ]
 
 @Suite("TimerState basic flows", .tags(.timerState), .timeLimit(.minutes(1)))
@@ -35,15 +35,15 @@ struct TimerStateBasicTests {
         state.restDurationSecs = 2
 
         state.start()
-        #expect(state.isRunning)
-        #expect(state.isPaused == false)
-        #expect(state.isResting == false)
-        #expect(state.timeRemaining == 1)
+        #expect(state.isRunning, "start() should put the timer into a running work interval.")
+        #expect(state.isPaused == false, "A newly started timer should not be paused.")
+        #expect(state.isResting == false, "A newly started timer should begin with work, not rest.")
+        #expect(state.timeRemaining == 1, "Work should start with the configured duration.")
 
         await environment.advanceTime()
 
         #expect(state.isResting, "Should enter rest after work completes.")
-        #expect(state.isRunning)
+        #expect(state.isRunning, "The timer should keep running after transitioning to rest.")
         #expect(state.timeRemaining == 2, "Rest should start with the configured duration.")
     }
 
@@ -60,7 +60,7 @@ struct TimerStateBasicTests {
         state.pause()
         let snapshot = state.timeRemaining
 
-        #expect(state.isPaused)
+        #expect(state.isPaused, "pause() should move the timer into a paused state.")
         await environment.advanceTime(ticks: 2)
         #expect(state.timeRemaining == snapshot, "timeRemaining should not change while paused.")
 
@@ -69,20 +69,20 @@ struct TimerStateBasicTests {
 
         #expect(state.timeRemaining == snapshot - 1, "timeRemaining should resume decreasing.")
     }
-    
+
     @Test("work countdown tracks elapsed time")
     @MainActor
     func workCountdownTracksElapsedTime() async {
         let environment = TestEnvironment()
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 3
-        
+
         state.start()
         await environment.advanceTime(by: 0.5)
-        #expect(state.timeRemaining == 2.5)
-        
+        #expect(state.timeRemaining == 2.5, "Half a second of elapsed time should reduce the work countdown.")
+
         await environment.advanceTime(by: 1.5)
-        #expect(state.timeRemaining == 1)
+        #expect(state.timeRemaining == 1, "Additional elapsed time should continue reducing the work countdown.")
     }
 
     @Test("work countdown reflects elapsed time without model ticks")
@@ -95,7 +95,7 @@ struct TimerStateBasicTests {
         state.start()
         environment.elapseTimeWithoutTick(by: 1.5)
 
-        #expect(state.timeRemaining == 1.5)
+        #expect(state.timeRemaining == 1.5, "Reading timeRemaining should account for elapsed time even before a tick.")
     }
 
     @Test("stop() cancels and resets state")
@@ -109,9 +109,9 @@ struct TimerStateBasicTests {
         state.start()
         state.stop()
 
-        #expect(state.isRunning == false)
-        #expect(state.mode == .idle)
-        #expect(state.timeRemaining == 0)
+        #expect(state.isRunning == false, "stop() should leave the timer not running.")
+        #expect(state.mode == .idle, "stop() should reset the mode to idle.")
+        #expect(state.timeRemaining == 0, "stop() should clear remaining time.")
     }
 
     @Test("manual mode waits for user after rest expiry")
@@ -129,24 +129,30 @@ struct TimerStateBasicTests {
         await environment.advanceUntil(maxTicks: 3) { state.awaitingReturn }
 
         #expect(state.isRunning == false, "Work should not auto-start in manual mode.")
-        #expect(state.awaitingReturn)
-        #expect(state.timeRemaining == 0)
+        #expect(state.awaitingReturn, "Manual mode should wait for user return after rest expires.")
+        #expect(state.timeRemaining == 0, "Expired manual rest should have no remaining time.")
 
         state.start()
-        #expect(state.isRunning)
-        #expect(state.awaitingReturn == false)
+        #expect(state.isRunning, "Starting from awaiting return should begin work.")
+        #expect(state.awaitingReturn == false, "Starting from awaiting return should clear the waiting state.")
     }
 
     @Test("formatting helper produces zero-padded strings")
     @MainActor
     func formattingProducesCorrectOutput() {
-        #expect(TimerState.format(timeInterval: 0) == "00:00")
-        #expect(TimerState.format(timeInterval: 5) == "00:05")
-        #expect(TimerState.format(timeInterval: 65) == "01:05")
-        #expect(TimerState.format(timeInterval: 599) == "09:59")
-        #expect(TimerState.format(timeInterval: 600) == "10:00")
-        #expect(TimerState.format(timeInterval: 8.999) == "00:09")
-        #expect(TimerState.format(timeInterval: 0.1) == "00:01")
+        #expect(TimerState.format(timeInterval: 0) == "00:00", "Zero seconds should format as 00:00.")
+        #expect(TimerState.format(timeInterval: 5) == "00:05", "Single-digit seconds should be zero padded.")
+        #expect(TimerState.format(timeInterval: 65) == "01:05", "Minutes and seconds should be zero padded.")
+        #expect(TimerState.format(timeInterval: 599) == "09:59", "Single-digit minutes should be zero padded.")
+        #expect(
+            TimerState.format(timeInterval: 600) == "10:00",
+            "Double-digit minutes should format without truncation."
+        )
+        #expect(TimerState.format(timeInterval: 8.999) == "00:09", "Fractional seconds should round up for display.")
+        #expect(
+            TimerState.format(timeInterval: 0.1) == "00:01",
+            "Subsecond positive values should display at least one second."
+        )
     }
 
     @Test("visibility flag reflects each timer mode", arguments: menuBarVisibilityCases)
@@ -161,7 +167,10 @@ struct TimerStateBasicTests {
 
         #expect(
             state.shouldShowTimeInMenuBar == testCase.shouldShowTimeInMenuBar,
-            "Mode \(String(describing: testCase.mode)) should \(testCase.shouldShowTimeInMenuBar ? "" : "not ")show time in the menu bar."
+            """
+            Mode \(String(describing: testCase.mode)) should \
+            \(testCase.shouldShowTimeInMenuBar ? "" : "not ")show time in the menu bar.
+            """
         )
     }
 
@@ -177,7 +186,10 @@ struct TimerStateBasicTests {
 
         #expect(
             state.canEditDurations == testCase.canEditDurations,
-            "Mode \(String(describing: testCase.mode)) should \(testCase.canEditDurations ? "" : "not ")allow duration edits."
+            """
+            Mode \(String(describing: testCase.mode)) should \
+            \(testCase.canEditDurations ? "" : "not ")allow duration edits.
+            """
         )
     }
 
@@ -187,11 +199,14 @@ struct TimerStateBasicTests {
         let environment = TestEnvironment()
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.timeRemaining = 75
-        #expect(state.formattedTimeRemaining == "01:15")
+        #expect(state.formattedTimeRemaining == "01:15", "Idle formatting should use the current remaining time.")
 
         state.mode = .running
         state.mode = .resting
-        #expect(state.formattedTimeRemaining == "01:15")
+        #expect(
+            state.formattedTimeRemaining == "01:15",
+            "Formatted time should not change solely because mode changes."
+        )
     }
 
     @Test("initialization loads stored durations and falls back for zero values")
@@ -204,8 +219,8 @@ struct TimerStateBasicTests {
 
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
 
-        #expect(state.workDurationSecs == 120)
-        #expect(state.restDurationSecs == 300)
+        #expect(state.workDurationSecs == 120, "Initialization should load a stored work duration.")
+        #expect(state.restDurationSecs == 300, "Initialization should fall back when stored rest duration is zero.")
     }
 
     @Test("timer state deallocates while sleep observers are idle")
@@ -221,7 +236,7 @@ struct TimerStateBasicTests {
         }
 
         await Task.yield()
-        #expect(weakState == nil)
+        #expect(weakState == nil, "TimerState should deallocate while sleep observers are idle.")
     }
 }
 
@@ -265,7 +280,7 @@ struct TimerStateSleepWakeTests {
 
         state.start()
         await environment.advanceUntil(maxTicks: 2) { state.isResting }
-        #expect(state.isResting)
+        #expect(state.isResting, "The test setup should enter rest before simulating sleep.")
 
         await Task.yield()
 
@@ -280,35 +295,35 @@ struct TimerStateSleepWakeTests {
 
         #expect(state.isRunning == false, "The app should be idle after waking from an expired rest.")
         #expect(state.isResting == false, "Rest should be cleared after wake when it expired asleep.")
-        #expect(state.mode == .idle)
+        #expect(state.mode == .idle, "The timer mode should be idle after waking from an expired rest.")
     }
-    
+
     @Test("wake during rest handles elapsed wall-clock time without needing a tick")
     @MainActor
     func wakeFromRestDoesNotNeedManualTick() async {
         let environment = TestEnvironment()
         let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
-        
+
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
         state.workDurationSecs = 1
         state.restDurationSecs = 1
-        
+
         state.start()
         await environment.advanceUntil(maxTicks: 2) { state.isResting }
-        #expect(state.isResting)
-        
+        #expect(state.isResting, "The test setup should enter rest before simulating sleep.")
+
         let notificationCenter = environment.workspaceNotificationCenter
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
         await Task.yield()
-        
+
         environment.elapseTimeWithoutTick(by: 1)
-        
+
         notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
         await Task.yield()
-        
-        #expect(state.mode == .idle)
-        #expect(state.isRunning == false)
-        #expect(state.isResting == false)
+
+        #expect(state.mode == .idle, "Wake should resolve expired rest to idle without a manual tick.")
+        #expect(state.isRunning == false, "Wake after expired rest should not keep the timer running.")
+        #expect(state.isResting == false, "Wake after expired rest should clear the resting state.")
     }
 }

@@ -46,9 +46,9 @@ struct OverlayPresentationViewModelTests {
             playSoundEnabled: true
         )
 
-        #expect(spy.soundPlayCount == 1)
-        #expect(viewModel.shakeOffset == 0)
-        #expect(presentation.phase == .plain)
+        #expect(spy.soundPlayCount == 1, "A plain overlay should play its sound only once.")
+        #expect(viewModel.shakeOffset == 0, "Plain overlays should not shake.")
+        #expect(presentation.phase == .plain, "Plain overlays should remain in the plain phase.")
     }
 
     @Test("plain overlay respects the sound preference")
@@ -66,8 +66,8 @@ struct OverlayPresentationViewModelTests {
             playSoundEnabled: false
         )
 
-        #expect(spy.soundPlayCount == 0)
-        #expect(presentation.phase == .plain)
+        #expect(spy.soundPlayCount == 0, "Disabled sound preference should prevent playback.")
+        #expect(presentation.phase == .plain, "Sound preference should not alter the plain overlay phase.")
     }
 
     @Test("Reduce Motion finishes shatter intro without shaking")
@@ -86,10 +86,10 @@ struct OverlayPresentationViewModelTests {
             playSoundEnabled: true
         )
 
-        #expect(presentation.phase == .shattered)
-        #expect(viewModel.shakeOffset == 0)
-        #expect(spy.soundPlayCount == 1)
-        #expect(spy.sleepDurations.isEmpty)
+        #expect(presentation.phase == .shattered, "Reduce Motion should finish the shatter intro immediately.")
+        #expect(viewModel.shakeOffset == 0, "Reduce Motion should avoid shake offset.")
+        #expect(spy.soundPlayCount == 1, "Finishing the shatter intro should play the sound once.")
+        #expect(spy.sleepDurations.isEmpty, "Reduce Motion should skip the shatter animation delay.")
     }
 
     @Test("animated shatter intro waits before finishing")
@@ -108,10 +108,10 @@ struct OverlayPresentationViewModelTests {
             playSoundEnabled: true
         )
 
-        #expect(spy.sleepDurations == [.milliseconds(900)])
-        #expect(presentation.phase == .shattered)
-        #expect(viewModel.shakeOffset == 0)
-        #expect(spy.soundPlayCount == 1)
+        #expect(spy.sleepDurations == [.milliseconds(900)], "Animated shatter should wait for the intro duration.")
+        #expect(presentation.phase == .shattered, "Animated shatter should finish after the intro delay.")
+        #expect(viewModel.shakeOffset == 0, "Shake offset should reset after the intro finishes.")
+        #expect(spy.soundPlayCount == 1, "Animated shatter should play the sound once.")
     }
 
     @Test("cancelled shatter intro leaves the phase unchanged")
@@ -131,8 +131,8 @@ struct OverlayPresentationViewModelTests {
             playSoundEnabled: true
         )
 
-        #expect(presentation.phase == .shatterIntro)
-        #expect(viewModel.shakeOffset == 10)
-        #expect(spy.soundPlayCount == 0)
+        #expect(presentation.phase == .shatterIntro, "Cancellation should leave the shatter intro in progress.")
+        #expect(viewModel.shakeOffset == 10, "Cancellation should preserve the in-progress shake offset.")
+        #expect(spy.soundPlayCount == 0, "Cancellation should prevent finishing sound playback.")
     }
 }

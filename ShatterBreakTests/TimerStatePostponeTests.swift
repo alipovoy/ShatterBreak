@@ -21,8 +21,8 @@ struct TimerStatePostponeTests {
         state.start()
         await environment.advanceTime()
 
-        #expect(state.isResting)
-        #expect(state.hasPostponeBeenUsedThisCycle == false)
+        #expect(state.isResting, "The test setup should enter rest before checking postpone availability.")
+        #expect(state.hasPostponeBeenUsedThisCycle == false, "A fresh rest cycle should not have used postpone.")
         #expect(state.canPostpone, "Postpone should be available during a fresh rest.")
     }
 
@@ -38,14 +38,14 @@ struct TimerStatePostponeTests {
         state.restDurationSecs = 10
 
         state.start()
-        #expect(state.isResting == false)
+        #expect(state.isResting == false, "A newly started timer should still be working before rest begins.")
         #expect(state.canPostpone == false, "Postpone should not be available during work.")
 
         await environment.advanceUntil(maxTicks: 2) { state.isResting }
-        #expect(state.isResting)
+        #expect(state.isResting, "The test setup should reach rest before postponing.")
 
         state.postpone()
-        #expect(state.isResting == false)
+        #expect(state.isResting == false, "Postponing should leave rest for postponed work.")
         #expect(state.canPostpone == false, "Postpone should not remain available in postponed work.")
     }
 
@@ -62,15 +62,15 @@ struct TimerStatePostponeTests {
 
         state.start()
         await environment.advanceTime()
-        #expect(state.canPostpone)
+        #expect(state.canPostpone, "Postpone should be available before it is used.")
 
         state.postpone()
-        #expect(state.hasPostponeBeenUsedThisCycle)
+        #expect(state.hasPostponeBeenUsedThisCycle, "Using postpone should mark the current cycle.")
         #expect(state.canPostpone == false, "Postpone should only be allowed once per cycle.")
 
         await environment.advanceTime(ticks: 2)
 
-        #expect(state.isResting)
+        #expect(state.isResting, "Postponed work expiry should return to rest.")
         #expect(state.canPostpone == false, "Postpone should stay unavailable until the next cycle.")
     }
 
@@ -88,13 +88,13 @@ struct TimerStatePostponeTests {
 
         state.start()
         await environment.advanceTime()
-        #expect(state.isResting)
-        #expect(spy.showCount == 1)
+        #expect(state.isResting, "The test setup should enter rest before postponing.")
+        #expect(spy.showCount == 1, "Entering rest should show overlays once before postponing.")
 
         state.postpone()
 
-        #expect(state.mode == .postponedWork)
-        #expect(state.isRunning)
+        #expect(state.mode == .postponedWork, "postpone() should switch into postponed work mode.")
+        #expect(state.isRunning, "Postponed work should run immediately.")
         #expect(state.hasPostponeBeenUsedThisCycle, "Postpone should mark the cycle as used.")
         #expect(state.timeRemaining == postponeDurationSecs, "Postpone should set the postpone timer.")
         #expect(spy.dismissCount == 1, "Overlays should dismiss when postponing.")
@@ -116,13 +116,13 @@ struct TimerStatePostponeTests {
         #expect(state.timeRemaining == 1, "Postpone should not change time during work.")
 
         await environment.advanceUntil(maxTicks: 2) { state.isResting }
-        #expect(state.isResting)
+        #expect(state.isResting, "The test setup should enter rest before exercising duplicate postpone.")
 
         state.postpone()
         let postponedTime = state.timeRemaining
 
         state.postpone()
-        #expect(state.mode == .postponedWork)
+        #expect(state.mode == .postponedWork, "A duplicate postpone should leave the timer in postponed work.")
         #expect(state.timeRemaining == postponedTime, "A second postpone should be ignored.")
     }
 
@@ -164,14 +164,14 @@ struct TimerStatePostponeTests {
         state.start()
         await environment.advanceUntil(maxTicks: 2) { state.isResting }
         state.postpone()
-        #expect(state.hasPostponeBeenUsedThisCycle)
+        #expect(state.hasPostponeBeenUsedThisCycle, "Postpone should mark the cycle as used.")
 
         await environment.advanceTime(ticks: 2)
-        #expect(state.isResting)
+        #expect(state.isResting, "Postponed work should return to the same rest cycle.")
         #expect(state.hasPostponeBeenUsedThisCycle, "The flag should remain set for the resumed rest.")
 
         await environment.advanceTime()
-        #expect(state.mode == .running)
+        #expect(state.mode == .running, "The resumed rest should eventually advance to work.")
 
         await environment.advanceTime()
         #expect(state.isResting, "The next cycle should enter rest again.")
@@ -196,8 +196,8 @@ struct TimerStatePostponeTests {
 
         state.pause()
 
-        #expect(state.mode == .paused)
-        #expect(state.timeRemaining == snapshot)
+        #expect(state.mode == .paused, "Pausing during postponed work should enter paused mode.")
+        #expect(state.timeRemaining == snapshot, "Pausing should preserve postponed-work time remaining.")
         #expect(state.canPostpone == false, "The postpone flag should stay set for the cycle.")
 
         await environment.advanceTime(ticks: 2)
@@ -227,10 +227,10 @@ struct TimerStatePostponeTests {
 
         state.stop()
 
-        #expect(state.isRunning == false)
-        #expect(state.isResting == false)
+        #expect(state.isRunning == false, "stop() should leave postponed work not running.")
+        #expect(state.isResting == false, "stop() should clear the resting state during postponed work.")
         #expect(state.hasPostponeBeenUsedThisCycle == false, "Stop should clear the postpone flag.")
-        #expect(state.timeRemaining == 0)
+        #expect(state.timeRemaining == 0, "stop() should clear time remaining during postponed work.")
     }
 
     @Test("early postpone preserves rest time")
@@ -248,7 +248,7 @@ struct TimerStatePostponeTests {
         await environment.advanceTime()
 
         let restTimeWhenPostponed = state.timeRemaining
-        #expect(restTimeWhenPostponed == 10)
+        #expect(restTimeWhenPostponed == 10, "Early postpone should save the full rest duration.")
 
         state.postpone()
         await environment.advanceTime(ticks: 2)
@@ -272,7 +272,7 @@ struct TimerStatePostponeTests {
         await environment.advanceUntil(maxTicks: 2) { state.isResting }
         await environment.advanceTime()
 
-        #expect(state.isResting)
+        #expect(state.isResting, "The test setup should still be resting before postponing.")
         let remainingBeforePostpone = state.timeRemaining
         #expect(remainingBeforePostpone == 2, "One second of rest should have elapsed before postponing.")
 

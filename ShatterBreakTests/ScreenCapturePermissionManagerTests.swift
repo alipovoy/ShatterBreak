@@ -51,7 +51,7 @@ struct ScreenCapturePermissionManagerTests {
             preflightAccess: false,
             hasLaunchedBefore: true,
             expectedStatus: .denied
-        ),
+        )
     ])
     @MainActor
     func refreshSetsExpectedStatus(_ testCase: PermissionStatusCase) {
@@ -69,8 +69,11 @@ struct ScreenCapturePermissionManagerTests {
 
         let manager = environment.makePermissionManager(permissionClient: spy.client)
 
-        #expect(manager.status == testCase.expectedStatus)
-        #expect(spy.preflightCallCount == 1)
+        #expect(
+            manager.status == testCase.expectedStatus,
+            "Refresh should derive the expected permission status from preflight and launch state."
+        )
+        #expect(spy.preflightCallCount == 1, "Permission refresh should preflight exactly once.")
     }
 
     @Test("requestIfFirstLaunch sets the launch key and requests once")
@@ -86,7 +89,7 @@ struct ScreenCapturePermissionManagerTests {
         manager.requestIfFirstLaunch()
         manager.requestIfFirstLaunch()
 
-        #expect(defaults.bool(forKey: launchKey))
+        #expect(defaults.bool(forKey: launchKey), "First-launch request should persist the launch marker.")
         #expect(spy.requestCallCount == 1, "The first-launch request should only happen once.")
     }
 
@@ -100,7 +103,7 @@ struct ScreenCapturePermissionManagerTests {
         manager.requestNow()
         manager.requestNow()
 
-        #expect(spy.requestCallCount == 2)
+        #expect(spy.requestCallCount == 2, "Explicit permission requests should always delegate to the client.")
     }
 
     @Test("openSystemSettings delegates to the injected client")
@@ -112,7 +115,7 @@ struct ScreenCapturePermissionManagerTests {
 
         manager.openSystemSettings()
 
-        #expect(spy.openSettingsCallCount == 1)
+        #expect(spy.openSettingsCallCount == 1, "Opening system settings should delegate to the permission client.")
     }
 
     @Test("becoming active refreshes permission status while unresolved")
@@ -125,11 +128,11 @@ struct ScreenCapturePermissionManagerTests {
         let spy = ScreenCapturePermissionClientSpy()
         let manager = environment.makePermissionManager(permissionClient: spy.client)
 
-        #expect(manager.status == .denied)
+        #expect(manager.status == .denied, "A previously launched app without permission should start denied.")
         environment.appNotificationCenter.post(name: NSApplication.didBecomeActiveNotification, object: nil)
 
-        #expect(manager.status == .denied)
-        #expect(spy.preflightCallCount == 2)
+        #expect(manager.status == .denied, "Becoming active should keep denied status when preflight still fails.")
+        #expect(spy.preflightCallCount == 2, "Unresolved permission should refresh when the app becomes active.")
     }
 
     @Test("granted permission stops app-active observation")
@@ -141,13 +144,13 @@ struct ScreenCapturePermissionManagerTests {
 
         let manager = environment.makePermissionManager(permissionClient: spy.client)
 
-        #expect(manager.status == .granted)
-        #expect(spy.preflightCallCount == 1)
+        #expect(manager.status == .granted, "Granted preflight should set granted status.")
+        #expect(spy.preflightCallCount == 1, "Initial permission setup should preflight once.")
 
         environment.appNotificationCenter.post(name: NSApplication.didBecomeActiveNotification, object: nil)
 
-        #expect(manager.status == .granted)
-        #expect(spy.preflightCallCount == 1)
+        #expect(manager.status == .granted, "Granted status should remain granted after app activation.")
+        #expect(spy.preflightCallCount == 1, "Granted status should stop further app-active refreshes.")
     }
 
     @Test("manager deallocates while the app-active observer is registered")
@@ -164,6 +167,6 @@ struct ScreenCapturePermissionManagerTests {
         }
 
         await Task.yield()
-        #expect(weakManager == nil)
+        #expect(weakManager == nil, "Permission manager should deallocate while observing app-active notifications.")
     }
 }

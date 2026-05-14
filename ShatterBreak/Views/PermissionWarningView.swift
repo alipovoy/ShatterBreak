@@ -9,12 +9,12 @@ struct PermissionWarningView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.yellow)
                 Text("Shatter requires Screen Recording permission.")
-                    .font(.caption)
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
             }
             Button("Open System Settings to grant permission", action: onOpenSystemSettings)
                 .buttonStyle(.link)
-                .font(.caption)
+                .font(.footnote)
         }
     }
 }
