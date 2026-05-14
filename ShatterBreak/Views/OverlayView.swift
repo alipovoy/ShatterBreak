@@ -5,8 +5,7 @@ struct OverlayView: View {
     @Bindable var state: TimerState
     @Bindable var presentation: OverlayPresentationState
 
-    @State private var hasPlayedSound = false
-    @State private var shakeOffset: CGFloat = 0
+    @State private var viewModel = OverlayPresentationViewModel()
 
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @AppStorage(PreferenceKeys.playSound) private var playSound: Bool = true
@@ -18,7 +17,7 @@ struct OverlayView: View {
                 isShatterEffect: presentation.isShatterEffect,
                 backgroundImage: presentation.backgroundImage,
                 phase: presentation.phase,
-                shakeOffset: shakeOffset
+                shakeOffset: viewModel.shakeOffset
             )
 
             if presentation.showsCracks {
@@ -62,7 +61,11 @@ struct OverlayView: View {
             }
         }
         .task(id: presentation.phase) {
-            await handlePresentationPhase()
+            await viewModel.handlePresentationPhase(
+                presentation: presentation,
+                reduceMotion: accessibilityReduceMotion,
+                playSoundEnabled: playSound
+            )
         }
     }
 
@@ -74,52 +77,6 @@ struct OverlayView: View {
         return true
     }
 
-    private func handlePresentationPhase() async {
-        switch OverlayPhaseAction.resolve(
-            phase: presentation.phase,
-            isShatterEffect: presentation.isShatterEffect,
-            reduceMotion: accessibilityReduceMotion,
-            playSoundEnabled: playSound,
-            hasPlayedSound: hasPlayedSound
-        ) {
-        case .idle:
-            shakeOffset = 0
-        case .playSound:
-            shakeOffset = 0
-            playGlassSoundIfNeeded()
-        case .finishShatterIntro(let playSound):
-            completeShatterIntro(playSound: playSound)
-        case .animateShatterIntro:
-            shakeOffset = 0
-            withAnimation(.spring(duration: 0.05).repeatCount(20, autoreverses: true)) {
-                shakeOffset = 10
-            }
-
-            do {
-                try await Task.sleep(for: .milliseconds(900))
-                try Task.checkCancellation()
-            } catch {
-                return
-            }
-
-            guard presentation.phase == .shatterIntro else { return }
-            completeShatterIntro(playSound: true)
-        }
-    }
-
-    private func completeShatterIntro(playSound: Bool) {
-        shakeOffset = 0
-        presentation.finishShatterIntro()
-        if playSound {
-            playGlassSoundIfNeeded()
-        }
-    }
-
-    private func playGlassSoundIfNeeded() {
-        guard playSound, hasPlayedSound == false else { return }
-        hasPlayedSound = true
-        NSSound(named: "Glass")?.play()
-    }
 }
 
 #Preview("OverlayView") { @MainActor in
