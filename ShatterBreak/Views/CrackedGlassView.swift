@@ -20,6 +20,7 @@ struct CrackedGlassView: View {
                 let impactRect = CGRect(x: shatterCenter.x - 5, y: shatterCenter.y - 5, width: 10, height: 10)
                 context.fill(Path(ellipseIn: impactRect), with: .color(.white.opacity(0.9)))
             }
+            .id(mainCracks.boundingRect)
             .task(id: geometry.size) {
                 // This runs on MainActor inheriting from view context.
                 generateCracks(size: geometry.size)
@@ -87,4 +88,6 @@ struct CrackedGlassView: View {
 
 #Preview("CrackedGlassView") {
     CrackedGlassView()
+        .frame(width: 400, height: 400)
+        .background(.gray)
 }
