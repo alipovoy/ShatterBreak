@@ -21,8 +21,8 @@ jobs:
     env:
       PROJECT: ShatterBreak.xcodeproj
       SCHEME: ShatterBreak
-      DERIVED_DATA: ${{ runner.temp }}/DerivedData
-      RESULT_BUNDLE: ${{ runner.temp }}/ShatterBreak.xcresult
+      DERIVED_DATA: ${{ github.workspace }}/DerivedData
+      RESULT_BUNDLE: ${{ github.workspace }}/ShatterBreak.xcresult
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
 
