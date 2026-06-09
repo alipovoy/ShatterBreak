@@ -1,0 +1,76 @@
+name: Build and Test
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  checks: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: macos-26
+    timeout-minutes: 5
+
+    env:
+      PROJECT: ShatterBreak.xcodeproj
+      SCHEME: ShatterBreak
+      DERIVED_DATA: ${{ github.workspace }}/DerivedData
+      RESULT_BUNDLE: ${{ github.workspace }}/ShatterBreak.xcresult
+      INCLUDE_SIGNING: "false"
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select --switch /Applications/Xcode_26.5.app/Contents/Developer
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build and test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "platform=macOS" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -resultBundlePath "$RESULT_BUNDLE" \
+            -collect-test-diagnostics never \
+            CODE_SIGNING_ALLOWED=NO \
+          | xcbeautify --report junit --junit-report-filename test-results.xml
+
+      - name: Upload test result bundle
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ShatterBreak.xcresult
+          path: ${{ env.RESULT_BUNDLE }}
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Report test results
+        if: success() || failure()
+        uses: dorny/test-reporter@v3
+        with:
+          name: Tests
+          path: build/reports/test-results.xml
+          reporter: java-junit

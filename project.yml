@@ -2,7 +2,7 @@ name: ShatterBreak
 
 include:
   - path: .env/signing.yml
-    optional: true
+    enable: ${INCLUDE_SIGNING}
 
 options:
   bundleIdPrefix: me.lipovoy

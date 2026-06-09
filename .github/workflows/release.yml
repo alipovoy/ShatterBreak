@@ -1,0 +1,107 @@
+name: Release Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to upload artifacts to
+        required: true
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    name: Build Release Archive
+    runs-on: macos-26
+    timeout-minutes: 5
+
+    env:
+      PROJECT: ShatterBreak.xcodeproj
+      SCHEME: ShatterBreak
+      DERIVED_DATA: ${{ github.workspace }}/DerivedData
+      ARCHIVE_PATH: ${{ github.workspace }}/DerivedData/ShatterBreak.xcarchive
+      RESULT_BUNDLE: ${{ github.workspace }}/ShatterBreak.xcresult
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+      INCLUDE_SIGNING: "false"
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select --switch /Applications/Xcode_26.5.app/Contents/Developer
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Run tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "platform=macOS" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -resultBundlePath "$RESULT_BUNDLE" \
+            -collect-test-diagnostics never \
+            CODE_SIGNING_ALLOWED=NO \
+          | xcbeautify
+
+      - name: Build release archive
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -archivePath "$ARCHIVE_PATH" \
+            CODE_SIGNING_ALLOWED=NO \
+          | xcbeautify
+
+      - name: Ad-hoc sign
+        run: |
+          APP_PATH="$ARCHIVE_PATH/Products/Applications/ShatterBreak.app"
+          codesign \
+            --force \
+            --deep \
+            --sign - \
+            --options runtime \
+            --entitlements ShatterBreak/ShatterBreak.entitlements \
+            "$APP_PATH"
+
+      - name: Package app for release
+        run: |
+          APP_PATH="$ARCHIVE_PATH/Products/Applications/ShatterBreak.app"
+          DSYM_PATH="$ARCHIVE_PATH/dSYMs/ShatterBreak.app.dSYM"
+          RELEASE_ZIP="${{ github.workspace }}/ShatterBreak-${RELEASE_TAG}.zip"
+          DSYM_ZIP="${{ github.workspace }}/ShatterBreak-${RELEASE_TAG}.dSYM.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$RELEASE_ZIP"
+          echo "RELEASE_ZIP=$RELEASE_ZIP" >> "$GITHUB_ENV"
+          if [ -d "$DSYM_PATH" ]; then
+            ditto -c -k --keepParent "$DSYM_PATH" "$DSYM_ZIP"
+            echo "DSYM_ZIP=$DSYM_ZIP" >> "$GITHUB_ENV"
+          fi
+
+      - name: Upload artifacts
+        run: |
+          gh release upload "$RELEASE_TAG" "$RELEASE_ZIP" --clobber
+          if [ -n "${DSYM_ZIP:-}" ] && [ -f "$DSYM_ZIP" ]; then
+            gh release upload "$RELEASE_TAG" "$DSYM_ZIP" --clobber
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
