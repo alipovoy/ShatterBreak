@@ -58,11 +58,11 @@ jobs:
             -derivedDataPath "$DERIVED_DATA" \
             -resultBundlePath "$RESULT_BUNDLE" \
             CODE_SIGNING_ALLOWED=NO \
-          | xcbeautify
+          | xcbeautify --report junit --junit-report-filename test-results.xml
 
       - name: Upload test result bundle
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ShatterBreak.xcresult
           path: ${{ env.RESULT_BUNDLE }}
@@ -71,8 +71,8 @@ jobs:
 
       - name: Report test results
         if: success() || failure()
-        uses: kishikawakatsumi/xcresulttool@v1
+        uses: dorny/test-reporter@v3
         with:
-          path: ${{ env.RESULT_BUNDLE }}
-          show-passed-tests: false
-          show-code-coverage: false
+          name: Tests
+          path: build/reports/test-results.xml
+          reporter: java-junit
