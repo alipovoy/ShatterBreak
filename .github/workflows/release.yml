@@ -15,12 +15,16 @@ jobs:
   build-release:
     name: Build Release Archive
     runs-on: macos-26
+    timeout-minutes: 5
+
     env:
       PROJECT: ShatterBreak.xcodeproj
       SCHEME: ShatterBreak
       DERIVED_DATA: ${{ github.workspace }}/DerivedData
       ARCHIVE_PATH: ${{ github.workspace }}/DerivedData/ShatterBreak.xcarchive
       RESULT_BUNDLE: ${{ github.workspace }}/ShatterBreak.xcresult
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
 
     steps:
       - name: Checkout
@@ -34,6 +38,10 @@ jobs:
 
       - name: Install XcodeGen
         run: brew install xcodegen
+
+      - name: Check signing
+        run: |
+          [ -f .env/signing.yml ] && echo "INCLUDE_SIGNING=true" >> $GITHUB_ENV || echo "INCLUDE_SIGNING=false" >> $GITHUB_ENV
 
       - name: Generate Xcode project
         run: xcodegen generate
