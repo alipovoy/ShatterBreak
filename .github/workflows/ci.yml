@@ -57,6 +57,7 @@ jobs:
             -destination "platform=macOS" \
             -derivedDataPath "$DERIVED_DATA" \
             -resultBundlePath "$RESULT_BUNDLE" \
+            -collect-test-diagnostics never \
             CODE_SIGNING_ALLOWED=NO \
           | xcbeautify --report junit --junit-report-filename test-results.xml
 
