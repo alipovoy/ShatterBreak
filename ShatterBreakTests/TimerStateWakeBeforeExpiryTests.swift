@@ -8,7 +8,6 @@ struct TimerStateWakeBeforeExpiryTests {
     @Test("wake during rest before expiry keeps overlay and rest")
     @MainActor
     func wakeDuringRestBeforeExpiryKeepsState() async {
-
         let environment = TestEnvironment()
         let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
@@ -37,6 +36,5 @@ struct TimerStateWakeBeforeExpiryTests {
         #expect(state.isResting, "Rest should continue if it did not expire asleep.")
         #expect(state.timeRemaining > 0, "Rest should keep positive time remaining after waking before expiry.")
         #expect(spy.dismissCount == 0, "Overlay should remain until rest ends.")
-
     }
 }
