@@ -1,8 +1,13 @@
 name: Release Build
 
 on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to upload artifacts to
+        required: true
   release:
-    types: [created]
+    types: [published]
 
 permissions:
   contents: write
@@ -23,6 +28,8 @@ jobs:
       DERIVED_DATA: ${{ github.workspace }}/DerivedData
       ARCHIVE_PATH: ${{ github.workspace }}/DerivedData/ShatterBreak.xcarchive
       RESULT_BUNDLE: ${{ github.workspace }}/ShatterBreak.xcresult
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+      INCLUDE_SIGNING: "false"
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
 
@@ -38,10 +45,6 @@ jobs:
 
       - name: Install XcodeGen
         run: brew install xcodegen
-
-      - name: Check signing
-        run: |
-          [ -f .env/signing.yml ] && echo "INCLUDE_SIGNING=true" >> $GITHUB_ENV || echo "INCLUDE_SIGNING=false" >> $GITHUB_ENV
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -73,17 +76,32 @@ jobs:
       - name: Ad-hoc sign
         run: |
           APP_PATH="$ARCHIVE_PATH/Products/Applications/ShatterBreak.app"
-          codesign --sign - --force --deep "$APP_PATH"
+          codesign \
+            --force \
+            --deep \
+            --sign - \
+            --options runtime \
+            --entitlements ShatterBreak/ShatterBreak.entitlements \
+            "$APP_PATH"
 
       - name: Package app for release
         run: |
           APP_PATH="$ARCHIVE_PATH/Products/Applications/ShatterBreak.app"
-          RELEASE_ZIP="${{ github.workspace }}/ShatterBreak-${{ github.ref_name }}.zip"
+          DSYM_PATH="$ARCHIVE_PATH/dSYMs/ShatterBreak.app.dSYM"
+          RELEASE_ZIP="${{ github.workspace }}/ShatterBreak-${RELEASE_TAG}.zip"
+          DSYM_ZIP="${{ github.workspace }}/ShatterBreak-${RELEASE_TAG}.dSYM.zip"
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$RELEASE_ZIP"
-          echo "RELEASE_ZIP=$RELEASE_ZIP" >> $GITHUB_ENV
+          echo "RELEASE_ZIP=$RELEASE_ZIP" >> "$GITHUB_ENV"
+          if [ -d "$DSYM_PATH" ]; then
+            ditto -c -k --keepParent "$DSYM_PATH" "$DSYM_ZIP"
+            echo "DSYM_ZIP=$DSYM_ZIP" >> "$GITHUB_ENV"
+          fi
 
       - name: Upload artifacts
         run: |
-          gh release upload "${{ github.ref_name }}" "${{ env.RELEASE_ZIP }}"
+          gh release upload "$RELEASE_TAG" "$RELEASE_ZIP" --clobber
+          if [ -n "${DSYM_ZIP:-}" ] && [ -f "$DSYM_ZIP" ]; then
+            gh release upload "$RELEASE_TAG" "$DSYM_ZIP" --clobber
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

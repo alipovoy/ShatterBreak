@@ -25,6 +25,7 @@ jobs:
       SCHEME: ShatterBreak
       DERIVED_DATA: ${{ github.workspace }}/DerivedData
       RESULT_BUNDLE: ${{ github.workspace }}/ShatterBreak.xcresult
+      INCLUDE_SIGNING: "false"
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
 
@@ -40,10 +41,6 @@ jobs:
 
       - name: Install XcodeGen
         run: brew install xcodegen
-
-      - name: Check signing
-        run: |
-          [ -f .env/signing.yml ] && echo "INCLUDE_SIGNING=true" >> $GITHUB_ENV || echo "INCLUDE_SIGNING=false" >> $GITHUB_ENV
 
       - name: Generate Xcode project
         run: xcodegen generate
