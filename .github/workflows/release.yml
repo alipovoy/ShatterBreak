@@ -62,6 +62,11 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
           | xcbeautify
 
+      - name: Ad-hoc sign
+        run: |
+          APP_PATH="$ARCHIVE_PATH/Products/Applications/ShatterBreak.app"
+          codesign --sign - --force --deep "$APP_PATH"
+
       - name: Package app for release
         run: |
           APP_PATH="$ARCHIVE_PATH/Products/Applications/ShatterBreak.app"
