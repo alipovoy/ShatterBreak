@@ -1,0 +1,80 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    name: Build Release Archive
+    runs-on: macos-26
+    env:
+      PROJECT: ShatterBreak.xcodeproj
+      SCHEME: ShatterBreak
+      DERIVED_DATA: ${{ github.workspace }}/DerivedData
+      ARCHIVE_PATH: ${{ github.workspace }}/DerivedData/ShatterBreak.xcarchive
+      RESULT_BUNDLE: ${{ github.workspace }}/ShatterBreak.xcresult
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select --switch /Applications/Xcode_26.app/Contents/Developer
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Run tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "platform=macOS" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -resultBundlePath "$RESULT_BUNDLE" \
+            -collect-test-diagnostics never \
+            CODE_SIGNING_ALLOWED=NO \
+          | xcbeautify
+
+      - name: Build release archive
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -archivePath "$ARCHIVE_PATH" \
+            CODE_SIGNING_ALLOWED=NO \
+          | xcbeautify
+
+      - name: Package app for release
+        run: |
+          APP_PATH="$ARCHIVE_PATH/Products/Applications/ShatterBreak.app"
+          RELEASE_ZIP="${{ github.workspace }}/ShatterBreak-${{ github.ref_name }}.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$RELEASE_ZIP"
+          echo "RELEASE_ZIP=$RELEASE_ZIP" >> $GITHUB_ENV
+
+      - name: Create GitHub release
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --notes "" \
+            "${{ env.RELEASE_ZIP }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
