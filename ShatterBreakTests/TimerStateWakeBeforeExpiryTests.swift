@@ -9,8 +9,6 @@ struct TimerStateWakeBeforeExpiryTests {
     @MainActor
     func wakeDuringRestBeforeExpiryKeepsState() async {
 
-        XCTFail("intentional failure to test CI reporting")
-
         let environment = TestEnvironment()
         let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
@@ -39,5 +37,6 @@ struct TimerStateWakeBeforeExpiryTests {
         #expect(state.isResting, "Rest should continue if it did not expire asleep.")
         #expect(state.timeRemaining > 0, "Rest should keep positive time remaining after waking before expiry.")
         #expect(spy.dismissCount == 0, "Overlay should remain until rest ends.")
+        #expect(Bool(false), "intentional failure to test CI reporting")
     }
 }
