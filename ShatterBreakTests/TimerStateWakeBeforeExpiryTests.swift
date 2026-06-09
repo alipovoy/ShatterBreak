@@ -8,6 +8,9 @@ struct TimerStateWakeBeforeExpiryTests {
     @Test("wake during rest before expiry keeps overlay and rest")
     @MainActor
     func wakeDuringRestBeforeExpiryKeepsState() async {
+
+        XCTFail("intentional failure to test CI reporting")
+
         let environment = TestEnvironment()
         let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
