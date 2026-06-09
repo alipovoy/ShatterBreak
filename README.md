@@ -62,6 +62,13 @@ xcodegen generate
 xcodebuild -project ShatterBreak.xcodeproj -scheme ShatterBreak test
 ```
 
+## Running quarantined builds
+macOS marks unsigned app as quarantined, remove the quarantine attribute before launching it:
+
+```bash
+xattr -dr com.apple.quarantine ShatterBreak.app
+```
+
 ## How to Use
 1. Launch the app and find the `ShatterBreak` icon in the macOS menu bar.
 2. Open the menu bar popover and set `Work Duration` and `Rest Duration`.
