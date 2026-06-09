@@ -40,6 +40,10 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      - name: Check signing
+        run: |
+          [ -f .env/signing.yml ] && echo "INCLUDE_SIGNING=true" >> $GITHUB_ENV || echo "INCLUDE_SIGNING=false" >> $GITHUB_ENV
+
       - name: Generate Xcode project
         run: xcodegen generate
 
