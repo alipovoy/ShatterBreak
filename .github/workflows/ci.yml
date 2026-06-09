@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: [main, github-actions-integration]
+    branches: [main]
 
 permissions:
   contents: read
@@ -18,7 +18,7 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 5
 
     env:
       PROJECT: ShatterBreak.xcodeproj
@@ -34,7 +34,7 @@ jobs:
 
       - name: Select Xcode
         run: |
-          sudo xcode-select --switch /Applications/Xcode_26.4.1.app/Contents/Developer
+          sudo xcode-select --switch /Applications/Xcode_26.app/Contents/Developer
           xcodebuild -version
           swift --version
 
