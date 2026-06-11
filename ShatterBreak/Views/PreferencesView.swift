@@ -13,6 +13,10 @@ struct PreferencesView: View {
 
     @State private var showPermissionAlert = false
 
+    private var buildHash: String {
+        (Bundle.main.infoDictionary?["AppBuildHash"] as? String) ?? "dev"
+    }
+
     var body: some View {
         VStack {
             Form {
@@ -61,6 +65,9 @@ struct PreferencesView: View {
             .fixedSize(horizontal: false, vertical: true)
 
             HStack {
+                Text(buildHash)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
                 Spacer()
                 Button("Close") { dismiss() }
                     .keyboardShortcut(.defaultAction)

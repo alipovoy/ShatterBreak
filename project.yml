@@ -5,13 +5,13 @@ include:
     enable: ${INCLUDE_SIGNING}
 
 options:
-  bundleIdPrefix: me.lipovoy
+  bundleIdPrefix: dev.lipovoy
   deploymentTarget:
     macOS: "15.0"
 
 settings:
   base:
-    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
     DEAD_CODE_STRIPPING: YES
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
     STRING_CATALOG_GENERATE_SYMBOLS: YES
@@ -34,28 +34,35 @@ targets:
     settings:
       base:
         PRODUCT_MODULE_NAME: ShatterBreak
-
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: YES
-
         CODE_SIGN_ENTITLEMENTS: ShatterBreak/ShatterBreak.entitlements
-
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
         INFOPLIST_KEY_LSUIElement: YES
-
         ENABLE_PREVIEWS: YES
       configs:
         Debug:
           PRODUCT_NAME: ShatterBreak Dev
-          PRODUCT_BUNDLE_IDENTIFIER: me.lipovoy.shatterbreak.dev
+          PRODUCT_BUNDLE_IDENTIFIER: dev.lipovoy.shatterbreak.dev
           INFOPLIST_KEY_CFBundleName: ShatterBreak Dev
           INFOPLIST_KEY_CFBundleDisplayName: ShatterBreak Dev
         Release:
           PRODUCT_NAME: ShatterBreak
-          PRODUCT_BUNDLE_IDENTIFIER: me.lipovoy.shatterbreak
+          PRODUCT_BUNDLE_IDENTIFIER: dev.lipovoy.shatterbreak
           INFOPLIST_KEY_CFBundleName: ShatterBreak
           INFOPLIST_KEY_CFBundleDisplayName: ShatterBreak
+
+    postBuildScripts:
+      - name: Inject Build Hash
+        script: |
+          /usr/libexec/PlistBuddy \
+            -c "Add :AppBuildHash string $APP_BUILD_HASH" \
+            "$TARGET_BUILD_DIR/$INFOPLIST_PATH" 2>/dev/null || \
+          /usr/libexec/PlistBuddy \
+            -c "Set :AppBuildHash $APP_BUILD_HASH" \
+            "$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+        basedOnDependencyAnalysis: false
 
     scheme:
       testTargets:
@@ -81,7 +88,7 @@ targets:
 
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: me.lipovoy.shatterbreak.tests
+        PRODUCT_BUNDLE_IDENTIFIER: dev.lipovoy.shatterbreak.tests
         GENERATE_INFOPLIST_FILE: YES
         BUNDLE_LOADER: $(TEST_HOST)
       configs:

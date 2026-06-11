@@ -43,6 +43,7 @@ jobs:
           echo "MARKETING_VERSION=$MARKETING_VERSION" >> "$GITHUB_ENV"
           echo "CURRENT_PROJECT_VERSION=$CURRENT_PROJECT_VERSION" >> "$GITHUB_ENV"
           echo "App version: $MARKETING_VERSION ($CURRENT_PROJECT_VERSION)"
+          echo "APP_BUILD_HASH=$APP_BUILD_HASH" >> "$GITHUB_ENV"
 
       - name: Select Xcode
         run: |
