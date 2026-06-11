@@ -42,7 +42,7 @@ From the repository root:
 xcodegen generate
 ```
 
-This creates `ShatterBreak.xcodeproj` locally.
+This creates `ShatterBreak.xcodeproj` locally. Version defaults live in `Config/AppVersion.xcconfig`; the scheme pre-action writes `Config/Version.xcconfig` on each build to override them.
 
 ### Build in Xcode
 1. Generate the project with XcodeGen.
@@ -61,6 +61,24 @@ xcodebuild -project ShatterBreak.xcodeproj -scheme ShatterBreak build
 xcodegen generate
 xcodebuild -project ShatterBreak.xcodeproj -scheme ShatterBreak test
 ```
+
+## Versioning
+
+App version strings are computed automatically from git tags and the current commit.
+
+| Build context | Version format | Example |
+|---------------|----------------|---------|
+| Local Debug (Xcode Run/Build) | `{semver}-dev-{hash}` | `1.0.0-dev-4169568` |
+| Local Test (`xcodebuild test`) | `{semver}-test-{hash}` | `1.0.0-test-4169568` |
+| Local Archive | `{semver}-local-{hash}` | `1.0.0-local-4169568` |
+| GitHub CI (PR/push) | `{semver}-{hash}` | `1.0.0-4169568` |
+| GitHub Release | `{semver}` | `1.0.0` |
+
+- **Semver** comes from the nearest `v*` git tag (e.g. `v1.0.0` → `1.0.0`). Release builds use the release tag directly.
+- **Hash** is the 7-character git commit SHA.
+- If no tags exist, semver falls back to `1.0.0` (defined in `Scripts/compute-version.sh`).
+
+To release, create and push a tag such as `v1.0.0` and publish a GitHub Release for it.
 
 ## Running quarantined builds
 macOS marks unsigned app as quarantined, remove the quarantine attribute before launching it:

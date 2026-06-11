@@ -27,11 +27,13 @@ targets:
     sources:
       - ShatterBreak
 
+    configFiles:
+      Debug: Config/AppVersion.xcconfig
+      Release: Config/AppVersion.xcconfig
+
     settings:
       base:
         PRODUCT_MODULE_NAME: ShatterBreak
-        MARKETING_VERSION: "1.0"
-        CURRENT_PROJECT_VERSION: "1"
 
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: YES
@@ -58,6 +60,13 @@ targets:
     scheme:
       testTargets:
         - ShatterBreakTests
+      preActions:
+        - name: Compute Version
+          script: |
+            "${SRCROOT}/Scripts/compute-version.sh" \
+              --mode local-auto \
+              --write-xcconfig "${SRCROOT}/Config/Version.xcconfig"
+          settingsTarget: ShatterBreak
 
   ShatterBreakTests:
     type: bundle.unit-test

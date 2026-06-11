@@ -37,6 +37,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Compute version
+        run: |
+          eval "$(Scripts/compute-version.sh --mode ci-release --tag "$RELEASE_TAG" --export)"
+          echo "MARKETING_VERSION=$MARKETING_VERSION" >> "$GITHUB_ENV"
+          echo "CURRENT_PROJECT_VERSION=$CURRENT_PROJECT_VERSION" >> "$GITHUB_ENV"
+          echo "App version: $MARKETING_VERSION ($CURRENT_PROJECT_VERSION)"
+
       - name: Select Xcode
         run: |
           sudo xcode-select --switch /Applications/Xcode_26.5.app/Contents/Developer
@@ -60,6 +67,8 @@ jobs:
             -resultBundlePath "$RESULT_BUNDLE" \
             -collect-test-diagnostics never \
             CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION="$MARKETING_VERSION" \
+            CURRENT_PROJECT_VERSION="$CURRENT_PROJECT_VERSION" \
           | xcbeautify
 
       - name: Build release archive
@@ -71,6 +80,8 @@ jobs:
             -configuration Release \
             -archivePath "$ARCHIVE_PATH" \
             CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION="$MARKETING_VERSION" \
+            CURRENT_PROJECT_VERSION="$CURRENT_PROJECT_VERSION" \
           | xcbeautify
 
       - name: Ad-hoc sign
