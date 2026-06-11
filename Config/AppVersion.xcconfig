@@ -1,0 +1,5 @@
+// Fallback when Config/Version.xcconfig has not been generated yet.
+MARKETING_VERSION = 1.0.0-dev
+CURRENT_PROJECT_VERSION = unknown
+
+#include? "Version.xcconfig"

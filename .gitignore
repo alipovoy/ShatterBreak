@@ -31,3 +31,6 @@ NOTES.md
 
 # ─── Environment configuration, secrets ────────────────────────────
 .env/
+
+# ─── Generated version config ───────────────────────────────────────
+Config/Version.xcconfig

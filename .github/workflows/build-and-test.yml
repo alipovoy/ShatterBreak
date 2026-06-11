@@ -33,6 +33,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Compute version
+        run: |
+          eval "$(Scripts/compute-version.sh --mode ci-test --export)"
+          echo "MARKETING_VERSION=$MARKETING_VERSION" >> "$GITHUB_ENV"
+          echo "CURRENT_PROJECT_VERSION=$CURRENT_PROJECT_VERSION" >> "$GITHUB_ENV"
+          echo "App version: $MARKETING_VERSION ($CURRENT_PROJECT_VERSION)"
+
       - name: Select Xcode
         run: |
           sudo xcode-select --switch /Applications/Xcode_26.5.app/Contents/Developer
@@ -56,6 +63,8 @@ jobs:
             -resultBundlePath "$RESULT_BUNDLE" \
             -collect-test-diagnostics never \
             CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION="$MARKETING_VERSION" \
+            CURRENT_PROJECT_VERSION="$CURRENT_PROJECT_VERSION" \
           | xcbeautify --report junit --junit-report-filename test-results.xml
 
       - name: Upload test result bundle
