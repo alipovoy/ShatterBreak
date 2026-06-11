@@ -110,9 +110,18 @@ jobs:
 
       - name: Upload artifacts
         run: |
-          gh release upload "$RELEASE_TAG" "$RELEASE_ZIP" --clobber
+          RELEASE_FILES=("$RELEASE_ZIP")
           if [ -n "${DSYM_ZIP:-}" ] && [ -f "$DSYM_ZIP" ]; then
-            gh release upload "$RELEASE_TAG" "$DSYM_ZIP" --clobber
+            RELEASE_FILES+=("$DSYM_ZIP")
           fi
+
+          # Create release if it doesn't exist yet; no-op if it does
+          gh release create "$RELEASE_TAG" \
+            --title "$RELEASE_TAG" \
+            --notes "Automated release artifacts for $RELEASE_TAG" 2>/dev/null || true
+
+          for file in "${RELEASE_FILES[@]}"; do
+            gh release upload "$RELEASE_TAG" "$file" --clobber
+          done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
