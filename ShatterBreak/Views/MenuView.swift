@@ -88,6 +88,7 @@ struct MenuView: View {
     }
 
     private func openPreferences() {
+        NSApp.activate(ignoringOtherApps: true)
         openWindow(id: "preferences")
     }
 }
