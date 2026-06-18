@@ -36,7 +36,7 @@ struct TimerStateOverlayTests {
         #expect(spy.showCount == 1, "Entering rest should show overlays once.")
 
         await environment.advanceTime()
-        #expect(spy.dismissCount == 2, "Leaving rest should dismiss both managed overlays.")
+        #expect(spy.dismissCount == 1, "Leaving rest should dismiss overlays once.")
         #expect(state.isRunning, "Automatic mode should start the next work interval.")
         #expect(state.isResting == false, "Automatic mode should leave rest after rest expires.")
     }
@@ -58,7 +58,7 @@ struct TimerStateOverlayTests {
         #expect(spy.showCount == 1, "Entering rest should show overlays before skipping.")
 
         state.pause()
-        #expect(spy.dismissCount == 2, "Skipping rest should dismiss both managed overlays.")
+        #expect(spy.dismissCount == 1, "Skipping rest should dismiss overlays once.")
         #expect(state.isRunning, "Skip rest should start work.")
         #expect(state.isResting == false, "Skip rest should clear the resting state.")
     }
