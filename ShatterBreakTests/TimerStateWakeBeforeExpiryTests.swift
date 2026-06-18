@@ -22,16 +22,12 @@ struct TimerStateWakeBeforeExpiryTests {
         #expect(state.isResting, "The test setup should enter rest before sleep.")
         #expect(spy.showCount == 1, "Entering rest should show the overlay before sleep.")
 
-        await Task.yield()
-
         let notificationCenter = environment.workspaceNotificationCenter
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
-        await Task.yield()
 
         await environment.advanceTime(by: 0.5)
 
         notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
-        await Task.yield()
 
         #expect(state.isResting, "Rest should continue if it did not expire asleep.")
         #expect(state.timeRemaining > 0, "Rest should keep positive time remaining after waking before expiry.")
