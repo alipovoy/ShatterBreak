@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DurationSliderView: View {
-    let title: String
+    let title: LocalizedStringResource
     let systemImage: String
     @Binding var value: Double
     let min: Double

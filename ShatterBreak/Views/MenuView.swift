@@ -18,7 +18,7 @@ struct MenuView: View {
                         state.isPaused ? state.resume() : state.pause()
                     } label: {
                         Label(
-                            state.isPaused ? "Resume" : (state.isResting ? "Skip Rest" : "Pause"),
+                            state.isPaused ? .resume : (state.isResting ? .skipRest : .pause),
                             systemImage: state.isPaused
                                 ? "play.fill" : (state.isResting ? "forward.fill" : "pause.fill")
                         )
@@ -29,7 +29,7 @@ struct MenuView: View {
                     Button {
                         state.stop()
                     } label: {
-                        Label("Stop", systemImage: "stop.fill")
+                        Label(.stop, systemImage: "stop.fill")
                             .frame(maxWidth: .infinity)
                     }
                     .controlSize(.large)
@@ -37,7 +37,7 @@ struct MenuView: View {
                     Button {
                         state.start()
                     } label: {
-                        Label("Start Focus", systemImage: "play.fill")
+                        Label(.startFocus, systemImage: "play.fill")
                             .frame(maxWidth: .infinity)
                     }
                     .controlSize(.large)
@@ -49,7 +49,7 @@ struct MenuView: View {
 
             VStack(alignment: .leading, spacing: 16) {
                 DurationSliderView(
-                    title: "Work Duration",
+                    title: .workDuration,
                     systemImage: "briefcase.fill",
                     value: $state.workDurationSecs,
                     min: 5,
@@ -58,7 +58,7 @@ struct MenuView: View {
                 )
 
                 DurationSliderView(
-                    title: "Rest Duration",
+                    title: .restDuration,
                     systemImage: "cup.and.saucer.fill",
                     value: $state.restDurationSecs,
                     min: 5,
@@ -71,14 +71,14 @@ struct MenuView: View {
 
             // Keep these local actions inline; a separate footer view would add only pass-through inputs.
             HStack {
-                Button("Preferences", systemImage: "gearshape", action: openPreferences)
+                Button(.preferences, systemImage: "gearshape", action: openPreferences)
                     .labelStyle(.iconOnly)
                     .buttonStyle(IconButtonStyle())
                     .keyboardShortcut(",", modifiers: .command)
 
                 Spacer()
 
-                Button("Quit", action: onQuit)
+                Button(.quit, action: onQuit)
                     .buttonStyle(.borderedProminent)
             }
         }

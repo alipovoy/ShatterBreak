@@ -20,12 +20,12 @@ struct PreferencesView: View {
     var body: some View {
         VStack {
             Form {
-                Section("General Settings") {
-                    Toggle("Play Sound", isOn: $playSound)
-                    Toggle("Soft Overlay (allows menu bar access)", isOn: $softOverlay)
-                    Toggle("Allow Postpone", isOn: $allowPostpone)
+                Section(.generalSettings) {
+                    Toggle(.playSoundToggle, isOn: $playSound)
+                    Toggle(.softOverlayToggle, isOn: $softOverlay)
+                    Toggle(.allowPostponeToggle, isOn: $allowPostpone)
 
-                    Picker("Effect Type", selection: $effectType) {
+                    Picker(.effectTypePicker, selection: $effectType) {
                         ForEach(EffectType.allCases) { effect in
                             Text(effect.displayName).tag(effect)
                         }
@@ -42,21 +42,16 @@ struct PreferencesView: View {
                     }
 
                     // Menu bar display preference
-                    Picker("Start work after break ends", selection: $workStartMode) {
+                    Picker(.startWorkAfterBreakEnds, selection: $workStartMode) {
                         ForEach(WorkStartMode.allCases) { mode in
                             Text(mode.displayName).tag(mode)
                         }
                     }
                     .pickerStyle(.radioGroup)
-                    .help(
-                        """
-                        Choose whether the work timer should automatically \
-                        start when your rest finishes or wait until you press a button.
-                        """
-                    )
+                    .help(Text(.workStartModeHelp))
 
-                    Toggle("Show timer in menu bar", isOn: $showTimerInMenuBar)
-                        .help("When enabled, the remaining time will be shown next to the app icon in the menu bar.")
+                    Toggle(.showTimerInMenuBarToggle, isOn: $showTimerInMenuBar)
+                        .help(Text(.showTimerInMenuBarHelp))
                 }
                 .headerProminence(.increased)
             }
@@ -69,23 +64,18 @@ struct PreferencesView: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                 Spacer()
-                Button("Close") { dismiss() }
+                Button(.close) { dismiss() }
                     .keyboardShortcut(.defaultAction)
             }
         }
         .padding()
         .fixedSize()
         .onAppear { permissions.refresh() }
-        .alert("Screen Recording Permission Required", isPresented: $showPermissionAlert) {
-            Button("Open System Settings", action: openSystemSettings)
-            Button("Later", role: .cancel) { }
+        .alert(Text(.permissionAlertTitle), isPresented: $showPermissionAlert) {
+            Button(.openSystemSettings, action: openSystemSettings)
+            Button(.later, role: .cancel) { }
         } message: {
-            Text(
-            """
-            Shatter requires Screen Recording permission. \
-            Enable it in System Settings → Privacy & Security → Screen & System Audio Recording.
-            """
-            )
+            Text(.permissionAlertMessage)
         }
     }
 

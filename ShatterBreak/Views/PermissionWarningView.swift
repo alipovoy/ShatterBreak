@@ -8,11 +8,11 @@ struct PermissionWarningView: View {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.yellow)
-                Text("Shatter requires Screen Recording permission.")
+                Text(.permissionWarningText)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
-            Button("Open System Settings to grant permission", action: onOpenSystemSettings)
+            Button(.openSystemSettingsToGrant, action: onOpenSystemSettings)
                 .buttonStyle(.link)
                 .font(.footnote)
         }
