@@ -28,12 +28,12 @@ enum WorkStartMode: CaseIterable, Identifiable, RawRepresentable {
 
     var id: String { rawValue }
 
-    var displayName: String {
+    var displayName: LocalizedStringResource {
         switch self {
         case .automatic:
-            "Automatic"
+            .workStartModeAutomatic
         case .manual:
-            "Manual"
+            .workStartModeManual
         }
     }
 }

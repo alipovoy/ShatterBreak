@@ -26,7 +26,7 @@ struct OverlayView: View {
 
             if showsForegroundContent {
                 VStack(spacing: 24) {
-                    Text("Time to rest")
+                    Text(.timeToRest)
                         .font(.largeTitle)
                         .foregroundStyle(.white)
                         .shadow(color: .black, radius: 5)
@@ -40,7 +40,7 @@ struct OverlayView: View {
                         Button {
                             state.postpone()
                         } label: {
-                            Text("Postpone")
+                            Text(.postpone)
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.extraLarge)
@@ -51,7 +51,7 @@ struct OverlayView: View {
                         Button {
                             state.start()
                         } label: {
-                            Text("I'm back")
+                            Text(.imBack)
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.extraLarge)

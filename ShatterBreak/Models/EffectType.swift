@@ -27,12 +27,12 @@ enum EffectType: CaseIterable, Identifiable, RawRepresentable {
 
     var id: String { rawValue }
 
-    var displayName: String {
+    var displayName: LocalizedStringResource {
         switch self {
         case .shatter:
-            "Shatter"
+            .effectShatter
         case .overlay:
-            "Overlay"
+            .effectOverlay
         }
     }
 }

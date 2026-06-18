@@ -11,7 +11,7 @@ struct TimerDisplayView: View {
                     .font(.system(size: 48, weight: .light, design: .monospaced))
                     .foregroundStyle(state.isResting ? .green : .primary)
             } else {
-                Text("Ready")
+                Text(.ready)
                     .font(.system(size: 48, weight: .light))
                     .foregroundStyle(.secondary)
             }

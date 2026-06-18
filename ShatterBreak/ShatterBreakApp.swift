@@ -24,7 +24,7 @@ struct ShatterBreakApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Window("Preferences", id: "preferences") {
+        Window(.preferences, id: "preferences") {
             PreferencesView()
                 .environment(\.permissions, permissions)
                 .task { permissions.requestIfFirstLaunch() }
