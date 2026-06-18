@@ -171,8 +171,8 @@ final class TimerState {
             mode = .paused
             wasAutoPausedBySystem = false
         case .resting:
+            // `start()` dismisses the overlays because `mode` is still `.resting`.
             clearCountdown()
-            overlayManager.dismissOverlays()
             start()
         case .idle, .paused, .awaitingReturn:
             return
@@ -270,7 +270,7 @@ final class TimerState {
             clearCountdown()
 
             if autoStartWorkTimer {
-                overlayManager.dismissOverlays()
+                // `start()` dismisses the overlays because `mode` is still `.resting`.
                 start()
             } else {
                 mode = .awaitingReturn
