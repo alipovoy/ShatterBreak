@@ -87,7 +87,7 @@ final class TimerState {
     private var modeBeforeSleep: Mode?
 
     private var expiryTask: Task<Void, Never>?
-    private var sleepObserverTasks: [Task<Void, Never>] = []
+    private var sleepObserverTokens: [any NSObjectProtocol] = []
 
     private let overlayManager: any OverlayManaging
     private let defaults: UserDefaults
@@ -309,7 +309,7 @@ final class TimerState {
     // MARK: - Sleep/Wake Handling
 
     private func activateSleepObserversIfNeeded() {
-        guard sleepObserverTasks.isEmpty else { return }
+        guard sleepObserverTokens.isEmpty else { return }
 
         let notifications: [NSNotification.Name] = [
             NSWorkspace.willSleepNotification,
@@ -317,21 +317,31 @@ final class TimerState {
             NSWorkspace.didWakeNotification,
             NSWorkspace.screensDidWakeNotification
         ]
-        let notificationCenter = workspaceNotificationCenter
 
+        // Register synchronously with the block-based API so the observers are
+        // guaranteed to be subscribed by the time this method returns. The async
+        // `notifications(named:)` sequence subscribed lazily inside a spawned Task,
+        // which raced with notifications posted right after `start()` and could drop
+        // them (NotificationCenter does not buffer for a not-yet-subscribed consumer).
+        // `NSWorkspace` sleep/wake notifications are delivered on the main thread, so a
+        // `nil` queue runs the block synchronously on the main actor.
         for name in notifications {
-            sleepObserverTasks.append(Task { [weak self, notificationCenter] in
-                for await _ in notificationCenter.notifications(named: name) {
-                    guard let self else { return }
-                    self.handleNotification(name)
+            let token = workspaceNotificationCenter.addObserver(
+                forName: name,
+                object: nil,
+                queue: nil
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.handleNotification(name)
                 }
-            })
+            }
+            sleepObserverTokens.append(token)
         }
     }
 
     private func deactivateSleepObservers() {
-        sleepObserverTasks.forEach { $0.cancel() }
-        sleepObserverTasks.removeAll()
+        sleepObserverTokens.forEach { workspaceNotificationCenter.removeObserver($0) }
+        sleepObserverTokens.removeAll()
     }
 
     private func handleNotification(_ name: NSNotification.Name) {

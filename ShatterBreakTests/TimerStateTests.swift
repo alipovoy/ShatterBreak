@@ -250,17 +250,13 @@ struct TimerStateSleepWakeTests {
         state.workDurationSecs = 3
         state.restDurationSecs = 2
 
-        await Task.yield()
         state.start()
-        await Task.yield()
 
         let notificationCenter = environment.workspaceNotificationCenter
         notificationCenter.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
-        await Task.yield()
         #expect(state.isPaused, "Work should auto-pause on display sleep.")
 
         notificationCenter.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
-        await Task.yield()
         #expect(state.isPaused == false, "Work should auto-resume on display wake.")
 
         await environment.advanceTime(ticks: 3)
@@ -282,16 +278,12 @@ struct TimerStateSleepWakeTests {
         await environment.advanceUntil(maxTicks: 2) { state.isResting }
         #expect(state.isResting, "The test setup should enter rest before simulating sleep.")
 
-        await Task.yield()
-
         let notificationCenter = environment.workspaceNotificationCenter
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
-        await Task.yield()
 
         await environment.advanceTime()
 
         notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
-        await Task.yield()
 
         #expect(state.isRunning == false, "The app should be idle after waking from an expired rest.")
         #expect(state.isResting == false, "Rest should be cleared after wake when it expired asleep.")
@@ -315,12 +307,10 @@ struct TimerStateSleepWakeTests {
 
         let notificationCenter = environment.workspaceNotificationCenter
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
-        await Task.yield()
 
         environment.elapseTimeWithoutTick(by: 1)
 
         notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
-        await Task.yield()
 
         #expect(state.mode == .idle, "Wake should resolve expired rest to idle without a manual tick.")
         #expect(state.isRunning == false, "Wake after expired rest should not keep the timer running.")
