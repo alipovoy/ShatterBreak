@@ -23,6 +23,7 @@ xcuserdata/
 *.log
 
 # ─── Local task tracking (private, not for repo) ────────────────────────────
+CLAUDE.md
 AGENTS.md
 TODO.md
 TODO*.md

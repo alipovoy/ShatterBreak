@@ -21,10 +21,11 @@ to confirm they are back.
   integration requires it.
 * The app is configured as a menu bar utility with generated Info.plist settings,
   including `LSUIElement`.
-* The app enables the hardened runtime and app sandbox.
-* The entitlements file enables `com.apple.security.screen-capture`.
-* Current project settings do not declare `NSScreenCaptureUsageDescription`; that
-  known metadata gap is tracked in `.env/TODO.md`.
+* The app enables the hardened runtime and app sandbox through build settings
+  (`ENABLE_HARDENED_RUNTIME`, `ENABLE_APP_SANDBOX`).
+* The entitlements file (`ShatterBreak.entitlements`) declares only
+  `com.apple.security.app-sandbox`. Screen recording for the shatter effect relies on
+  the system TCC permission grant rather than a dedicated capture entitlement.
 
 AppKit is currently used for:
 * menu/window visibility tracking in the menu bar window
