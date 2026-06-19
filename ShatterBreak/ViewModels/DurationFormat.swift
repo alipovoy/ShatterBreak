@@ -1,50 +1,51 @@
-import SwiftUI
+import Foundation
 
-@MainActor
-@Observable
-final class DurationSliderViewModel {
-    var manualInput: String = ""
-    var isEditing = false
-
-    func syncManualInput(with seconds: Double, isInputFocused: Bool) {
-        manualInput = isInputFocused ? formatTimeMMSS(seconds: seconds) : formatTime(seconds: seconds)
-    }
-
-    func updateValueFromInput(currentValue: inout Double, min: Double, max: Double) {
-        let cleanInput = manualInput
+/// Pure parsing, formatting, and snapping for duration values.
+///
+/// This logic used to live in a `DurationSliderViewModel`, but it holds no state — it
+/// is just functions over `Double` seconds and `String` input. Keeping it as a plain
+/// namespace lets `DurationSliderView` own its own `@State` and lets tests exercise the
+/// fiddly parsing directly, without an `@Observable` wrapper.
+enum DurationFormat {
+    /// Parses user input ("1h 5m", "01:30", "90", "1:02:03") into total seconds, or
+    /// `nil` if it is not a valid duration. Input is lowercased and trimmed first.
+    static func parse(_ rawInput: String) -> Double? {
+        let input = rawInput
             .lowercased()
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if let totalSeconds = parsedSeconds(from: cleanInput), totalSeconds > 0 {
-            currentValue = Swift.max(min, Swift.min(totalSeconds, max))
+        guard input.isEmpty == false else { return nil }
+
+        if input.contains("h") || input.contains("m") || input.contains("s") {
+            return parsedComponentSeconds(from: input)
         }
 
-        manualInput = formatTime(seconds: currentValue)
+        return parsedColonSeparatedSeconds(from: input)
     }
 
-    func sliderBinding(for valueBinding: Binding<Double>, min: Double, max: Double) -> Binding<Double> {
-        Binding(
-            get: {
-                PiecewiseTimer.position(from: valueBinding.wrappedValue)
-            },
-            set: { newValue in
-                let rawSeconds = PiecewiseTimer.seconds(from: newValue)
-
-                let step: Double = switch rawSeconds {
-                case ..<60: 5
-                case 60..<600: 60
-                default: 300
-                }
-
-                let snappedSeconds = round(rawSeconds / step) * step
-                valueBinding.wrappedValue = Swift.max(min, Swift.min(snappedSeconds, max))
-            }
-        )
+    /// Applies accepted input to `current`, clamped to `min...max`. Rejected or
+    /// non-positive input leaves `current` unchanged.
+    static func applying(input: String, to current: Double, min: Double, max: Double) -> Double {
+        guard let parsed = parse(input), parsed > 0 else { return current }
+        return Swift.max(min, Swift.min(parsed, max))
     }
 
-    // MARK: - Formatting
+    /// Snaps a raw slider duration to its step (5s / 60s / 300s) and clamps to `min...max`.
+    static func snap(rawSeconds: Double, min: Double, max: Double) -> Double {
+        let step: Double = switch rawSeconds {
+        case ..<60: 5
+        case 60..<600: 60
+        default: 300
+        }
 
-    func formatTime(seconds: Double) -> String {
+        let snapped = (rawSeconds / step).rounded() * step
+        return Swift.max(min, Swift.min(snapped, max))
+    }
+
+    // MARK: - Display formatting
+
+    /// A reader-friendly duration: "1h 5m" above an hour, otherwise "MM:SS".
+    static func friendly(_ seconds: Double) -> String {
         let totalMinutes = Int(seconds) / 60
         let remainingSeconds = Int(seconds) % 60
 
@@ -67,27 +68,20 @@ final class DurationSliderViewModel {
         return "\(zeroPadded(totalMinutes)):\(zeroPadded(remainingSeconds))"
     }
 
-    private func formatTimeMMSS(seconds: Double) -> String {
+    /// An editable clock string ("MM:SS"); minutes are not capped at 59.
+    static func clock(_ seconds: Double) -> String {
         let totalMinutes = Int(seconds) / 60
         let remainingSeconds = Int(seconds) % 60
         return "\(zeroPadded(totalMinutes)):\(zeroPadded(remainingSeconds))"
     }
 
-    private func zeroPadded(_ value: Int) -> String {
+    // MARK: - Parsing helpers
+
+    private static func zeroPadded(_ value: Int) -> String {
         value.formatted(.number.precision(.integerLength(2...2)))
     }
 
-    private func parsedSeconds(from input: String) -> Double? {
-        guard input.isEmpty == false else { return nil }
-
-        if input.contains("h") || input.contains("m") || input.contains("s") {
-            return parsedComponentSeconds(from: input)
-        }
-
-        return parsedColonSeparatedSeconds(from: input)
-    }
-
-    private func parsedComponentSeconds(from input: String) -> Double? {
+    private static func parsedComponentSeconds(from input: String) -> Double? {
         let matches = input.matches(of: /(\d+(?:\.\d+)?)([hms])\s*/)
         guard matches.isEmpty == false else { return nil }
 
@@ -117,7 +111,7 @@ final class DurationSliderViewModel {
         return totalSeconds
     }
 
-    private func parsedColonSeparatedSeconds(from input: String) -> Double? {
+    private static func parsedColonSeparatedSeconds(from input: String) -> Double? {
         let hasColon = input.contains(":")
 
         if hasColon == false {
@@ -141,7 +135,7 @@ final class DurationSliderViewModel {
         }
     }
 
-    private func strictClockComponent(_ component: Substring) -> Int? {
+    private static func strictClockComponent(_ component: Substring) -> Int? {
         guard component.isEmpty == false else { return nil }
         guard component.allSatisfy({ $0.isASCII && $0.isNumber }) else { return nil }
         return Int(component)

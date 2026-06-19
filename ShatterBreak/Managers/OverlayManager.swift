@@ -2,13 +2,7 @@ import AppKit
 import SwiftUI
 
 @MainActor
-protocol OverlayManaging: AnyObject {
-    func showOverlays(state: TimerState)
-    func dismissOverlays()
-}
-
-@MainActor
-final class OverlayManager: OverlayManaging {
+final class OverlayManager {
     private var windows: [CGDirectDisplayID: NSWindow] = [:]
     private var overlayStates: [CGDirectDisplayID: OverlayPresentationState] = [:]
     private var captureTask: Task<Void, Never>?

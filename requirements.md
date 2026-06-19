@@ -56,7 +56,7 @@ waiting-for-return.
 * resting: Skip Rest and Stop
 
 Duration controls are disabled outside the idle state. `DurationSliderView` supports
-slider editing plus manual text input through `DurationSliderViewModel`.
+slider editing plus manual text input parsed by the `DurationFormat` helpers.
 
 `PreferencesView` stores settings with `@AppStorage` and currently exposes:
 * `Play Sound`
@@ -213,19 +213,20 @@ raw values. Their initializers also accept older capitalized values for compatib
 
 ## 10. Tests
 The project has a Swift Testing unit-test target, `ShatterBreakTests`, hosted by the
-app target. Current tests cover:
-* basic timer transitions, formatting, duration editing, menu bar visibility, and
-  manual-return mode
+app target. Tests focus on behavior that is hard to verify by hand (and deliberately
+omit tautological assertions over one-line computed properties). They cover:
+* basic timer transitions, formatting, and manual-return mode
 * sleep/wake behavior, including rest expiry while asleep and wake before expiry
 * overlay lifecycle behavior
-* postpone eligibility, state transitions, pause/resume, stop, and saved rest time
+* postpone state transitions, pause/resume, stop, and saved rest time
 * overlay presentation state, screenshot fallback, and Reduce Motion action
   resolution
 * screen capture permission manager behavior
-* duration parsing and slider snapping
+* duration parsing, formatting, and slider snapping (`DurationFormat`)
 
 Tests use `TestEnvironment` to isolate `UserDefaults`, notification centers, and
-manual timer ticks. `OverlaySpy` verifies overlay show/dismiss calls.
+manual timer ticks. `OverlayRecorder` provides an `OverlayPresenter` that records
+overlay show/dismiss calls.
 
 Known test-quality follow-ups, including tags, time limits, and richer expectation
 messages, are tracked in `.env/TODO.md`.

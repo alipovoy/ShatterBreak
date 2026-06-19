@@ -94,7 +94,7 @@ final class TimerState {
 
     private let countdown: Countdown
     private let sleepWakeObserver: SleepWakeObserver
-    private let overlayManager: any OverlayManaging
+    private let overlays: OverlayPresenter
     private let defaults: UserDefaults
 
     private var autoStartWorkTimer: Bool {
@@ -105,13 +105,13 @@ final class TimerState {
     // MARK: - Initialization
 
     init(
-        overlayManager: any OverlayManaging,
+        overlays: OverlayPresenter,
         postponeDurationSecs: Double = 60,
         defaults: UserDefaults = .standard,
         scheduler: (any CountdownScheduler)? = nil,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
-        self.overlayManager = overlayManager
+        self.overlays = overlays
         self.postponeDurationSecs = postponeDurationSecs
         self.defaults = defaults
         self.countdown = Countdown(scheduler: scheduler ?? SystemCountdownScheduler())
@@ -129,7 +129,7 @@ final class TimerState {
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         self.init(
-            overlayManager: OverlayManager(defaults: defaults),
+            overlays: .live(defaults: defaults),
             postponeDurationSecs: postponeDurationSecs,
             defaults: defaults,
             scheduler: scheduler,
@@ -155,7 +155,7 @@ final class TimerState {
 
     func start() {
         if mode == .resting || mode == .awaitingReturn {
-            overlayManager.dismissOverlays()
+            overlays.dismiss()
         }
 
         mode = .running
@@ -200,7 +200,7 @@ final class TimerState {
         savedRestRemaining = remainingRest
         mode = .postponedWork
         hasPostponeBeenUsedThisCycle = true
-        overlayManager.dismissOverlays()
+        overlays.dismiss()
         beginCountdown(for: postponeDurationSecs)
     }
 
@@ -267,7 +267,7 @@ final class TimerState {
         pauseReason = nil
         savedRestRemaining = nil
         hasPostponeBeenUsedThisCycle = false
-        overlayManager.dismissOverlays()
+        overlays.dismiss()
         sleepWakeObserver.stopObserving()
     }
 
@@ -276,7 +276,7 @@ final class TimerState {
         pauseReason = nil
         hasPostponeBeenUsedThisCycle = false
         savedRestRemaining = nil
-        overlayManager.showOverlays(state: self)
+        overlays.show(self)
         beginCountdown(for: restDurationSecs)
     }
 
@@ -286,7 +286,7 @@ final class TimerState {
         mode = .resting
         pauseReason = nil
         savedRestRemaining = nil
-        overlayManager.showOverlays(state: self)
+        overlays.show(self)
         beginCountdown(for: saved)
     }
 

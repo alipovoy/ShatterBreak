@@ -33,5 +33,8 @@ NOTES.md
 # ─── Environment configuration, secrets ────────────────────────────
 .env/
 
+# ─── Claude Code local state (worktrees, settings — not for repo) ───
+.claude/
+
 # ─── Generated version config ───────────────────────────────────────
 Config/Version.xcconfig
