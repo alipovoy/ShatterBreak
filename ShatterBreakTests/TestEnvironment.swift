@@ -48,8 +48,10 @@ final class TestEnvironment {
     }
 
     @MainActor
-    func makeOverlayManager() -> OverlayManager {
-        OverlayManager(defaults: defaults)
+    func makeOverlayManager(
+        captureClient: ScreenCaptureClient = .live
+    ) -> OverlayManager {
+        OverlayManager(defaults: defaults, captureClient: captureClient)
     }
 
     @MainActor

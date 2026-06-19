@@ -1,5 +1,4 @@
 import AppKit
-import ScreenCaptureKit
 import SwiftUI
 
 @MainActor
@@ -16,9 +15,14 @@ class OverlayManager: OverlayManaging {
     private var activeSessionID = UUID()
 
     private let defaults: UserDefaults
+    private let captureClient: ScreenCaptureClient
 
-    init(defaults: UserDefaults = .standard) {
+    init(
+        defaults: UserDefaults = .standard,
+        captureClient: ScreenCaptureClient = .live
+    ) {
         self.defaults = defaults
+        self.captureClient = captureClient
     }
 
     /// The effect to present, derived from the user's preference. Defaults to
@@ -44,19 +48,18 @@ class OverlayManager: OverlayManaging {
     func showOverlays(state: TimerState) {
         dismissOverlays()
 
-        let hasScreenRecordingPermission = CGPreflightScreenCaptureAccess()
+        let hasScreenRecordingPermission = captureClient.hasPermission()
         let effectType = selectedEffectType
         let shouldCaptureScreenshots = hasScreenRecordingPermission && effectType == .shatter
         let sessionID = UUID()
         activeSessionID = sessionID
 
-        for screen in NSScreen.screens {
-            let displayID = displayID(for: screen)
+        for screen in captureClient.availableScreens() {
             let overlayState = OverlayPresentationState(
                 effectType: effectType,
                 allowsShatterUpgrade: shouldCaptureScreenshots
             )
-            let window = makeWindow(for: screen)
+            let window = makeWindow(frame: screen.frame)
             let hostingView = NSHostingView(
                 rootView: OverlayView(state: state, presentation: overlayState)
             )
@@ -64,8 +67,8 @@ class OverlayManager: OverlayManaging {
             window.contentView = hostingView
             window.makeKeyAndOrderFront(nil)
 
-            overlayStates[displayID] = overlayState
-            windows[displayID] = window
+            overlayStates[screen.displayID] = overlayState
+            windows[screen.displayID] = window
         }
 
         guard effectType == .shatter else { return }
@@ -75,9 +78,11 @@ class OverlayManager: OverlayManaging {
             return
         }
 
+        let capture = captureClient.captureImages
         captureTask = Self.makeCaptureTask(
             sessionID: sessionID,
-            displayIDs: Set(overlayStates.keys)
+            displayIDs: Set(overlayStates.keys),
+            capture: capture
         ) { [weak self] images, captureSessionID in
             self?.beginShatter(with: images, sessionID: captureSessionID)
         }
@@ -101,6 +106,29 @@ class OverlayManager: OverlayManaging {
         with images: [CGDirectDisplayID: CGImage],
         sessionID: UUID
     ) {
+        Self.applyCapturedImages(
+            images,
+            sessionID: sessionID,
+            activeSessionID: activeSessionID,
+            to: overlayStates
+        )
+    }
+
+    /// Paints captured screenshots onto their matching overlays, dropping any
+    /// capture whose session no longer matches the active one.
+    ///
+    /// The session guard protects against a capture that finishes after
+    /// ``dismissOverlays()`` (or a newer ``showOverlays(state:)``) rotated
+    /// ``activeSessionID``: a stale image must never be painted onto the windows
+    /// of a later session. Displays missing from `images` fall back to a plain
+    /// overlay because ``OverlayPresentationState/startShatter(with:)`` accepts a
+    /// `nil` background.
+    static func applyCapturedImages(
+        _ images: [CGDirectDisplayID: CGImage],
+        sessionID: UUID,
+        activeSessionID: UUID,
+        to overlayStates: [CGDirectDisplayID: OverlayPresentationState]
+    ) {
         guard sessionID == activeSessionID else { return }
 
         for (displayID, overlayState) in overlayStates {
@@ -108,9 +136,9 @@ class OverlayManager: OverlayManaging {
         }
     }
 
-    private func makeWindow(for screen: NSScreen) -> NSWindow {
+    private func makeWindow(frame: CGRect) -> NSWindow {
         let window = NSWindow(
-            contentRect: screen.frame,
+            contentRect: frame,
             styleMask: .borderless,
             backing: .buffered,
             defer: false
@@ -129,100 +157,23 @@ class OverlayManager: OverlayManaging {
         window.isOpaque = false
         window.backgroundColor = .clear
         window.ignoresMouseEvents = false
-        window.setFrame(screen.frame, display: true)
+        window.setFrame(frame, display: true)
         return window
-    }
-
-    private func displayID(for screen: NSScreen) -> CGDirectDisplayID {
-        screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")]
-            as? CGDirectDisplayID ?? CGMainDisplayID()
     }
 
     nonisolated private static func makeCaptureTask(
         sessionID: UUID,
         displayIDs: Set<CGDirectDisplayID>,
+        capture: @escaping @Sendable (Set<CGDirectDisplayID>) async throws -> [CGDirectDisplayID: CGImage],
         applyCapture: @escaping @MainActor @Sendable ([CGDirectDisplayID: CGImage], UUID) -> Void
     ) -> Task<Void, Never> {
         Task(priority: .utility) {
             do {
-                let images = try await captureImages(displayIDs: displayIDs)
+                let images = try await capture(displayIDs)
                 await applyCapture(images, sessionID)
             } catch {
                 return
             }
         }
-    }
-
-    nonisolated private static func captureImages(
-        displayIDs: Set<CGDirectDisplayID>
-    ) async throws -> [CGDirectDisplayID: CGImage] {
-        guard displayIDs.isEmpty == false else { return [:] }
-
-        try Task.checkCancellation()
-        let shareableContent: SCShareableContent
-        do {
-            shareableContent = try await SCShareableContent.excludingDesktopWindows(
-                false,
-                onScreenWindowsOnly: false
-            )
-        } catch is CancellationError {
-            throw CancellationError()
-        } catch {
-            return [:]
-        }
-
-        let excludedApplications = excludedApplications(from: shareableContent)
-
-        var capturedImages: [CGDirectDisplayID: CGImage] = [:]
-
-        for display in shareableContent.displays where displayIDs.contains(display.displayID) {
-            try Task.checkCancellation()
-
-            let filter = SCContentFilter(
-                display: display,
-                excludingApplications: excludedApplications,
-                exceptingWindows: []
-            )
-            let config = screenshotConfiguration(for: display)
-
-            do {
-                let cgImage = try await SCScreenshotManager.captureImage(
-                    contentFilter: filter,
-                    configuration: config
-                )
-                try Task.checkCancellation()
-                capturedImages[display.displayID] = cgImage
-            } catch is CancellationError {
-                throw CancellationError()
-            } catch {
-                continue
-            }
-        }
-
-        return capturedImages
-    }
-
-    nonisolated private static func excludedApplications(
-        from shareableContent: SCShareableContent
-    ) -> [SCRunningApplication] {
-        let currentProcessIdentifier = ProcessInfo.processInfo.processIdentifier
-        let currentBundleIdentifier = Bundle.main.bundleIdentifier
-
-        return shareableContent.applications.filter { application in
-            if application.processID == currentProcessIdentifier {
-                return true
-            }
-
-            guard let currentBundleIdentifier else { return false }
-            return application.bundleIdentifier == currentBundleIdentifier
-        }
-    }
-
-    nonisolated private static func screenshotConfiguration(for display: SCDisplay) -> SCStreamConfiguration {
-        let config = SCStreamConfiguration()
-        config.width = display.width
-        config.height = display.height
-        config.showsCursor = false
-        return config
     }
 }
