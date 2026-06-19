@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# Pre-commit hook: run SwiftLint before allowing a commit.
+#
+# Enable it once per clone with:
+#   git config core.hooksPath .githooks
+#
+# This mirrors the SwiftLint step CI runs in build-and-test.yml. If SwiftLint
+# is not installed locally the hook warns and lets the commit through, so the
+# check is never a hard blocker on machines without the tool — CI still gates it.
+
+if ! command -v swiftlint >/dev/null 2>&1; then
+    echo "warning: SwiftLint not installed; skipping lint. Install it with 'brew install swiftlint'." >&2
+    exit 0
+fi
+
+echo "Running SwiftLint…"
+if ! swiftlint lint --strict --quiet; then
+    echo "error: SwiftLint reported violations. Fix them (or run 'swiftlint --fix') before committing." >&2
+    exit 1
+fi
