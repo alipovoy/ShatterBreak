@@ -1,0 +1,47 @@
+# SwiftLint configuration for ShatterBreak.
+#
+# Runs SwiftLint's default rules plus a curated set of opt-in rules that catch
+# real correctness and style problems without flooding the codebase with noise.
+# Style is gated in CI by .github/workflows/build-and-test.yml.
+
+included:
+  - ShatterBreak
+  - ShatterBreakTests
+
+excluded:
+  - .claude
+  - DerivedData
+  - .build
+
+opt_in_rules:
+  - closure_spacing
+  - collection_alignment
+  - contains_over_filter_count
+  - contains_over_first_not_nil
+  - empty_count
+  - empty_string
+  - explicit_init
+  - first_where
+  - force_unwrapping
+  - joined_default_parameter
+  - last_where
+  - modifier_order
+  - prefer_self_type_over_type_of_self
+  - redundant_nil_coalescing
+  - sorted_imports
+  - toggle_bool
+  - unneeded_parentheses_in_closure_argument
+  - vertical_parameter_alignment_on_call
+  - yoda_condition
+
+# Tests favour expressive, descriptive names; relax identifier length there.
+identifier_name:
+  min_length:
+    warning: 2
+  excluded:
+    - id
+    - x
+    - y
+
+force_unwrapping:
+  severity: warning

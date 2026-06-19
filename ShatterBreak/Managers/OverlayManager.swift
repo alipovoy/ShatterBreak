@@ -168,6 +168,9 @@ class OverlayManager: OverlayManaging {
         applyCapture: @escaping @MainActor @Sendable ([CGDirectDisplayID: CGImage], UUID) -> Void
     ) -> Task<Void, Never> {
         Task(priority: .utility) {
+            // `capture` only throws `CancellationError` (its contract swallows and
+            // logs every other failure at the source), so cancellation is the only
+            // thing to catch here — nothing to diagnose.
             do {
                 let images = try await capture(displayIDs)
                 await applyCapture(images, sessionID)

@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import os
 import ScreenCaptureKit
 
 /// A seam over ScreenCaptureKit and AppKit used by ``OverlayManager`` to enumerate
@@ -62,6 +63,12 @@ extension ScreenCaptureClient {
         } catch is CancellationError {
             throw CancellationError()
         } catch {
+            Logger.capture.error(
+                """
+                Failed to load shareable content; falling back to plain overlays: \
+                \(error.localizedDescription, privacy: .public)
+                """
+            )
             return [:]
         }
 
@@ -89,6 +96,12 @@ extension ScreenCaptureClient {
             } catch is CancellationError {
                 throw CancellationError()
             } catch {
+                Logger.capture.error(
+                    """
+                    Failed to capture display \(display.displayID, privacy: .public); \
+                    falling back to a plain overlay: \(error.localizedDescription, privacy: .public)
+                    """
+                )
                 continue
             }
         }

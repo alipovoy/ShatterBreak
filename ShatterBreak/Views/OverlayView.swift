@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct OverlayView: View {
     @Bindable var state: TimerState

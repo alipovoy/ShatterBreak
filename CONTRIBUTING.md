@@ -11,11 +11,12 @@ By participating in this project you agree to abide by our
 * macOS 15.0 or later
 * Xcode with the macOS 15 SDK (CI uses Xcode 26.5)
 * [XcodeGen](https://github.com/yonaskolb/XcodeGen) for generating the Xcode project
+* [SwiftLint](https://github.com/realm/SwiftLint) for linting (see [Linting](#linting))
 
-Install XcodeGen with Homebrew:
+Install both with Homebrew:
 
 ```bash
-brew install xcodegen
+brew install xcodegen swiftlint
 ```
 
 ## Project layout
@@ -54,6 +55,43 @@ CI runs the same `xcodebuild test` flow on every pull request via
 [`.github/workflows/build-and-test.yml`](./.github/workflows/build-and-test.yml).
 Please make sure tests pass locally before opening a PR.
 
+## Linting
+
+The project is linted with [SwiftLint](https://github.com/realm/SwiftLint), configured
+in [`.swiftlint.yml`](./.swiftlint.yml). CI fails the build on any warning, so please
+lint locally before opening a PR.
+
+Install SwiftLint with Homebrew:
+
+```bash
+brew install swiftlint
+```
+
+Run it from the repository root (this matches the CI step exactly):
+
+```bash
+swiftlint lint --strict
+```
+
+Many issues can be fixed automatically:
+
+```bash
+swiftlint --fix
+```
+
+### Pre-commit hook
+
+A pre-commit hook that runs SwiftLint lives in [`.githooks/`](./.githooks). Enable it
+once per clone by pointing Git at that directory:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+After that, every `git commit` runs `swiftlint lint --strict` and blocks the commit on
+violations. If SwiftLint is not installed the hook warns and lets the commit through —
+CI still enforces it.
+
 ## Coding guidelines
 
 ShatterBreak is a modern Swift 6 / SwiftUI codebase. New code is expected to follow
@@ -69,8 +107,8 @@ these conventions:
 * Write unit tests for core application logic; only add UI tests when unit tests
   are not possible.
 
-If SwiftLint is installed locally, make sure it reports no warnings or errors before
-committing.
+Run SwiftLint and make sure it reports no warnings or errors before committing — see
+[Linting](#linting) above.
 
 ## Pull request workflow
 
@@ -78,7 +116,7 @@ committing.
    (e.g. `feature/short-description` or `fix/short-description`).
 2. Make your change, keeping commits focused and with clear messages.
 3. Add or update tests covering your change.
-4. Run `xcodebuild test` and confirm it passes.
+4. Run `xcodebuild test` and `swiftlint lint --strict` and confirm both pass.
 5. Open a pull request against `main` describing **what** changed and **why**.
    Link any related issue (e.g. `Closes #123`).
 
