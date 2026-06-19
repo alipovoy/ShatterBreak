@@ -48,6 +48,11 @@ final class TestEnvironment {
     }
 
     @MainActor
+    func makeOverlayManager() -> OverlayManager {
+        OverlayManager(defaults: defaults)
+    }
+
+    @MainActor
     func advanceTime(by interval: TimeInterval = 1, ticks: Int = 1) async {
         for _ in 0..<ticks {
             tickSource.advance(by: interval)
