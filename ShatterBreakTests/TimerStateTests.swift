@@ -198,7 +198,7 @@ struct TimerStateBasicTests {
     func formattingUnaffectedByState() {
         let environment = TestEnvironment()
         let state = environment.makeTimerState(overlayManager: OverlaySpy())
-        state.timeRemaining = 75
+        state.seedTimeRemaining(75)
         #expect(state.formattedTimeRemaining == "01:15", "Idle formatting should use the current remaining time.")
 
         state.mode = .running
