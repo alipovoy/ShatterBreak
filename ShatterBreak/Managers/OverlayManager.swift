@@ -1,4 +1,5 @@
 import AppKit
+import os
 import SwiftUI
 
 @MainActor
@@ -171,8 +172,12 @@ class OverlayManager: OverlayManaging {
             do {
                 let images = try await capture(displayIDs)
                 await applyCapture(images, sessionID)
-            } catch {
+            } catch is CancellationError {
                 return
+            } catch {
+                Logger.capture.error(
+                    "Screen capture task failed; overlays remain plain: \(error.localizedDescription, privacy: .public)"
+                )
             }
         }
     }

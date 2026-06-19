@@ -49,6 +49,12 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: SwiftLint
+        run: swiftlint lint --strict --reporter github-actions-logging
+
       - name: Generate Xcode project
         run: xcodegen generate
 
