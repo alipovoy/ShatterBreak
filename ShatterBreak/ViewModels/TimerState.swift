@@ -98,8 +98,8 @@ final class TimerState {
     private let defaults: UserDefaults
 
     private var autoStartWorkTimer: Bool {
-        defaults.string(forKey: PreferenceKeys.workStartMode)
-            .flatMap { WorkStartMode(rawValue: $0) } ?? .automatic == .automatic
+        (defaults.string(forKey: PreferenceKeys.workStartMode)
+            .flatMap { WorkStartMode(rawValue: $0) } ?? .automatic) == .automatic
     }
 
     // MARK: - Initialization

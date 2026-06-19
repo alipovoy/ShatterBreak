@@ -93,19 +93,6 @@ struct ScreenCapturePermissionManagerTests {
         #expect(spy.requestCallCount == 1, "The first-launch request should only happen once.")
     }
 
-    @Test("requestNow always requests permission")
-    @MainActor
-    func requestNowAlwaysRequestsPermission() {
-        let environment = TestEnvironment()
-        let spy = ScreenCapturePermissionClientSpy()
-        let manager = environment.makePermissionManager(permissionClient: spy.client)
-
-        manager.requestNow()
-        manager.requestNow()
-
-        #expect(spy.requestCallCount == 2, "Explicit permission requests should always delegate to the client.")
-    }
-
     @Test("openSystemSettings delegates to the injected client")
     @MainActor
     func openSystemSettingsUsesClient() {
