@@ -35,11 +35,11 @@ final class TestEnvironment {
 
     @MainActor
     func makeTimerState(
-        overlayManager: any OverlayManaging,
+        overlays: OverlayPresenter = .disabled,
         postponeDurationSecs: Double = 60
     ) -> TimerState {
         TimerState(
-            overlayManager: overlayManager,
+            overlays: overlays,
             postponeDurationSecs: postponeDurationSecs,
             defaults: defaults,
             scheduler: scheduler,

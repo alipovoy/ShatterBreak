@@ -5,11 +5,19 @@ struct OverlayView: View {
     @Bindable var state: TimerState
     @Bindable var presentation: OverlayPresentationState
 
-    @State private var viewModel = OverlayPresentationViewModel()
+    @State private var shakeOffset: CGFloat = 0
+    @State private var hasPlayedSound = false
 
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @AppStorage(PreferenceKeys.playSound) private var playSound: Bool = true
     @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone: Bool = false
+
+    private enum Shake {
+        static let distance: CGFloat = 10
+        static let duration = 0.05
+        static let repeatCount = 20
+        static let introDelay: Duration = .milliseconds(900)
+    }
 
     var body: some View {
         ZStack {
@@ -17,7 +25,7 @@ struct OverlayView: View {
                 isShatterEffect: presentation.isShatterEffect,
                 backgroundImage: presentation.backgroundImage,
                 phase: presentation.phase,
-                shakeOffset: viewModel.shakeOffset
+                shakeOffset: shakeOffset
             )
 
             if presentation.showsCracks {
@@ -67,11 +75,7 @@ struct OverlayView: View {
             }
         }
         .task(id: presentation.phase) {
-            await viewModel.handlePresentationPhase(
-                presentation: presentation,
-                reduceMotion: accessibilityReduceMotion,
-                playSoundEnabled: playSound
-            )
+            await handlePhase()
         }
     }
 
@@ -83,6 +87,62 @@ struct OverlayView: View {
         return true
     }
 
+    /// Reacts to the current overlay phase: plays the break sound, and for the shatter
+    /// effect runs the shake intro before settling into the shattered state. The
+    /// branching decision lives in the pure, tested ``OverlayPhaseAction/resolve``.
+    private func handlePhase() async {
+        switch OverlayPhaseAction.resolve(
+            phase: presentation.phase,
+            isShatterEffect: presentation.isShatterEffect,
+            reduceMotion: accessibilityReduceMotion,
+            playSoundEnabled: playSound,
+            hasPlayedSound: hasPlayedSound
+        ) {
+        case .idle:
+            shakeOffset = 0
+        case .playSound:
+            shakeOffset = 0
+            playGlassSoundIfNeeded()
+        case .finishShatterIntro(let playGlass):
+            finishShatterIntro(playGlass: playGlass)
+        case .animateShatterIntro:
+            await animateShatterIntro()
+        }
+    }
+
+    private func animateShatterIntro() async {
+        shakeOffset = 0
+        withAnimation(
+            .spring(duration: Shake.duration)
+            .repeatCount(Shake.repeatCount, autoreverses: true)
+        ) {
+            shakeOffset = Shake.distance
+        }
+
+        do {
+            try await Task.sleep(for: Shake.introDelay)
+            try Task.checkCancellation()
+        } catch {
+            return
+        }
+
+        guard presentation.phase == .shatterIntro else { return }
+        finishShatterIntro(playGlass: true)
+    }
+
+    private func finishShatterIntro(playGlass: Bool) {
+        shakeOffset = 0
+        presentation.finishShatterIntro()
+        if playGlass {
+            playGlassSoundIfNeeded()
+        }
+    }
+
+    private func playGlassSoundIfNeeded() {
+        guard playSound, hasPlayedSound == false else { return }
+        hasPlayedSound = true
+        NSSound(named: "Glass")?.play()
+    }
 }
 
 #Preview("OverlayView") { @MainActor in

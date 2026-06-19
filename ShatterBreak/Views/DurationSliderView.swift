@@ -8,7 +8,8 @@ struct DurationSliderView: View {
     let max: Double
     let disabled: Bool
 
-    @State private var viewModel = DurationSliderViewModel()
+    @State private var manualInput = ""
+    @State private var isEditing = false
     @FocusState private var isInputFocused: Bool
 
     var body: some View {
@@ -22,46 +23,64 @@ struct DurationSliderView: View {
                     .foregroundStyle(.secondary)
 
                 Slider(
-                    value: viewModel.sliderBinding(for: $value, min: min, max: max),
+                    value: sliderBinding,
                     in: 0...PiecewiseTimer.position(from: max),
                     onEditingChanged: { editing in
-                        viewModel.isEditing = editing
+                        isEditing = editing
                     }
                 )
                 .disabled(disabled)
 
-                TextField("00:00", text: $viewModel.manualInput)
+                TextField("00:00", text: $manualInput)
                     .textFieldStyle(.roundedBorder)
                     .font(.body.monospacedDigit())
                     .frame(width: 85, alignment: .trailing)
                     .multilineTextAlignment(.trailing)
                     .focused($isInputFocused)
                     .disabled(disabled)
-                    .foregroundStyle(viewModel.isEditing ? Color.accentColor : .primary)
+                    .foregroundStyle(isEditing ? Color.accentColor : .primary)
                     .onChange(of: isInputFocused) { _, isFocused in
                         if isFocused {
-                            viewModel.syncManualInput(with: value, isInputFocused: true)
+                            manualInput = DurationFormat.clock(value)
                         } else {
-                            viewModel.updateValueFromInput(currentValue: &value, min: min, max: max)
+                            commitManualInput()
                         }
                     }
                     .onSubmit {
-                        viewModel.updateValueFromInput(currentValue: &value, min: min, max: max)
+                        commitManualInput()
                         isInputFocused = false
                     }
                     .onExitCommand {
-                        viewModel.syncManualInput(with: value, isInputFocused: false)
+                        manualInput = DurationFormat.friendly(value)
                         isInputFocused = false
                     }
             }
         }
         .padding(10)
         .onAppear {
-            viewModel.syncManualInput(with: value, isInputFocused: isInputFocused)
+            manualInput = isInputFocused ? DurationFormat.clock(value) : DurationFormat.friendly(value)
         }
         .onChange(of: value) { _, newValue in
-            viewModel.syncManualInput(with: newValue, isInputFocused: isInputFocused)
+            manualInput = isInputFocused ? DurationFormat.clock(newValue) : DurationFormat.friendly(newValue)
         }
+    }
+
+    private var sliderBinding: Binding<Double> {
+        Binding(
+            get: { PiecewiseTimer.position(from: value) },
+            set: { position in
+                value = DurationFormat.snap(
+                    rawSeconds: PiecewiseTimer.seconds(from: position),
+                    min: min,
+                    max: max
+                )
+            }
+        )
+    }
+
+    private func commitManualInput() {
+        value = DurationFormat.applying(input: manualInput, to: value, min: min, max: max)
+        manualInput = DurationFormat.friendly(value)
     }
 }
 

@@ -1,4 +1,3 @@
-import SwiftUI
 import Testing
 
 @testable import ShatterBreak
@@ -19,8 +18,8 @@ struct SliderSnapCase: Sendable {
     let expectedValue: Double
 }
 
-@Suite("DurationSliderViewModel", .tags(.parsing))
-struct DurationSliderViewModelTests {
+@Suite("DurationFormat", .tags(.parsing))
+struct DurationFormatTests {
     @Test(arguments: [
         ManualInputCase(input: "1h", initialValue: 1500, expectedValue: 3600, expectedDisplay: "1h 0m"),
         ManualInputCase(input: "1m", initialValue: 1500, expectedValue: 60, expectedDisplay: "01:00"),
@@ -34,17 +33,12 @@ struct DurationSliderViewModelTests {
         ManualInputCase(input: "1:60:00", initialValue: 1500, expectedValue: 7200, expectedDisplay: "2h 0m"),
         ManualInputCase(input: "9999h", initialValue: 1500, expectedValue: 7200, expectedDisplay: "2h 0m")
     ])
-    @MainActor
-    func updateValueFromInputAppliesAcceptedInput(_ testCase: ManualInputCase) {
-        let viewModel = DurationSliderViewModel()
-        var value = testCase.initialValue
-        viewModel.manualInput = testCase.input
-
-        viewModel.updateValueFromInput(currentValue: &value, min: 5, max: 7200)
+    func applyingAcceptedInputUpdatesAndNormalizes(_ testCase: ManualInputCase) {
+        let value = DurationFormat.applying(input: testCase.input, to: testCase.initialValue, min: 5, max: 7200)
 
         #expect(value == testCase.expectedValue, "Accepted input should update the backing duration.")
         #expect(
-            viewModel.manualInput == testCase.expectedDisplay,
+            DurationFormat.friendly(value) == testCase.expectedDisplay,
             "Accepted input should normalize the display string."
         )
     }
@@ -70,26 +64,20 @@ struct DurationSliderViewModelTests {
         InvalidManualInputCase(input: "1m30"),
         InvalidManualInputCase(input: "1h-5m")
     ])
-    @MainActor
-    func updateValueFromInputPreservesPreviousValueAfterRejectedInput(_ testCase: InvalidManualInputCase) {
-        let viewModel = DurationSliderViewModel()
-        var value = 5.0
-        viewModel.manualInput = "25:07"
-
-        viewModel.updateValueFromInput(currentValue: &value, min: 5, max: 7200)
-
-        #expect(value == 1507, "The initial valid value should parse before invalid-input checks.")
+    func applyingRejectedInputPreservesPreviousValue(_ testCase: InvalidManualInputCase) {
+        let accepted = DurationFormat.applying(input: "25:07", to: 5, min: 5, max: 7200)
+        #expect(accepted == 1507, "The initial valid value should parse before invalid-input checks.")
         #expect(
-            viewModel.manualInput == "25:07",
-            "The initial valid display should be normalized before invalid-input checks."
+            DurationFormat.friendly(accepted) == "25:07",
+            "The initial valid display should normalize before invalid-input checks."
         )
 
-        viewModel.manualInput = testCase.input
-
-        viewModel.updateValueFromInput(currentValue: &value, min: 5, max: 7200)
-
-        #expect(value == 1507, "Invalid input should preserve the previous parsed value.")
-        #expect(viewModel.manualInput == "25:07", "Invalid input should preserve the previous display value.")
+        let afterInvalid = DurationFormat.applying(input: testCase.input, to: accepted, min: 5, max: 7200)
+        #expect(afterInvalid == 1507, "Invalid input should preserve the previous parsed value.")
+        #expect(
+            DurationFormat.friendly(afterInvalid) == "25:07",
+            "Invalid input should preserve the previous display value."
+        )
     }
 
     @Test(arguments: PiecewiseTimer.anchors)
@@ -110,38 +98,21 @@ struct DurationSliderViewModelTests {
         SliderSnapCase(rawSeconds: 615, expectedValue: 600),
         SliderSnapCase(rawSeconds: 1490, expectedValue: 1500)
     ])
-    @MainActor
-    func sliderBindingSnapsToExpectedStep(_ testCase: SliderSnapCase) {
-        let viewModel = DurationSliderViewModel()
-        var value = 1500.0
-        let binding = Binding(
-            get: { value },
-            set: { value = $0 }
-        )
-        let sliderBinding = viewModel.sliderBinding(for: binding, min: 5, max: 7200)
+    func snapsSliderMovementToExpectedStep(_ testCase: SliderSnapCase) {
+        // Mirror the slider binding: a duration is mapped to a position and back before snapping.
+        let rawFromSlider = PiecewiseTimer.seconds(from: PiecewiseTimer.position(from: testCase.rawSeconds))
+        let snapped = DurationFormat.snap(rawSeconds: rawFromSlider, min: 5, max: 7200)
 
-        sliderBinding.wrappedValue = PiecewiseTimer.position(from: testCase.rawSeconds)
-
-        #expect(value == testCase.expectedValue, "Slider movement should snap to the expected duration step.")
+        #expect(snapped == testCase.expectedValue, "Slider movement should snap to the expected duration step.")
     }
 
-    @Test("syncManualInput uses MM:SS while the field is focused")
-    @MainActor
-    func syncManualInputFocusedUsesClockStyle() {
-        let viewModel = DurationSliderViewModel()
-
-        viewModel.syncManualInput(with: 3900, isInputFocused: true)
-
-        #expect(viewModel.manualInput == "65:00", "Focused manual input should use editable clock formatting.")
+    @Test("clock formatting uses MM:SS without capping minutes")
+    func clockUsesUncappedMinutes() {
+        #expect(DurationFormat.clock(3900) == "65:00", "Clock formatting should keep raw minutes for editing.")
     }
 
-    @Test("syncManualInput uses friendly formatting when the field is not focused")
-    @MainActor
-    func syncManualInputUnfocusedUsesFriendlyStyle() {
-        let viewModel = DurationSliderViewModel()
-
-        viewModel.syncManualInput(with: 3900, isInputFocused: false)
-
-        #expect(viewModel.manualInput == "1h 5m", "Unfocused manual input should use friendly duration formatting.")
+    @Test("friendly formatting uses a reader-friendly style above an hour")
+    func friendlyUsesHourMinuteStyle() {
+        #expect(DurationFormat.friendly(3900) == "1h 5m", "Friendly formatting should read as hours and minutes.")
     }
 }

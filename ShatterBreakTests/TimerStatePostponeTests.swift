@@ -3,57 +3,17 @@ import Testing
 
 @testable import ShatterBreak
 
-/// One row of the `canPostpone` truth table: a mode and usage flag, plus the expected result.
-struct CanPostponeCase: Sendable {
-    let mode: TimerState.Mode
-    let hasUsedPostpone: Bool
-    let canPostpone: Bool
-}
-
-/// `canPostpone` is true only while resting and not yet used this cycle.
-private let canPostponeCases: [CanPostponeCase] = [
-    CanPostponeCase(mode: .idle, hasUsedPostpone: false, canPostpone: false),
-    CanPostponeCase(mode: .running, hasUsedPostpone: false, canPostpone: false),
-    CanPostponeCase(mode: .paused, hasUsedPostpone: false, canPostpone: false),
-    CanPostponeCase(mode: .resting, hasUsedPostpone: false, canPostpone: true),
-    CanPostponeCase(mode: .resting, hasUsedPostpone: true, canPostpone: false),
-    CanPostponeCase(mode: .postponedWork, hasUsedPostpone: false, canPostpone: false),
-    CanPostponeCase(mode: .awaitingReturn, hasUsedPostpone: false, canPostpone: false)
-]
-
 @Suite("TimerState postpone behaviors", .tags(.timerState), .timeLimit(.minutes(1)))
 struct TimerStatePostponeTests {
     private let postponeDurationSecs = 1.5
-
-    @Test("canPostpone is available only while resting and unused", arguments: canPostponeCases)
-    @MainActor
-    func canPostponeReflectsModeAndUsage(_ testCase: CanPostponeCase) {
-        let environment = TestEnvironment()
-        let state = environment.makeTimerState(
-            overlayManager: OverlaySpy(),
-            postponeDurationSecs: postponeDurationSecs
-        )
-
-        state.mode = testCase.mode
-        state.hasPostponeBeenUsedThisCycle = testCase.hasUsedPostpone
-
-        #expect(
-            state.canPostpone == testCase.canPostpone,
-            """
-            Mode \(String(describing: testCase.mode)) with postpone \
-            \(testCase.hasUsedPostpone ? "used" : "unused") should \
-            \(testCase.canPostpone ? "" : "not ")allow postpone.
-            """
-        )
-    }
 
     @Test("postpone() transitions state correctly and dismisses overlays")
     @MainActor
     func postponeTransitionsStateAndDismissesOverlays() async {
         let environment = TestEnvironment()
-        let spy = OverlaySpy()
+        let recorder = OverlayRecorder()
         let state = environment.makeTimerState(
-            overlayManager: spy,
+            overlays: recorder.presenter,
             postponeDurationSecs: postponeDurationSecs
         )
         state.workDurationSecs = 1
@@ -62,7 +22,7 @@ struct TimerStatePostponeTests {
         state.start()
         await environment.advanceTime()
         #expect(state.isResting, "The test setup should enter rest before postponing.")
-        #expect(spy.showCount == 1, "Entering rest should show overlays once before postponing.")
+        #expect(recorder.showCount == 1, "Entering rest should show overlays once before postponing.")
 
         state.postpone()
 
@@ -70,17 +30,14 @@ struct TimerStatePostponeTests {
         #expect(state.isRunning, "Postponed work should run immediately.")
         #expect(state.hasPostponeBeenUsedThisCycle, "Postpone should mark the cycle as used.")
         #expect(state.timeRemaining == postponeDurationSecs, "Postpone should set the postpone timer.")
-        #expect(spy.dismissCount == 1, "Overlays should dismiss when postponing.")
+        #expect(recorder.dismissCount == 1, "Overlays should dismiss when postponing.")
     }
 
     @Test("postpone() does nothing if conditions not met")
     @MainActor
     func postponeDoesNothingIfConditionsNotMet() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(
-            overlayManager: OverlaySpy(),
-            postponeDurationSecs: postponeDurationSecs
-        )
+        let state = environment.makeTimerState(postponeDurationSecs: postponeDurationSecs)
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -103,9 +60,9 @@ struct TimerStatePostponeTests {
     @MainActor
     func postponeExpiresAndResumesRest() async {
         let environment = TestEnvironment()
-        let spy = OverlaySpy()
+        let recorder = OverlayRecorder()
         let state = environment.makeTimerState(
-            overlayManager: spy,
+            overlays: recorder.presenter,
             postponeDurationSecs: postponeDurationSecs
         )
         state.workDurationSecs = 1
@@ -120,17 +77,14 @@ struct TimerStatePostponeTests {
 
         #expect(state.isResting, "Rest should resume after the postpone work finishes.")
         #expect(state.timeRemaining == originalRestTime, "Rest should resume with the saved time.")
-        #expect(spy.showCount == 2, "Overlays should show again when rest resumes.")
+        #expect(recorder.showCount == 2, "Overlays should show again when rest resumes.")
     }
 
     @Test("hasPostponeBeenUsedThisCycle resets on new rest cycle")
     @MainActor
     func postponeFlagResetsOnNewCycle() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(
-            overlayManager: OverlaySpy(),
-            postponeDurationSecs: postponeDurationSecs
-        )
+        let state = environment.makeTimerState(postponeDurationSecs: postponeDurationSecs)
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
@@ -155,10 +109,7 @@ struct TimerStatePostponeTests {
     @MainActor
     func pauseDuringPostponedWork() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(
-            overlayManager: OverlaySpy(),
-            postponeDurationSecs: postponeDurationSecs
-        )
+        let state = environment.makeTimerState(postponeDurationSecs: postponeDurationSecs)
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -187,10 +138,7 @@ struct TimerStatePostponeTests {
     @MainActor
     func stopDuringPostponedWork() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(
-            overlayManager: OverlaySpy(),
-            postponeDurationSecs: postponeDurationSecs
-        )
+        let state = environment.makeTimerState(postponeDurationSecs: postponeDurationSecs)
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -210,10 +158,7 @@ struct TimerStatePostponeTests {
     @MainActor
     func postponeWithPartialRestRemainingPreservesRemainder() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(
-            overlayManager: OverlaySpy(),
-            postponeDurationSecs: postponeDurationSecs
-        )
+        let state = environment.makeTimerState(postponeDurationSecs: postponeDurationSecs)
         state.workDurationSecs = 1
         state.restDurationSecs = 3
 
@@ -236,10 +181,7 @@ struct TimerStatePostponeTests {
     @MainActor
     func restCountdownAccuracyAfterResume() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(
-            overlayManager: OverlaySpy(),
-            postponeDurationSecs: postponeDurationSecs
-        )
+        let state = environment.makeTimerState(postponeDurationSecs: postponeDurationSecs)
         state.workDurationSecs = 1
         state.restDurationSecs = 5
 

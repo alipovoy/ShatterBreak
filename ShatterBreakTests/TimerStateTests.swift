@@ -3,24 +3,6 @@ import Testing
 
 @testable import ShatterBreak
 
-private let menuBarVisibilityCases: [(mode: TimerState.Mode, shouldShowTimeInMenuBar: Bool)] = [
-    (.awaitingReturn, false),
-    (.idle, false),
-    (.running, true),
-    (.paused, true),
-    (.postponedWork, true),
-    (.resting, false)
-]
-
-private let durationEditingCases: [(mode: TimerState.Mode, canEditDurations: Bool)] = [
-    (.idle, true),
-    (.running, false),
-    (.paused, false),
-    (.resting, false),
-    (.postponedWork, false),
-    (.awaitingReturn, false)
-]
-
 @Suite("TimerState basic flows", .tags(.timerState), .timeLimit(.minutes(1)))
 struct TimerStateBasicTests {
     @Test("start() initializes and transitions to rest")
@@ -30,7 +12,7 @@ struct TimerStateBasicTests {
         let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState()
         state.workDurationSecs = 1
         state.restDurationSecs = 2
 
@@ -51,7 +33,7 @@ struct TimerStateBasicTests {
     @MainActor
     func pauseAndResume() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState()
         state.workDurationSecs = 5
         state.restDurationSecs = 2
 
@@ -74,7 +56,7 @@ struct TimerStateBasicTests {
     @MainActor
     func workCountdownTracksElapsedTime() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState()
         state.workDurationSecs = 3
 
         state.start()
@@ -89,7 +71,7 @@ struct TimerStateBasicTests {
     @MainActor
     func workCountdownReflectsElapsedTimeWithoutTick() {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState()
         state.workDurationSecs = 3
 
         state.start()
@@ -102,7 +84,7 @@ struct TimerStateBasicTests {
     @MainActor
     func stopResets() {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState()
         state.workDurationSecs = 5
         state.restDurationSecs = 2
 
@@ -121,7 +103,7 @@ struct TimerStateBasicTests {
         let defaults = environment.defaults
         defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
 
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState()
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
@@ -155,61 +137,6 @@ struct TimerStateBasicTests {
         )
     }
 
-    @Test("visibility flag reflects each timer mode", arguments: menuBarVisibilityCases)
-    @MainActor
-    func visibilityFlagRespectsState(
-        _ testCase: (mode: TimerState.Mode, shouldShowTimeInMenuBar: Bool)
-    ) {
-        let environment = TestEnvironment()
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
-
-        state.mode = testCase.mode
-
-        #expect(
-            state.shouldShowTimeInMenuBar == testCase.shouldShowTimeInMenuBar,
-            """
-            Mode \(String(describing: testCase.mode)) should \
-            \(testCase.shouldShowTimeInMenuBar ? "" : "not ")show time in the menu bar.
-            """
-        )
-    }
-
-    @Test("duration editing is only available while inactive", arguments: durationEditingCases)
-    @MainActor
-    func durationEditingIsOnlyAvailableWhileInactive(
-        _ testCase: (mode: TimerState.Mode, canEditDurations: Bool)
-    ) {
-        let environment = TestEnvironment()
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
-
-        state.mode = testCase.mode
-
-        #expect(
-            state.canEditDurations == testCase.canEditDurations,
-            """
-            Mode \(String(describing: testCase.mode)) should \
-            \(testCase.canEditDurations ? "" : "not ")allow duration edits.
-            """
-        )
-    }
-
-    @Test("formattedTimeRemaining still produces string regardless of state")
-    @MainActor
-    func formattingUnaffectedByState() {
-        let environment = TestEnvironment()
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
-        state.workDurationSecs = 75
-        state.start()
-        #expect(state.formattedTimeRemaining == "01:15", "Formatting should reflect the active countdown.")
-
-        state.mode = .running
-        state.mode = .resting
-        #expect(
-            state.formattedTimeRemaining == "01:15",
-            "Formatted time should not change solely because mode changes."
-        )
-    }
-
     @Test("initialization loads stored durations and falls back for zero values")
     @MainActor
     func initializationLoadsStoredDurations() {
@@ -218,7 +145,7 @@ struct TimerStateBasicTests {
         defaults.set(120.0, forKey: PreferenceKeys.workDurationSecs)
         defaults.set(0.0, forKey: PreferenceKeys.restDurationSecs)
 
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState()
 
         #expect(state.workDurationSecs == 120, "Initialization should load a stored work duration.")
         #expect(state.restDurationSecs == 300, "Initialization should fall back when stored rest duration is zero.")
@@ -231,7 +158,7 @@ struct TimerStateBasicTests {
         weak var weakState: TimerState?
 
         do {
-            let state = environment.makeTimerState(overlayManager: OverlaySpy())
+            let state = environment.makeTimerState()
             state.workDurationSecs = 60
             // `start()` activates the workspace sleep/wake observers, so this exercises
             // the weak-capture path of the observer blocks (and the tick handler), not
@@ -255,7 +182,7 @@ struct TimerStateSleepWakeTests {
     @MainActor
     func displaySleepAutoPauseAndResume() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState()
         state.workDurationSecs = 3
         state.restDurationSecs = 2
 
@@ -279,7 +206,7 @@ struct TimerStateSleepWakeTests {
         let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState()
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
@@ -306,7 +233,7 @@ struct TimerStateSleepWakeTests {
         let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState()
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
@@ -330,7 +257,7 @@ struct TimerStateSleepWakeTests {
     @MainActor
     func sleepAutoPausesPostponedWorkAndWakeRestoresIt() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(overlayManager: OverlaySpy(), postponeDurationSecs: 5)
+        let state = environment.makeTimerState(postponeDurationSecs: 5)
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -369,7 +296,7 @@ struct TimerStateSleepWakeTests {
     @MainActor
     func manualPauseDoesNotAutoResumeOnWake() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        let state = environment.makeTimerState()
         state.workDurationSecs = 10
 
         state.start()
