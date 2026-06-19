@@ -3,7 +3,7 @@ import Testing
 
 @testable import ShatterBreak
 
-@Suite("Overlay presentation state", .tags(.overlays))
+@Suite("Overlay presentation state", .tags(.overlays), .timeLimit(.minutes(1)))
 struct OverlayPresentationStateTests {
     @Test("shatter upgrade advances through intro once")
     @MainActor
