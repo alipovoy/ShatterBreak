@@ -8,7 +8,7 @@ protocol OverlayManaging: AnyObject {
 }
 
 @MainActor
-class OverlayManager: OverlayManaging {
+final class OverlayManager: OverlayManaging {
     private var windows: [CGDirectDisplayID: NSWindow] = [:]
     private var overlayStates: [CGDirectDisplayID: OverlayPresentationState] = [:]
     private var captureTask: Task<Void, Never>?

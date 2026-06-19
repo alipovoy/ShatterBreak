@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 struct OverlayBackgroundView: View {
@@ -11,7 +10,7 @@ struct OverlayBackgroundView: View {
         Group {
             if isShatterEffect {
                 if let backgroundImage, phase != .plain {
-                    Image(nsImage: NSImage(cgImage: backgroundImage, size: .zero))
+                    Image(decorative: backgroundImage, scale: 1)
                         .resizable()
                 } else if phase == .plain {
                     Color.clear

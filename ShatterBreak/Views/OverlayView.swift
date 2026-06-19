@@ -43,8 +43,8 @@ struct OverlayView: View {
                             Text(.postpone)
                         }
                         .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.capsule)
                         .controlSize(.extraLarge)
-                        .background(Color.accentColor, in: Capsule())
                     }
 
                     if state.awaitingReturn {
@@ -54,8 +54,8 @@ struct OverlayView: View {
                             Text(.imBack)
                         }
                         .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.capsule)
                         .controlSize(.extraLarge)
-                        .background(Color.accentColor, in: Capsule())
                     }
                 }
             }

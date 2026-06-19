@@ -50,11 +50,6 @@ final class ScreenCapturePermissionManager {
         _ = permissionClient.requestAccess()
     }
 
-    func requestNow() {
-        updateAppActiveObservation()
-        _ = permissionClient.requestAccess()
-    }
-
     private var hasLaunchedBefore: Bool {
         defaults.bool(forKey: Self.launchKey)
     }
