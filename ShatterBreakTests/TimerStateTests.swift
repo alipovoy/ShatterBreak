@@ -223,7 +223,7 @@ struct TimerStateBasicTests {
         #expect(state.restDurationSecs == 300, "Initialization should fall back when stored rest duration is zero.")
     }
 
-    @Test("timer state deallocates while sleep observers are idle")
+    @Test("timer state deallocates while sleep observers are active")
     @MainActor
     func timerStateDeallocatesWhileObservingSleepNotifications() async {
         let environment = TestEnvironment()
@@ -231,12 +231,20 @@ struct TimerStateBasicTests {
 
         do {
             let state = environment.makeTimerState(overlayManager: OverlaySpy())
+            state.workDurationSecs = 60
+            // `start()` activates the workspace sleep/wake observers, so this exercises
+            // the weak-capture path of the observer blocks (and the tick handler), not
+            // just a never-started object.
+            state.start()
+            #expect(state.isRunning, "start() should activate the sleep observers under test.")
             weakState = state
-            await Task.yield()
         }
 
         await Task.yield()
-        #expect(weakState == nil, "TimerState should deallocate while sleep observers are idle.")
+        #expect(
+            weakState == nil,
+            "TimerState should deallocate even while its sleep observers are active."
+        )
     }
 }
 
@@ -315,5 +323,68 @@ struct TimerStateSleepWakeTests {
         #expect(state.mode == .idle, "Wake should resolve expired rest to idle without a manual tick.")
         #expect(state.isRunning == false, "Wake after expired rest should not keep the timer running.")
         #expect(state.isResting == false, "Wake after expired rest should clear the resting state.")
+    }
+
+    @Test("system sleep auto-pauses postponed work; wake restores and resumes it")
+    @MainActor
+    func sleepAutoPausesPostponedWorkAndWakeRestoresIt() async {
+        let environment = TestEnvironment()
+        let state = environment.makeTimerState(overlayManager: OverlaySpy(), postponeDurationSecs: 5)
+        state.workDurationSecs = 1
+        state.restDurationSecs = 10
+
+        state.start()
+        await environment.advanceUntil(maxTicks: 2) { state.isResting }
+        #expect(state.isResting, "The test setup should enter rest before postponing.")
+
+        state.postpone()
+        #expect(state.mode == .postponedWork, "Postpone should switch into postponed work.")
+        let postponedRemaining = state.timeRemaining
+
+        let notificationCenter = environment.workspaceNotificationCenter
+        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        #expect(state.isPaused, "System sleep should auto-pause postponed work.")
+        #expect(
+            state.timeRemaining == postponedRemaining,
+            "Sleep should freeze the postponed-work countdown."
+        )
+
+        // Wall-clock time passes while asleep, but the frozen countdown must not advance.
+        environment.elapseTimeWithoutTick(by: 3)
+
+        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        #expect(state.mode == .postponedWork, "Wake should restore postponed work after a system auto-pause.")
+        #expect(
+            state.timeRemaining == postponedRemaining,
+            "Resumed postponed work should keep its frozen remaining time."
+        )
+
+        await environment.advanceTime(ticks: 5)
+        #expect(state.isResting, "Postponed work should expire back into rest after waking.")
+        #expect(state.timeRemaining == 10, "Rest should resume with the saved full duration.")
+    }
+
+    @Test("manual pause does not auto-resume on wake")
+    @MainActor
+    func manualPauseDoesNotAutoResumeOnWake() async {
+        let environment = TestEnvironment()
+        let state = environment.makeTimerState(overlayManager: OverlaySpy())
+        state.workDurationSecs = 10
+
+        state.start()
+        await environment.advanceTime()
+        state.pause()
+        #expect(state.isPaused, "A user pause should freeze the work countdown.")
+        let snapshot = state.timeRemaining
+
+        let notificationCenter = environment.workspaceNotificationCenter
+        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+
+        #expect(state.isPaused, "A manual pause must not auto-resume on wake; only system auto-pauses resume.")
+        #expect(
+            state.timeRemaining == snapshot,
+            "A manual pause should keep its frozen time across a sleep/wake cycle."
+        )
     }
 }

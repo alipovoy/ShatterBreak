@@ -3,75 +3,48 @@ import Testing
 
 @testable import ShatterBreak
 
+/// One row of the `canPostpone` truth table: a mode and usage flag, plus the expected result.
+struct CanPostponeCase: Sendable {
+    let mode: TimerState.Mode
+    let hasUsedPostpone: Bool
+    let canPostpone: Bool
+}
+
+/// `canPostpone` is true only while resting and not yet used this cycle.
+private let canPostponeCases: [CanPostponeCase] = [
+    CanPostponeCase(mode: .idle, hasUsedPostpone: false, canPostpone: false),
+    CanPostponeCase(mode: .running, hasUsedPostpone: false, canPostpone: false),
+    CanPostponeCase(mode: .paused, hasUsedPostpone: false, canPostpone: false),
+    CanPostponeCase(mode: .resting, hasUsedPostpone: false, canPostpone: true),
+    CanPostponeCase(mode: .resting, hasUsedPostpone: true, canPostpone: false),
+    CanPostponeCase(mode: .postponedWork, hasUsedPostpone: false, canPostpone: false),
+    CanPostponeCase(mode: .awaitingReturn, hasUsedPostpone: false, canPostpone: false)
+]
+
 @Suite("TimerState postpone behaviors", .tags(.timerState), .timeLimit(.minutes(1)))
 struct TimerStatePostponeTests {
     private let postponeDurationSecs = 1.5
 
-    @Test("canPostpone returns true when resting and not used this cycle")
+    @Test("canPostpone is available only while resting and unused", arguments: canPostponeCases)
     @MainActor
-    func canPostponeTrueWhenRestingAndNotUsed() async {
+    func canPostponeReflectsModeAndUsage(_ testCase: CanPostponeCase) {
         let environment = TestEnvironment()
         let state = environment.makeTimerState(
             overlayManager: OverlaySpy(),
             postponeDurationSecs: postponeDurationSecs
         )
-        state.workDurationSecs = 1
-        state.restDurationSecs = 10
 
-        state.start()
-        await environment.advanceTime()
+        state.mode = testCase.mode
+        state.hasPostponeBeenUsedThisCycle = testCase.hasUsedPostpone
 
-        #expect(state.isResting, "The test setup should enter rest before checking postpone availability.")
-        #expect(state.hasPostponeBeenUsedThisCycle == false, "A fresh rest cycle should not have used postpone.")
-        #expect(state.canPostpone, "Postpone should be available during a fresh rest.")
-    }
-
-    @Test("canPostpone returns false when not resting")
-    @MainActor
-    func canPostponeFalseWhenNotResting() async {
-        let environment = TestEnvironment()
-        let state = environment.makeTimerState(
-            overlayManager: OverlaySpy(),
-            postponeDurationSecs: postponeDurationSecs
+        #expect(
+            state.canPostpone == testCase.canPostpone,
+            """
+            Mode \(String(describing: testCase.mode)) with postpone \
+            \(testCase.hasUsedPostpone ? "used" : "unused") should \
+            \(testCase.canPostpone ? "" : "not ")allow postpone.
+            """
         )
-        state.workDurationSecs = 1
-        state.restDurationSecs = 10
-
-        state.start()
-        #expect(state.isResting == false, "A newly started timer should still be working before rest begins.")
-        #expect(state.canPostpone == false, "Postpone should not be available during work.")
-
-        await environment.advanceUntil(maxTicks: 2) { state.isResting }
-        #expect(state.isResting, "The test setup should reach rest before postponing.")
-
-        state.postpone()
-        #expect(state.isResting == false, "Postponing should leave rest for postponed work.")
-        #expect(state.canPostpone == false, "Postpone should not remain available in postponed work.")
-    }
-
-    @Test("canPostpone returns false when already used this cycle")
-    @MainActor
-    func canPostponeFalseWhenAlreadyUsed() async {
-        let environment = TestEnvironment()
-        let state = environment.makeTimerState(
-            overlayManager: OverlaySpy(),
-            postponeDurationSecs: postponeDurationSecs
-        )
-        state.workDurationSecs = 1
-        state.restDurationSecs = 10
-
-        state.start()
-        await environment.advanceTime()
-        #expect(state.canPostpone, "Postpone should be available before it is used.")
-
-        state.postpone()
-        #expect(state.hasPostponeBeenUsedThisCycle, "Using postpone should mark the current cycle.")
-        #expect(state.canPostpone == false, "Postpone should only be allowed once per cycle.")
-
-        await environment.advanceTime(ticks: 2)
-
-        #expect(state.isResting, "Postponed work expiry should return to rest.")
-        #expect(state.canPostpone == false, "Postpone should stay unavailable until the next cycle.")
     }
 
     @Test("postpone() transitions state correctly and dismisses overlays")
@@ -231,30 +204,6 @@ struct TimerStatePostponeTests {
         #expect(state.isResting == false, "stop() should clear the resting state during postponed work.")
         #expect(state.hasPostponeBeenUsedThisCycle == false, "Stop should clear the postpone flag.")
         #expect(state.timeRemaining == 0, "stop() should clear time remaining during postponed work.")
-    }
-
-    @Test("early postpone preserves rest time")
-    @MainActor
-    func earlyPostponePreservesRestTime() async {
-        let environment = TestEnvironment()
-        let state = environment.makeTimerState(
-            overlayManager: OverlaySpy(),
-            postponeDurationSecs: postponeDurationSecs
-        )
-        state.workDurationSecs = 1
-        state.restDurationSecs = 10
-
-        state.start()
-        await environment.advanceTime()
-
-        let restTimeWhenPostponed = state.timeRemaining
-        #expect(restTimeWhenPostponed == 10, "Early postpone should save the full rest duration.")
-
-        state.postpone()
-        await environment.advanceTime(ticks: 2)
-
-        #expect(state.isResting, "Postpone should expire back into rest.")
-        #expect(state.timeRemaining == restTimeWhenPostponed, "Saved rest time should be preserved.")
     }
 
     @Test("postpone after some rest has elapsed keeps the saved remainder")
