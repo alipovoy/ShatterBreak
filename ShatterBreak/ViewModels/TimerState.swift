@@ -108,13 +108,13 @@ final class TimerState {
         overlayManager: any OverlayManaging,
         postponeDurationSecs: Double = 60,
         defaults: UserDefaults = .standard,
-        tickSource: (any TimerTickSource)? = nil,
+        scheduler: (any CountdownScheduler)? = nil,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         self.overlayManager = overlayManager
         self.postponeDurationSecs = postponeDurationSecs
         self.defaults = defaults
-        self.countdown = Countdown(tickSource: tickSource ?? SystemTimerTickSource())
+        self.countdown = Countdown(scheduler: scheduler ?? SystemCountdownScheduler())
         self.sleepWakeObserver = SleepWakeObserver(notificationCenter: workspaceNotificationCenter)
         self.workDurationSecs = Self.loadDuration(
             forKey: PreferenceKeys.workDurationSecs, defaultValue: 1500, defaults: defaults)
@@ -125,14 +125,14 @@ final class TimerState {
     convenience init(
         postponeDurationSecs: Double = 60,
         defaults: UserDefaults = .standard,
-        tickSource: (any TimerTickSource)? = nil,
+        scheduler: (any CountdownScheduler)? = nil,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         self.init(
             overlayManager: OverlayManager(defaults: defaults),
             postponeDurationSecs: postponeDurationSecs,
             defaults: defaults,
-            tickSource: tickSource,
+            scheduler: scheduler,
             workspaceNotificationCenter: workspaceNotificationCenter
         )
     }
@@ -333,16 +333,3 @@ final class TimerState {
         return "\(minutesStr):\(secondsStr)"
     }
 }
-
-#if DEBUG
-extension TimerState {
-    /// Test-only seed for the remaining time. Replaces the former writable
-    /// `timeRemaining` setter so the production observable surface no longer exposes
-    /// a side-effecting setter that reseeds the deadline and restarts monitoring.
-    func seedTimeRemaining(_ seconds: TimeInterval) {
-        countdown.seed(remaining: seconds) { [weak self] in
-            self?.handleCountdownExpiryIfNeeded()
-        }
-    }
-}
-#endif
