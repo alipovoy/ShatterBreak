@@ -43,8 +43,11 @@ struct OverlayView: View {
                             Text(.postpone)
                         }
                         .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.capsule)
                         .controlSize(.extraLarge)
+                        // The overlay is a borderless, non-key window, so the prominent
+                        // style renders its fill in AppKit's inactive grey. Drawing the
+                        // capsule explicitly keeps the accent color regardless of key state.
+                        .background(Color.accentColor, in: Capsule())
                     }
 
                     if state.awaitingReturn {
@@ -54,8 +57,11 @@ struct OverlayView: View {
                             Text(.imBack)
                         }
                         .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.capsule)
                         .controlSize(.extraLarge)
+                        // The overlay is a borderless, non-key window, so the prominent
+                        // style renders its fill in AppKit's inactive grey. Drawing the
+                        // capsule explicitly keeps the accent color regardless of key state.
+                        .background(Color.accentColor, in: Capsule())
                     }
                 }
             }
