@@ -15,9 +15,30 @@ class OverlayManager: OverlayManaging {
     private var captureTask: Task<Void, Never>?
     private var activeSessionID = UUID()
 
-    private var selectedEffectType: EffectType {
-        UserDefaults.standard.string(forKey: PreferenceKeys.effectType)
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    /// The effect to present, derived from the user's preference. Defaults to
+    /// `.shatter` when the stored value is missing or unrecognized.
+    var selectedEffectType: EffectType {
+        defaults.string(forKey: PreferenceKeys.effectType)
             .flatMap(EffectType.init(rawValue:)) ?? .shatter
+    }
+
+    /// Whether overlays use the softer, below-menu-bar window level. Defaults to
+    /// `true` when the preference has never been set.
+    var prefersSoftOverlay: Bool {
+        defaults.object(forKey: PreferenceKeys.softOverlay) as? Bool ?? true
+    }
+
+    /// The window level overlays are presented at, derived from ``prefersSoftOverlay``.
+    var overlayWindowLevel: NSWindow.Level {
+        prefersSoftOverlay
+            ? NSWindow.Level(Int(NSWindow.Level.mainMenu.rawValue) - 1)
+            : .screenSaver
     }
 
     func showOverlays(state: TimerState) {
@@ -103,13 +124,7 @@ class OverlayManager: OverlayManaging {
             .canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary
         ]
 
-        let softOverlay =
-            UserDefaults.standard.object(forKey: PreferenceKeys.softOverlay) as? Bool ?? true
-        if softOverlay {
-            window.level = NSWindow.Level(Int(NSWindow.Level.mainMenu.rawValue) - 1)
-        } else {
-            window.level = .screenSaver
-        }
+        window.level = overlayWindowLevel
 
         window.isOpaque = false
         window.backgroundColor = .clear

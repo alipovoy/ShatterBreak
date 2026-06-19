@@ -126,7 +126,7 @@ final class TimerState {
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         self.init(
-            overlayManager: OverlayManager(),
+            overlayManager: OverlayManager(defaults: defaults),
             postponeDurationSecs: postponeDurationSecs,
             defaults: defaults,
             tickSource: tickSource,
