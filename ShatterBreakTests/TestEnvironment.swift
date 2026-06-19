@@ -7,7 +7,7 @@ final class TestEnvironment {
     let defaults: UserDefaults
     let workspaceNotificationCenter = NotificationCenter()
     let appNotificationCenter = NotificationCenter()
-    private var cachedTickSource: ManualTimerTickSource?
+    private var cachedScheduler: ManualCountdownScheduler?
 
     init() {
         guard let defaults = UserDefaults(suiteName: suiteName) else {
@@ -23,14 +23,14 @@ final class TestEnvironment {
     }
 
     @MainActor
-    private var tickSource: ManualTimerTickSource {
-        if let cachedTickSource {
-            return cachedTickSource
+    private var scheduler: ManualCountdownScheduler {
+        if let cachedScheduler {
+            return cachedScheduler
         }
 
-        let tickSource = ManualTimerTickSource()
-        cachedTickSource = tickSource
-        return tickSource
+        let scheduler = ManualCountdownScheduler()
+        cachedScheduler = scheduler
+        return scheduler
     }
 
     @MainActor
@@ -42,7 +42,7 @@ final class TestEnvironment {
             overlayManager: overlayManager,
             postponeDurationSecs: postponeDurationSecs,
             defaults: defaults,
-            tickSource: tickSource,
+            scheduler: scheduler,
             workspaceNotificationCenter: workspaceNotificationCenter
         )
     }
@@ -57,13 +57,13 @@ final class TestEnvironment {
     @MainActor
     func advanceTime(by interval: TimeInterval = 1, ticks: Int = 1) async {
         for _ in 0..<ticks {
-            tickSource.advance(by: interval)
+            scheduler.advance(by: interval)
         }
     }
 
     @MainActor
     func elapseTimeWithoutTick(by interval: TimeInterval) {
-        tickSource.elapse(by: interval)
+        scheduler.elapse(by: interval)
     }
 
     @MainActor
