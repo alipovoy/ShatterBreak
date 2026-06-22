@@ -1,402 +1,450 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "allowPostponeToggle" : {
-      "comment" : "Preferences toggle to allow the user to postpone a break.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow Postpone"
+  "sourceLanguage": "en",
+  "strings": {
+    "about": {
+      "comment": "Button that opens the About window; also the window title.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About"
           }
         }
       }
     },
-    "close" : {
-      "comment" : "Button that closes the Preferences window.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close"
+    "aboutBuildLabel": {
+      "comment": "Label for the build number in the About window.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Build"
           }
         }
       }
     },
-    "effectOverlay" : {
-      "comment" : "Display name for the overlay break effect.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Overlay"
+    "aboutCommitLabel": {
+      "comment": "Label for the git commit hash in the About window.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commit"
           }
         }
       }
     },
-    "effectShatter" : {
-      "comment" : "Display name for the shatter break effect.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shatter"
+    "aboutVersionLabel": {
+      "comment": "Label for the app version in the About window.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
           }
         }
       }
     },
-    "effectTypePicker" : {
-      "comment" : "Preferences picker label for choosing the break effect.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Effect Type"
+    "allowPostponeToggle": {
+      "comment": "Preferences toggle to allow the user to postpone a break.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow Postpone"
           }
         }
       }
     },
-    "generalSettings" : {
-      "comment" : "Preferences section header for general settings.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "General Settings"
+    "close": {
+      "comment": "Button that closes the Preferences window.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
           }
         }
       }
     },
-    "imBack" : {
-      "comment" : "Overlay button the user taps to indicate they have returned from a break.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I'm back"
+    "effectOverlay": {
+      "comment": "Display name for the overlay break effect.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overlay"
           }
         }
       }
     },
-    "later" : {
-      "comment" : "Alert button that dismisses the permission prompt without taking action.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Later"
+    "effectShatter": {
+      "comment": "Display name for the shatter break effect.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shatter"
           }
         }
       }
     },
-    "openSystemSettings" : {
-      "comment" : "Alert button that opens System Settings to grant permission.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open System Settings"
+    "effectTypePicker": {
+      "comment": "Preferences picker label for choosing the break effect.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effect Type"
           }
         }
       }
     },
-    "openSystemSettingsToGrant" : {
-      "comment" : "Link in the permission warning that opens System Settings to grant permission.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open System Settings to grant permission"
+    "generalSettings": {
+      "comment": "Preferences section header for general settings.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "General Settings"
           }
         }
       }
     },
-    "pause" : {
-      "comment" : "Menu button that pauses the running work timer.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pause"
+    "imBack": {
+      "comment": "Overlay button the user taps to indicate they have returned from a break.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I'm back"
           }
         }
       }
     },
-    "permissionAlertMessage" : {
-      "comment" : "Body of the alert explaining how to grant Screen Recording permission.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shatter requires Screen Recording permission. Enable it in System Settings → Privacy & Security → Screen & System Audio Recording."
+    "later": {
+      "comment": "Alert button that dismisses the permission prompt without taking action.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Later"
           }
         }
       }
     },
-    "permissionAlertTitle" : {
-      "comment" : "Title of the alert prompting the user to grant Screen Recording permission.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Screen Recording Permission Required"
+    "openSystemSettings": {
+      "comment": "Alert button that opens System Settings to grant permission.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings"
           }
         }
       }
     },
-    "permissionWarningText" : {
-      "comment" : "Inline warning shown when Screen Recording permission is missing.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shatter requires Screen Recording permission."
+    "openSystemSettingsToGrant": {
+      "comment": "Link in the permission warning that opens System Settings to grant permission.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings to grant permission"
           }
         }
       }
     },
-    "postpone" : {
-      "comment" : "Overlay button that postpones the current break.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Postpone"
+    "pause": {
+      "comment": "Menu button that pauses the running work timer.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
           }
         }
       }
     },
-    "preferences" : {
-      "comment" : "Title of the Preferences window and the menu button that opens it.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preferences"
+    "permissionAlertMessage": {
+      "comment": "Body of the alert explaining how to grant Screen Recording permission.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shatter requires Screen Recording permission. Enable it in System Settings → Privacy & Security → Screen & System Audio Recording."
           }
         }
       }
     },
-    "playSoundToggle" : {
-      "comment" : "Preferences toggle that enables a sound when a break starts.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Play Sound"
+    "permissionAlertTitle": {
+      "comment": "Title of the alert prompting the user to grant Screen Recording permission.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Recording Permission Required"
           }
         }
       }
     },
-    "quit" : {
-      "comment" : "Menu button that quits the app.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quit"
+    "permissionWarningText": {
+      "comment": "Inline warning shown when Screen Recording permission is missing.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shatter requires Screen Recording permission."
           }
         }
       }
     },
-    "ready" : {
-      "comment" : "Idle state shown in the menu when no timer is running.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ready"
+    "playSoundToggle": {
+      "comment": "Preferences toggle that enables a sound when a break starts.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play Sound"
           }
         }
       }
     },
-    "restDuration" : {
-      "comment" : "Label for the rest duration slider.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rest Duration"
+    "postpone": {
+      "comment": "Overlay button that postpones the current break.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Postpone"
           }
         }
       }
     },
-    "resume" : {
-      "comment" : "Menu button that resumes a paused timer.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Resume"
+    "preferences": {
+      "comment": "Title of the Preferences window and the menu button that opens it.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preferences"
           }
         }
       }
     },
-    "showTimerInMenuBarHelp" : {
-      "comment" : "Help text describing the show-timer-in-menu-bar toggle.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "When enabled, the remaining time will be shown next to the app icon in the menu bar."
+    "quit": {
+      "comment": "Menu button that quits the app.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit"
           }
         }
       }
     },
-    "showTimerInMenuBarToggle" : {
-      "comment" : "Preferences toggle that shows the remaining time in the menu bar.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show timer in menu bar"
+    "ready": {
+      "comment": "Idle state shown in the menu when no timer is running.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready"
           }
         }
       }
     },
-    "skipRest" : {
-      "comment" : "Menu button that skips the current rest period.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skip Rest"
+    "restDuration": {
+      "comment": "Label for the rest duration slider.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rest Duration"
           }
         }
       }
     },
-    "softOverlayToggle" : {
-      "comment" : "Preferences toggle that uses a soft overlay allowing menu bar access.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Soft Overlay (allows menu bar access)"
+    "resume": {
+      "comment": "Menu button that resumes a paused timer.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume"
           }
         }
       }
     },
-    "startFocus" : {
-      "comment" : "Menu button that starts a focus session.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start Focus"
+    "showTimerInMenuBarHelp": {
+      "comment": "Help text describing the show-timer-in-menu-bar toggle.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When enabled, the remaining time will be shown next to the app icon in the menu bar."
           }
         }
       }
     },
-    "startWorkAfterBreakEnds" : {
-      "comment" : "Preferences picker label for choosing when work resumes after a break.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start work after break ends"
+    "showTimerInMenuBarToggle": {
+      "comment": "Preferences toggle that shows the remaining time in the menu bar.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show timer in menu bar"
           }
         }
       }
     },
-    "stop" : {
-      "comment" : "Menu button that stops the running timer.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stop"
+    "skipRest": {
+      "comment": "Menu button that skips the current rest period.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skip Rest"
           }
         }
       }
     },
-    "timeToRest" : {
-      "comment" : "Headline shown on the break overlay.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Time to rest"
+    "softOverlayToggle": {
+      "comment": "Preferences toggle that uses a soft overlay allowing menu bar access.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soft Overlay (allows menu bar access)"
           }
         }
       }
     },
-    "workDuration" : {
-      "comment" : "Label for the work duration slider.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Work Duration"
+    "startFocus": {
+      "comment": "Menu button that starts a focus session.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start Focus"
           }
         }
       }
     },
-    "workStartModeAutomatic" : {
-      "comment" : "Display name for resuming work automatically after a break.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatic"
+    "startWorkAfterBreakEnds": {
+      "comment": "Preferences picker label for choosing when work resumes after a break.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start work after break ends"
           }
         }
       }
     },
-    "workStartModeHelp" : {
-      "comment" : "Help text describing the start-work-after-break picker.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose whether the work timer should automatically start when your rest finishes or wait until you press a button."
+    "stop": {
+      "comment": "Menu button that stops the running timer.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop"
           }
         }
       }
     },
-    "workStartModeManual" : {
-      "comment" : "Display name for resuming work manually after a break.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manual"
+    "timeToRest": {
+      "comment": "Headline shown on the break overlay.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time to rest"
+          }
+        }
+      }
+    },
+    "workDuration": {
+      "comment": "Label for the work duration slider.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Work Duration"
+          }
+        }
+      }
+    },
+    "workStartModeAutomatic": {
+      "comment": "Display name for resuming work automatically after a break.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic"
+          }
+        }
+      }
+    },
+    "workStartModeHelp": {
+      "comment": "Help text describing the start-work-after-break picker.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose whether the work timer should automatically start when your rest finishes or wait until you press a button."
+          }
+        }
+      }
+    },
+    "workStartModeManual": {
+      "comment": "Display name for resuming work manually after a break.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manual"
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

@@ -30,6 +30,11 @@ struct ShatterBreakApp: App {
                 .task { permissions.requestIfFirstLaunch() }
         }
         .windowResizability(.contentSize)
+
+        Window(.about, id: "about") {
+            AboutView()
+        }
+        .windowResizability(.contentSize)
     }
 }
 
