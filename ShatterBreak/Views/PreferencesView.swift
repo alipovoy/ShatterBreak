@@ -13,9 +13,7 @@ struct PreferencesView: View {
 
     @State private var showPermissionAlert = false
 
-    private var buildHash: String {
-        (Bundle.main.infoDictionary?["AppBuildHash"] as? String) ?? "dev"
-    }
+    private let buildHash = AppInfo.current.commitHash
 
     var body: some View {
         VStack {

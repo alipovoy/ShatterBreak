@@ -84,12 +84,23 @@ struct MenuView: View {
         }
         .padding()
         .frame(width: 320)
+        .overlay(alignment: .topTrailing) {
+            Button(.about, systemImage: "info.circle", action: openAbout)
+                .labelStyle(.iconOnly)
+                .buttonStyle(IconButtonStyle())
+                .padding(.all)
+        }
         .background(MenuWindowVisibilityObserver(isVisible: $isWindowVisible))
     }
 
     private func openPreferences() {
         NSApp.activate(ignoringOtherApps: true)
         openWindow(id: "preferences")
+    }
+
+    private func openAbout() {
+        NSApp.activate(ignoringOtherApps: true)
+        openWindow(id: "about")
     }
 }
 
