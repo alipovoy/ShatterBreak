@@ -20,7 +20,7 @@ extension OverlayPresenter {
     /// A presenter backed by a freshly created `OverlayManager`, retained for the
     /// presenter's lifetime by the captured closures.
     @MainActor
-    static func live(defaults: UserDefaults = .standard) -> OverlayPresenter {
+    static func live(defaults: any KeyValueStore = UserDefaults.standard) -> OverlayPresenter {
         let manager = OverlayManager(defaults: defaults)
         return OverlayPresenter(
             show: { manager.showOverlays(state: $0) },

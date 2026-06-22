@@ -14,12 +14,12 @@ final class ScreenCapturePermissionManager {
 
     private static let launchKey = "com.shatterbreak.hasLaunchedBefore"
     private var appActiveObserver: AppActiveObserver?
-    private let defaults: UserDefaults
+    private let defaults: any KeyValueStore
     private let appNotificationCenter: NotificationCenter
     private let permissionClient: ScreenCapturePermissionClient
 
     init(
-        defaults: UserDefaults = .standard,
+        defaults: any KeyValueStore = UserDefaults.standard,
         appNotificationCenter: NotificationCenter = .default,
         permissionClient: ScreenCapturePermissionClient = .live
     ) {

@@ -8,11 +8,11 @@ final class OverlayManager {
     private var captureTask: Task<Void, Never>?
     private var activeSessionID = UUID()
 
-    private let defaults: UserDefaults
+    private let defaults: any KeyValueStore
     private let captureClient: ScreenCaptureClient
 
     init(
-        defaults: UserDefaults = .standard,
+        defaults: any KeyValueStore = UserDefaults.standard,
         captureClient: ScreenCaptureClient = .live
     ) {
         self.defaults = defaults

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <!--
+      The dev build stays sandboxed, identical to release, except for the shared-
+      preference exception below. `xcodebuild test` exec's the test host directly
+      rather than through LaunchServices, so the process runs without a sandbox
+      container and AppKit's reads of the app's own UserDefaults domain fault
+      ("accessing preferences outside an application's container requires ...").
+      This exception grants that out-of-container read/write for the dev domain
+      only. When the dev app is launched normally it has a container and never
+      exercises the exception, so runtime behavior matches release. Release
+      entitlements (ShatterBreak.entitlements) stay clean / App-Store-safe.
+    -->
+    <key>com.apple.security.temporary-exception.shared-preference.read-write</key>
+    <array>
+        <string>dev.lipovoy.shatterbreak.debug</string>
+    </array>
+</dict>
+</plist>

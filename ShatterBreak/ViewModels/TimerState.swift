@@ -95,7 +95,7 @@ final class TimerState {
     private let countdown: Countdown
     private let sleepWakeObserver: SleepWakeObserver
     private let overlays: OverlayPresenter
-    private let defaults: UserDefaults
+    private let defaults: any KeyValueStore
 
     private var autoStartWorkTimer: Bool {
         (defaults.string(forKey: PreferenceKeys.workStartMode)
@@ -107,7 +107,7 @@ final class TimerState {
     init(
         overlays: OverlayPresenter,
         postponeDurationSecs: Double = 60,
-        defaults: UserDefaults = .standard,
+        defaults: any KeyValueStore = UserDefaults.standard,
         scheduler: (any CountdownScheduler)? = nil,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
@@ -124,7 +124,7 @@ final class TimerState {
 
     convenience init(
         postponeDurationSecs: Double = 60,
-        defaults: UserDefaults = .standard,
+        defaults: any KeyValueStore = UserDefaults.standard,
         scheduler: (any CountdownScheduler)? = nil,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
@@ -145,7 +145,7 @@ final class TimerState {
     private static func loadDuration(
         forKey key: String,
         defaultValue: Double,
-        defaults: UserDefaults
+        defaults: any KeyValueStore
     ) -> Double {
         let value = defaults.double(forKey: key)
         return value > 0 ? value : defaultValue
