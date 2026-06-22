@@ -20,7 +20,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "build %@ (%@)"
+            "value": "Build %@ (%@)"
           }
         }
       }

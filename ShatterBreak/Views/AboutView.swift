@@ -18,19 +18,27 @@ struct AboutView: View {
                 .bold()
 
             Button(action: copyVersion) {
-                if didCopy {
-                    Text(.aboutCopied)
-                } else {
+                ZStack {
+                    // Both states stay laid out (toggled via opacity) so the window
+                    // keeps a constant size when the text swaps on copy.
                     VStack(spacing: 2) {
                         Text(.aboutVersion(info.version))
                         Text(.aboutBuild(info.build, info.commitHash))
                     }
+                    .opacity(didCopy ? 0 : 1)
+
+                    Text(.aboutCopied)
+                        .opacity(didCopy ? 1 : 0)
                 }
+                .foregroundStyle(.secondary)
             }
-            .buttonStyle(.link)
+            .buttonStyle(.borderless)
+            .pointerStyle(.link)
+            .focusable(false)
             .multilineTextAlignment(.center)
             .font(.callout)
             .help(Text(.aboutCopyHelp))
+            .animation(.easeInOut(duration: 0.15), value: didCopy)
 
             Button(.close) { dismiss() }
                 .keyboardShortcut(.defaultAction)
