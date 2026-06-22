@@ -99,7 +99,7 @@ final class TimerState {
 
     private var autoStartWorkTimer: Bool {
         (defaults.string(forKey: PreferenceKeys.workStartMode)
-            .flatMap { WorkStartMode(rawValue: $0) } ?? .automatic) == .automatic
+            .flatMap { WorkStartMode(rawValue: $0) } ?? PreferenceDefaults.workStartMode) == .automatic
     }
 
     // MARK: - Initialization
@@ -117,9 +117,13 @@ final class TimerState {
         self.countdown = Countdown(scheduler: scheduler ?? SystemCountdownScheduler())
         self.sleepWakeObserver = SleepWakeObserver(notificationCenter: workspaceNotificationCenter)
         self.workDurationSecs = Self.loadDuration(
-            forKey: PreferenceKeys.workDurationSecs, defaultValue: 1500, defaults: defaults)
+            forKey: PreferenceKeys.workDurationSecs,
+            defaultValue: PreferenceDefaults.workDurationSecs,
+            defaults: defaults)
         self.restDurationSecs = Self.loadDuration(
-            forKey: PreferenceKeys.restDurationSecs, defaultValue: 300, defaults: defaults)
+            forKey: PreferenceKeys.restDurationSecs,
+            defaultValue: PreferenceDefaults.restDurationSecs,
+            defaults: defaults)
     }
 
     convenience init(

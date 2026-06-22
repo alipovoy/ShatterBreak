@@ -6,7 +6,8 @@ struct ShatterBreakApp: App {
     // State is initialized on MainActor since App is @MainActor
     @State private var timerState = TimerState()
     @State private var permissions = ScreenCapturePermissionManager.shared
-    @AppStorage(PreferenceKeys.showTimerInMenuBar) private var showTimerInMenuBar: Bool = false
+    @AppStorage(PreferenceKeys.showTimerInMenuBar)
+    private var showTimerInMenuBar = PreferenceDefaults.showTimerInMenuBar
 
     var body: some Scene {
         MenuBarExtra {

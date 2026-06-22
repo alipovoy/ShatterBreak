@@ -9,8 +9,8 @@ struct OverlayView: View {
     @State private var hasPlayedSound = false
 
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
-    @AppStorage(PreferenceKeys.playSound) private var playSound: Bool = true
-    @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone: Bool = false
+    @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
+    @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone = PreferenceDefaults.allowPostpone
 
     private enum Shake {
         static let distance: CGFloat = 10
