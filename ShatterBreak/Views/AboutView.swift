@@ -43,6 +43,12 @@ struct AboutView: View {
         .padding()
         .frame(minWidth: 260)
         .fixedSize()
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(.about)
+                    .fontWeight(.semibold)
+            }
+        }
     }
 }
 
