@@ -5,6 +5,8 @@ struct AboutView: View {
     @Environment(\.dismiss) private var dismiss
 
     private let info = AppInfo.current
+    @State private var didCopy = false
+    @State private var resetTask: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 16) {
@@ -15,27 +17,20 @@ struct AboutView: View {
                 .font(.title2)
                 .bold()
 
-            VStack(spacing: 4) {
-                LabeledContent {
-                    Text(info.version)
-                } label: {
-                    Text(.aboutVersionLabel)
-                }
-                LabeledContent {
-                    Text(info.build)
-                } label: {
-                    Text(.aboutBuildLabel)
-                }
-                LabeledContent {
-                    Text(info.commitHash)
-                        .monospaced()
-                } label: {
-                    Text(.aboutCommitLabel)
+            Button(action: copyVersion) {
+                if didCopy {
+                    Text(.aboutCopied)
+                } else {
+                    VStack(spacing: 2) {
+                        Text(.aboutVersion(info.version))
+                        Text(.aboutBuild(info.build, info.commitHash))
+                    }
                 }
             }
+            .buttonStyle(.link)
+            .multilineTextAlignment(.center)
             .font(.callout)
-            .foregroundStyle(.secondary)
-            .labeledContentStyle(.about)
+            .help(Text(.aboutCopyHelp))
 
             Button(.close) { dismiss() }
                 .keyboardShortcut(.defaultAction)
@@ -43,11 +38,22 @@ struct AboutView: View {
         .padding()
         .frame(minWidth: 260)
         .fixedSize()
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text(.about)
-                    .fontWeight(.semibold)
-            }
+    }
+
+    /// Copies a single-line version summary to the clipboard and briefly swaps the
+    /// link text to a confirmation, reverting after a short delay.
+    private func copyVersion() {
+        let summary = "\(info.name) \(info.version) (\(info.commitHash))"
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(summary, forType: .string)
+
+        didCopy = true
+        // Restart the timer on repeated clicks so the confirmation always lingers.
+        resetTask?.cancel()
+        resetTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
+            didCopy = false
         }
     }
 }
@@ -69,22 +75,6 @@ private struct AppIconView: View {
                 .foregroundStyle(.secondary)
         }
     }
-}
-
-/// Lays out each metadata row with the label and value side by side and the
-/// value trailing-aligned, keeping the small list visually tidy.
-private struct AboutLabeledContentStyle: LabeledContentStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack {
-            configuration.label
-            Spacer(minLength: 12)
-            configuration.content
-        }
-    }
-}
-
-private extension LabeledContentStyle where Self == AboutLabeledContentStyle {
-    static var about: AboutLabeledContentStyle { AboutLabeledContentStyle() }
 }
 
 #Preview {

@@ -13,38 +13,50 @@
         }
       }
     },
-    "aboutBuildLabel": {
-      "comment": "Label for the build number in the About window.",
+    "aboutBuild": {
+      "comment": "Build line in the About window. First %@ is the build number, second is the git commit hash.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Build"
+            "value": "build %@ (%@)"
           }
         }
       }
     },
-    "aboutCommitLabel": {
-      "comment": "Label for the git commit hash in the About window.",
+    "aboutCopied": {
+      "comment": "Shown after the version link is clicked and the version summary is copied to the clipboard.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Commit"
+            "value": "Copied version to clipboard"
           }
         }
       }
     },
-    "aboutVersionLabel": {
-      "comment": "Label for the app version in the About window.",
+    "aboutCopyHelp": {
+      "comment": "Tooltip on the version link explaining that clicking copies the version to the clipboard.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Version"
+            "value": "Click to copy version info"
+          }
+        }
+      }
+    },
+    "aboutVersion": {
+      "comment": "Version line in the About window. %@ is the version string.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@"
           }
         }
       }

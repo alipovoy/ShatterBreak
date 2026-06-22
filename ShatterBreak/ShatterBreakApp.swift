@@ -31,9 +31,7 @@ struct ShatterBreakApp: App {
         }
         .windowResizability(.contentSize)
 
-        // Title is rendered centered via a principal toolbar item in AboutView,
-        // so the window's own (left-aligned) title is left empty to avoid duplication.
-        Window("", id: "about") {
+        Window(.about, id: "about") {
             AboutView()
         }
         .windowResizability(.contentSize)

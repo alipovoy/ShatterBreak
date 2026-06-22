@@ -88,7 +88,7 @@ struct MenuView: View {
             Button(.about, systemImage: "info.circle", action: openAbout)
                 .labelStyle(.iconOnly)
                 .buttonStyle(IconButtonStyle())
-                .padding(.trailing)
+                .padding(.all)
         }
         .background(MenuWindowVisibilityObserver(isVisible: $isWindowVisible))
     }
