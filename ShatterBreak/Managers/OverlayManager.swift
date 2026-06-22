@@ -23,13 +23,13 @@ final class OverlayManager {
     /// `.shatter` when the stored value is missing or unrecognized.
     var selectedEffectType: EffectType {
         defaults.string(forKey: PreferenceKeys.effectType)
-            .flatMap(EffectType.init(rawValue:)) ?? .shatter
+            .flatMap(EffectType.init(rawValue:)) ?? PreferenceDefaults.effectType
     }
 
     /// Whether overlays use the softer, below-menu-bar window level. Defaults to
     /// `true` when the preference has never been set.
     var prefersSoftOverlay: Bool {
-        defaults.object(forKey: PreferenceKeys.softOverlay) as? Bool ?? true
+        defaults.object(forKey: PreferenceKeys.softOverlay) as? Bool ?? PreferenceDefaults.softOverlay
     }
 
     /// The window level overlays are presented at, derived from ``prefersSoftOverlay``.

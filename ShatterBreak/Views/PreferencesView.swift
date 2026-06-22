@@ -4,12 +4,13 @@ struct PreferencesView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.permissions) private var permissions
 
-    @AppStorage(PreferenceKeys.playSound) private var playSound: Bool = true
-    @AppStorage(PreferenceKeys.effectType) private var effectType: EffectType = .shatter
-    @AppStorage(PreferenceKeys.softOverlay) private var softOverlay: Bool = true
-    @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone: Bool = false
-    @AppStorage(PreferenceKeys.showTimerInMenuBar) private var showTimerInMenuBar: Bool = false
-    @AppStorage(PreferenceKeys.workStartMode) private var workStartMode: WorkStartMode = .automatic
+    @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
+    @AppStorage(PreferenceKeys.effectType) private var effectType = PreferenceDefaults.effectType
+    @AppStorage(PreferenceKeys.softOverlay) private var softOverlay = PreferenceDefaults.softOverlay
+    @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone = PreferenceDefaults.allowPostpone
+    @AppStorage(PreferenceKeys.showTimerInMenuBar)
+    private var showTimerInMenuBar = PreferenceDefaults.showTimerInMenuBar
+    @AppStorage(PreferenceKeys.workStartMode) private var workStartMode = PreferenceDefaults.workStartMode
 
     @State private var showPermissionAlert = false
 
