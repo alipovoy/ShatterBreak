@@ -35,8 +35,6 @@ targets:
       base:
         PRODUCT_MODULE_NAME: ShatterBreak
         ENABLE_HARDENED_RUNTIME: YES
-        ENABLE_APP_SANDBOX: YES
-        CODE_SIGN_ENTITLEMENTS: ShatterBreak/ShatterBreak.entitlements
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
         INFOPLIST_KEY_LSUIElement: YES
@@ -44,14 +42,21 @@ targets:
       configs:
         Debug:
           PRODUCT_NAME: ShatterBreak Dev
-          PRODUCT_BUNDLE_IDENTIFIER: dev.lipovoy.shatterbreak.dev
+          PRODUCT_BUNDLE_IDENTIFIER: dev.lipovoy.shatterbreak.debug
           INFOPLIST_KEY_CFBundleName: ShatterBreak Dev
           INFOPLIST_KEY_CFBundleDisplayName: ShatterBreak Dev
+          # Dev stays sandboxed and identical to release; ShatterBreakDebug.entitlements
+          # adds only a dev-domain shared-preference exception so the container-less
+          # `xcodebuild test` host stops faulting on its own UserDefaults domain.
+          ENABLE_APP_SANDBOX: YES
+          CODE_SIGN_ENTITLEMENTS: ShatterBreak/ShatterBreakDebug.entitlements
         Release:
           PRODUCT_NAME: ShatterBreak
           PRODUCT_BUNDLE_IDENTIFIER: dev.lipovoy.shatterbreak
           INFOPLIST_KEY_CFBundleName: ShatterBreak
           INFOPLIST_KEY_CFBundleDisplayName: ShatterBreak
+          ENABLE_APP_SANDBOX: YES
+          CODE_SIGN_ENTITLEMENTS: ShatterBreak/ShatterBreak.entitlements
 
     postBuildScripts:
       - name: Inject Build Hash

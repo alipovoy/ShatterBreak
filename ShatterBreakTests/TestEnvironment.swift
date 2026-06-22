@@ -3,24 +3,10 @@ import Foundation
 @testable import ShatterBreak
 
 final class TestEnvironment {
-    let suiteName = "ShatterBreakTests.\(UUID().uuidString)"
-    let defaults: UserDefaults
+    let defaults: any KeyValueStore = InMemoryKeyValueStore()
     let workspaceNotificationCenter = NotificationCenter()
     let appNotificationCenter = NotificationCenter()
     private var cachedScheduler: ManualCountdownScheduler?
-
-    init() {
-        guard let defaults = UserDefaults(suiteName: suiteName) else {
-            fatalError("Failed to create isolated UserDefaults suite for tests.")
-        }
-
-        self.defaults = defaults
-        defaults.removePersistentDomain(forName: suiteName)
-    }
-
-    deinit {
-        defaults.removePersistentDomain(forName: suiteName)
-    }
 
     @MainActor
     private var scheduler: ManualCountdownScheduler {
