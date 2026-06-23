@@ -79,6 +79,15 @@ macOS marks unsigned app as quarantined, remove the quarantine attribute before 
 xattr -dr com.apple.quarantine ShatterBreak.app
 ```
 
+## Permissions that survive updates
+The `Shatter` effect needs Screen Recording permission, which macOS ties to the
+app's code-signing identity. Ad-hoc-signed builds (including CI artifacts) look
+like a new app on every update, so the grant must be re-added each time. Signing
+with a stable, reused self-signed certificate keeps the grant across updates.
+
+See [RELEASING.md](./RELEASING.md#signing-so-permissions-survive-updates) for the
+one-time certificate setup and how releases are signed.
+
 ## How to Use
 1. Launch the app and find the `ShatterBreak` icon in the macOS menu bar.
 2. Open the menu bar popover and set `Work Duration` and `Rest Duration`.

@@ -69,17 +69,6 @@ targets:
             "$TARGET_BUILD_DIR/$INFOPLIST_PATH"
         basedOnDependencyAnalysis: false
 
-    scheme:
-      testTargets:
-        - ShatterBreakTests
-      preActions:
-        - name: Compute Version
-          script: |
-            "${SRCROOT}/Scripts/compute-version.sh" \
-              --mode local-auto \
-              --write-xcconfig "${SRCROOT}/Config/Version.xcconfig"
-          settingsTarget: ShatterBreak
-
   ShatterBreakTests:
     type: bundle.unit-test
     platform: macOS
@@ -101,3 +90,33 @@ targets:
           TEST_HOST: $(BUILT_PRODUCTS_DIR)/ShatterBreak Dev.app/Contents/MacOS/ShatterBreak Dev
         Release:
           TEST_HOST: $(BUILT_PRODUCTS_DIR)/ShatterBreak.app/Contents/MacOS/ShatterBreak
+
+# Defined at the top level (not via the target `scheme:` shorthand) so the archive
+# action can carry a post-action — the shorthand only attaches actions to build.
+schemes:
+  ShatterBreak:
+    build:
+      targets:
+        ShatterBreak: all
+      preActions:
+        - name: Compute Version
+          script: |
+            "${SRCROOT}/Scripts/compute-version.sh" \
+              --mode local-auto \
+              --write-xcconfig "${SRCROOT}/Config/Version.xcconfig"
+          settingsTarget: ShatterBreak
+    test:
+      targets:
+        - ShatterBreakTests
+    archive:
+      config: Release
+      postActions:
+        # Re-sign the archived app with a stable, reusable identity so the macOS
+        # Screen Recording grant survives updates (issue #43). SIGN_OPTIONAL makes
+        # this a no-op when the cert is absent (e.g. CI, or before one-time setup),
+        # so archiving never fails. See Scripts/sign-release.sh and README.
+        - name: Sign with stable identity
+          script: |
+            SIGN_OPTIONAL=1 "${SRCROOT}/Scripts/sign-release.sh" \
+              "${ARCHIVE_PATH}/Products/Applications/${WRAPPER_NAME}"
+          settingsTarget: ShatterBreak

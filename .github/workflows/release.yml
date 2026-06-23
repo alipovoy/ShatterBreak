@@ -90,16 +90,17 @@ jobs:
             CURRENT_PROJECT_VERSION="$CURRENT_PROJECT_VERSION" \
           | xcbeautify
 
-      - name: Ad-hoc sign
+      - name: Sign app
+        # CI has no stable signing identity, so it ad-hoc signs (SIGN_IDENTITY=-).
+        # Ad-hoc DR is cdhash-based, so the Screen Recording grant does NOT survive
+        # updates (issue #43). To ship an update-stable build, sign locally with a
+        # reused self-signed identity instead — see Scripts/sign-release.sh and the
+        # "Permissions that survive updates" section in README.md. The same script
+        # drives both paths; switch by setting SIGN_IDENTITY to the cert name.
         run: |
-          APP_PATH="$ARCHIVE_PATH/Products/Applications/ShatterBreak.app"
-          codesign \
-            --force \
-            --deep \
-            --sign - \
-            --options runtime \
-            --entitlements ShatterBreak/ShatterBreak.entitlements \
-            "$APP_PATH"
+          SIGN_IDENTITY="-" \
+          ENTITLEMENTS="ShatterBreak/ShatterBreak.entitlements" \
+            Scripts/sign-release.sh "$ARCHIVE_PATH/Products/Applications/ShatterBreak.app"
 
       - name: Package app for release
         run: |
