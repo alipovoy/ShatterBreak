@@ -1,0 +1,78 @@
+name: PR Conventions
+
+# We version from Conventional Commits (see Scripts/compute-version.sh). The
+# string that lands on main depends on the merge method: squash-merge uses the
+# PR title, rebase-merge replays the commit subjects verbatim. So both must be
+# valid Conventional Commits for the version bump to be trustworthy — each is
+# checked in its own job below so either can be required independently.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  lint-title:
+    name: Conventional Commit title
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # <type>[optional (scope)][optional !]: <description>
+          pattern='^(feat|fix|perf|refactor|docs|style|test|build|ci|chore|revert)(\([a-z0-9 ._-]+\))?!?: .+'
+          if printf '%s' "$PR_TITLE" | grep -qE "$pattern"; then
+            echo "OK: $PR_TITLE"
+          else
+            echo "::error::PR title must follow Conventional Commits (used as the commit subject when squash-merging)."
+            echo "Got:      $PR_TITLE"
+            echo "Examples: 'feat: add break reminder', 'fix(timer): correct sleep handling', 'feat!: redesign overlay API'"
+            echo "Types:    feat fix perf refactor docs style test build ci chore revert"
+            exit 1
+          fi
+
+  lint-commits:
+    name: Conventional Commit messages
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Validate commit subjects
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # <type>[optional (scope)][optional !]: <description>
+          pattern='^(feat|fix|perf|refactor|docs|style|test|build|ci|chore|revert)(\([a-z0-9 ._-]+\))?!?: .+'
+          # Lint every non-merge commit in the PR. With rebase-merge these land on
+          # main verbatim and drive the bump, so each subject must be valid. Merge
+          # commits (>1 parent) are skipped — they aren't authored by you and
+          # rebase-merge flattens them. --jq runs per page so --paginate is safe;
+          # the while-loop reads from process substitution so counters persist.
+          failed=0
+          count=0
+          while IFS= read -r subject; do
+            count=$((count + 1))
+            if printf '%s' "$subject" | grep -qE "$pattern"; then
+              echo "OK:   $subject"
+            else
+              echo "::error::Commit subject must follow Conventional Commits (lands on main when rebase-merging): $subject"
+              failed=1
+            fi
+          done < <(
+            gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/commits" \
+              --jq '.[] | select((.parents | length) < 2) | .commit.message | split("\n")[0]'
+          )
+          if [[ "$count" -eq 0 ]]; then
+            echo "::error::Could not read any commits for PR #$PR_NUMBER."
+            exit 1
+          fi
+          if [[ "$failed" -ne 0 ]]; then
+            echo "Types: feat fix perf refactor docs style test build ci chore revert"
+            exit 1
+          fi

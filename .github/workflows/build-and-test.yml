@@ -32,12 +32,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          # Full history + tags so compute-version.sh can read the Conventional
+          # Commit subjects since the latest vX.Y.Z tag to derive the version.
+          fetch-depth: 0
 
       - name: Compute version
         run: |
           eval "$(Scripts/compute-version.sh --mode ci-test --export)"
           echo "MARKETING_VERSION=$MARKETING_VERSION" >> "$GITHUB_ENV"
           echo "CURRENT_PROJECT_VERSION=$CURRENT_PROJECT_VERSION" >> "$GITHUB_ENV"
+          # Propagate the hash so the Inject Build Hash post-build script writes a
+          # non-empty AppBuildHash — the marketing version no longer carries it.
+          echo "APP_BUILD_HASH=$APP_BUILD_HASH" >> "$GITHUB_ENV"
           echo "App version: $MARKETING_VERSION ($CURRENT_PROJECT_VERSION)"
 
       - name: Select Xcode
