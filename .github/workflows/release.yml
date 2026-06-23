@@ -122,10 +122,12 @@ jobs:
             RELEASE_FILES+=("$DSYM_ZIP")
           fi
 
-          # Create release if it doesn't exist yet; no-op if it does
+          # Create release if it doesn't exist yet; no-op if it does.
+          # --generate-notes builds the changelog from the PRs/commits merged
+          # since the previous tag (the history is Conventional-Commit clean).
           gh release create "$RELEASE_TAG" \
             --title "$RELEASE_TAG" \
-            --notes "Automated release artifacts for $RELEASE_TAG" 2>/dev/null || true
+            --generate-notes 2>/dev/null || true
 
           for file in "${RELEASE_FILES[@]}"; do
             gh release upload "$RELEASE_TAG" "$file" --clobber
