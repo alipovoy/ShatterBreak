@@ -37,6 +37,9 @@ set -euo pipefail
 #   SIGN_IDENTITY   codesign identity to use (default: "ShatterBreak Self-Signed").
 #                   Set to "-" to fall back to ad-hoc signing (NOT update-stable).
 #   ENTITLEMENTS    entitlements plist (default: ShatterBreak/ShatterBreak.entitlements)
+#   SIGN_OPTIONAL   when set (any value), a missing identity is a no-op (exit 0)
+#                   instead of an error. Used by the Xcode Archive post-action so a
+#                   machine without the cert (or CI) still archives cleanly.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRCROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -65,6 +68,12 @@ fi
 # and look fine — but reintroduce the exact bug this script exists to fix.
 if [[ "$SIGN_IDENTITY" != "-" ]]; then
   if ! security find-identity -v -p codesigning | grep -qF "$SIGN_IDENTITY"; then
+    if [[ -n "${SIGN_OPTIONAL:-}" ]]; then
+      echo "note: stable signing identity '$SIGN_IDENTITY' not found — skipping stable re-sign." >&2
+      echo "      The app keeps its existing signature; the Screen Recording grant will NOT" >&2
+      echo "      survive updates until it is signed with a stable identity (issue #43)." >&2
+      exit 0
+    fi
     echo "error: code-signing identity not found in keychain: $SIGN_IDENTITY" >&2
     echo "       create it once (see header of this script) or pass SIGN_IDENTITY=-" >&2
     echo "       to ad-hoc sign (which does NOT survive updates)." >&2

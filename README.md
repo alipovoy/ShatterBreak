@@ -99,15 +99,32 @@ Certificate…* create a certificate named `ShatterBreak Self-Signed`, with
 your login keychain and never delete or recreate it — that would change the DR and
 drop the grant. Back it up by exporting a password-protected `.p12`.
 
-**Sign a release locally** (do this before distributing the `.app`, since CI only
-ad-hoc signs):
+**Archiving in Xcode signs automatically.** The scheme's *Archive* action has a
+post-action that runs `Scripts/sign-release.sh` on the archived app, so *Product >
+Archive* re-signs it with the stable identity for you. If the cert isn't present
+(e.g. on CI, or before the one-time setup) the post-action is a no-op and the
+archive still succeeds. Two caveats:
+
+* Xcode ignores a post-action's exit status, so it is best-effort — verify with the
+  command below.
+* The Organizer's *Distribute App* re-signs and would replace the stable
+  signature, so take the `.app` straight from the `.xcarchive`
+  (*Products/Applications*) or use *Distribute App > Custom > Copy App*.
+
+**Or sign a build manually** (e.g. the CI release zip, which is only ad-hoc signed):
 
 ```bash
 Scripts/sign-release.sh path/to/ShatterBreak.app
 ```
 
 Override the identity with `SIGN_IDENTITY=…` if you named the cert differently;
-`SIGN_IDENTITY=-` falls back to ad-hoc signing (not update-stable).
+`SIGN_IDENTITY=-` falls back to ad-hoc signing (not update-stable). Confirm the
+result is leaf-anchored (not `cdhash`):
+
+```bash
+codesign -d --requirements - path/to/ShatterBreak.app
+# designated => identifier "dev.lipovoy.shatterbreak" and certificate leaf = H"…"
+```
 
 ## How to Use
 1. Launch the app and find the `ShatterBreak` icon in the macOS menu bar.
