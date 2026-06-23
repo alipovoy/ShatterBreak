@@ -34,7 +34,12 @@ struct DurationFormatTests {
         ManualInputCase(input: "9999h", initialValue: 1500, expectedValue: 7200, expectedDisplay: "2h 0m")
     ])
     func applyingAcceptedInputUpdatesAndNormalizes(_ testCase: ManualInputCase) {
-        let value = DurationFormat.applying(input: testCase.input, to: testCase.initialValue, min: 5, max: 7200)
+        let value = DurationFormat.applying(
+            input: testCase.input,
+            to: testCase.initialValue,
+            min: DurationBounds.minimumSecs,
+            max: DurationBounds.workMaximumSecs
+        )
 
         #expect(value == testCase.expectedValue, "Accepted input should update the backing duration.")
         #expect(
@@ -65,14 +70,24 @@ struct DurationFormatTests {
         InvalidManualInputCase(input: "1h-5m")
     ])
     func applyingRejectedInputPreservesPreviousValue(_ testCase: InvalidManualInputCase) {
-        let accepted = DurationFormat.applying(input: "25:07", to: 5, min: 5, max: 7200)
+        let accepted = DurationFormat.applying(
+            input: "25:07",
+            to: 5,
+            min: DurationBounds.minimumSecs,
+            max: DurationBounds.workMaximumSecs
+        )
         #expect(accepted == 1507, "The initial valid value should parse before invalid-input checks.")
         #expect(
             DurationFormat.friendly(accepted) == "25:07",
             "The initial valid display should normalize before invalid-input checks."
         )
 
-        let afterInvalid = DurationFormat.applying(input: testCase.input, to: accepted, min: 5, max: 7200)
+        let afterInvalid = DurationFormat.applying(
+            input: testCase.input,
+            to: accepted,
+            min: DurationBounds.minimumSecs,
+            max: DurationBounds.workMaximumSecs
+        )
         #expect(afterInvalid == 1507, "Invalid input should preserve the previous parsed value.")
         #expect(
             DurationFormat.friendly(afterInvalid) == "25:07",
@@ -101,7 +116,11 @@ struct DurationFormatTests {
     func snapsSliderMovementToExpectedStep(_ testCase: SliderSnapCase) {
         // Mirror the slider binding: a duration is mapped to a position and back before snapping.
         let rawFromSlider = PiecewiseTimer.seconds(from: PiecewiseTimer.position(from: testCase.rawSeconds))
-        let snapped = DurationFormat.snap(rawSeconds: rawFromSlider, min: 5, max: 7200)
+        let snapped = DurationFormat.snap(
+            rawSeconds: rawFromSlider,
+            min: DurationBounds.minimumSecs,
+            max: DurationBounds.workMaximumSecs
+        )
 
         #expect(snapped == testCase.expectedValue, "Slider movement should snap to the expected duration step.")
     }

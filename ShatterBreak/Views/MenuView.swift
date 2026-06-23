@@ -52,8 +52,8 @@ struct MenuView: View {
                     title: .workDuration,
                     systemImage: "briefcase.fill",
                     value: $state.workDurationSecs,
-                    min: 5,
-                    max: 7200,
+                    min: DurationBounds.minimumSecs,
+                    max: DurationBounds.workMaximumSecs,
                     disabled: !state.canEditDurations
                 )
 
@@ -61,8 +61,8 @@ struct MenuView: View {
                     title: .restDuration,
                     systemImage: "cup.and.saucer.fill",
                     value: $state.restDurationSecs,
-                    min: 5,
-                    max: 3600,
+                    min: DurationBounds.minimumSecs,
+                    max: DurationBounds.restMaximumSecs,
                     disabled: !state.canEditDurations
                 )
             }
