@@ -90,8 +90,8 @@ struct DurationSliderView: View {
         title: "Work Duration",
         systemImage: "timer",
         value: $value,
-        min: 5,
-        max: 7200,
+        min: DurationBounds.minimumSecs,
+        max: DurationBounds.workMaximumSecs,
         disabled: false
     )
 }

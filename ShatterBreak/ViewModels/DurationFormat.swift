@@ -46,26 +46,18 @@ enum DurationFormat {
 
     /// A reader-friendly duration: "1h 5m" above an hour, otherwise "MM:SS".
     static func friendly(_ seconds: Double) -> String {
-        let totalMinutes = Int(seconds) / 60
-        let remainingSeconds = Int(seconds) % 60
+        let wholeSeconds = Int(seconds)
+        guard wholeSeconds >= 3600 else { return clock(seconds) }
 
-        if totalMinutes >= 60 {
-            let hours = totalMinutes / 60
-            let mins = totalMinutes % 60
+        // Hours and minutes are always shown; seconds only when they are non-zero,
+        // so a round duration reads "2h 0m" rather than "2h 0m 0s".
+        let allowedUnits: Set<Duration.UnitsFormatStyle.Unit> = wholeSeconds % 60 == 0
+            ? [.hours, .minutes]
+            : [.hours, .minutes, .seconds]
 
-            var components = [
-                "\(hours.formatted(.number))h",
-                "\(mins.formatted(.number))m"
-            ]
-
-            if remainingSeconds > 0 {
-                components.append("\(remainingSeconds.formatted(.number))s")
-            }
-
-            return components.joined(separator: " ")
-        }
-
-        return "\(zeroPadded(totalMinutes)):\(zeroPadded(remainingSeconds))"
+        return Duration.seconds(wholeSeconds).formatted(
+            .units(allowed: allowedUnits, width: .narrow, zeroValueUnits: .show(length: 1))
+        )
     }
 
     /// An editable clock string ("MM:SS"); minutes are not capped at 59.
