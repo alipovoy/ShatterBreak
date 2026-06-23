@@ -29,11 +29,13 @@ struct ShatterBreakApp: App {
             PreferencesView()
                 .environment(\.permissions, permissions)
                 .task { permissions.requestIfFirstLaunch() }
+                .moveToActiveSpace()
         }
         .windowResizability(.contentSize)
 
         Window(.about, id: "about") {
             AboutView()
+                .moveToActiveSpace()
         }
         .windowResizability(.contentSize)
     }
