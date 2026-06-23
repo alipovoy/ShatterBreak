@@ -81,11 +81,17 @@ minor bump), and the bump is relative to the last tag — it does not stack acro
 intermediate builds. Releases stay **manual**: nothing is tagged or published
 until you decide to cut a release.
 
-Because we squash-merge, each PR's title becomes the commit subject that drives
-this, so **PR titles must be valid Conventional Commits** — enforced by the
-`PR Title` check (`.github/workflows/pr-title.yml`). For the title to carry
-through, enable *Settings → General → "Default to PR title for squash merge
-commits"* on the repository.
+The commit subject that lands on `main` is what drives this, and which string
+that is depends on the merge method:
+
+- **squash-merge** uses the **PR title** (enable *Settings → General → "Default
+  to PR title for squash merge commits"* so it carries through),
+- **rebase-merge** replays your **commit subjects** verbatim.
+
+So both the PR title and every commit subject must be valid Conventional
+Commits. The `PR Conventions` workflow (`.github/workflows/pr-conventions.yml`)
+enforces this with two checks — one for the title, one for the commits — so the
+bump is trustworthy whichever merge method you use.
 
 | Build context | Version format | Example |
 |---------------|----------------|---------|
