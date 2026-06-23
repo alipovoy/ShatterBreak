@@ -5,8 +5,13 @@ DEFAULT_SEMVER="1.0.0"
 MODE=""
 TAG=""
 BUMP=""
+PRE=""
 WRITE_XCCONFIG=""
 EXPORT=0
+
+# SemVer §9 pre-release identifier: one or more dot-separated identifiers, each a
+# non-empty run of ASCII alphanumerics and hyphens (e.g. rc.1, beta, alpha.2).
+PRERELEASE_RE='[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*'
 
 usage() {
   cat <<'EOF'
@@ -16,6 +21,7 @@ Modes:
   local-auto    Detect suffix from Xcode build context (dev/test/local)
   ci-test       CI PR/push: last-release semver with -test suffix
   ci-release    CI release: semver taken verbatim from the release tag
+                (accepts a SemVer pre-release tag, e.g. v1.3.0-rc.1)
   next-tag      Print the git tag to create for the next release, then exit
 
 Versioning:
@@ -30,9 +36,12 @@ Versioning:
   new baseline that dev/CI builds then report.
 
 Options:
-  --tag TAG             Release tag (e.g. v1.0.0); used with ci-release
+  --tag TAG             Release tag (e.g. v1.0.0 or v1.3.0-rc.1); used with
+                        ci-release
   --bump LEVEL          For next-tag: force patch, minor, or major instead of
                         the auto-detected bump
+  --pre IDENTIFIER      For next-tag: append a SemVer pre-release identifier to
+                        the computed tag (e.g. --pre rc.1 -> v1.3.0-rc.1)
   --write-xcconfig PATH Write MARKETING_VERSION and CURRENT_PROJECT_VERSION to xcconfig
   --export              Print shell assignments to stdout (for eval in CI)
   -h, --help            Show this help
@@ -51,6 +60,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --bump)
       BUMP="$2"
+      shift 2
+      ;;
+    --pre)
+      PRE="$2"
       shift 2
       ;;
     --write-xcconfig)
@@ -89,16 +102,22 @@ strip_v_prefix() {
 }
 
 # Marketing semver for an explicit release tag. The tag must be a fully pinned
-# vMAJOR.MINOR.PATCH. The leading `v` is required: the baseline lookup below
-# only matches `v*` tags, so a tag without it (e.g. `1.4.5`) would be silently
-# ignored afterwards and dev versions would regress.
+# vMAJOR.MINOR.PATCH, optionally followed by a SemVer §9 pre-release identifier
+# (e.g. v1.3.0-rc.1, v2.0.0-beta.2). The leading `v` is required: the baseline
+# lookup below only matches `v*` tags, so a tag without it (e.g. `1.4.5`) would be
+# silently ignored afterwards and dev versions would regress.
+#
+# A pre-release tag passes through verbatim as the marketing version (1.3.0-rc.1)
+# but is intentionally NOT a baseline (see latest_baseline_tag): it never raises
+# the version that dev/CI builds report, so its final release (v1.3.0) still wins.
 resolve_release_semver() {
   if [[ -z "$TAG" ]]; then
     echo "ci-release requires --tag" >&2
     exit 1
   fi
-  if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo "Invalid release tag '$TAG'; expected vMAJOR.MINOR.PATCH (e.g. v1.4.5)." >&2
+  if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-${PRERELEASE_RE})?$ ]]; then
+    echo "Invalid release tag '$TAG'; expected vMAJOR.MINOR.PATCH or a SemVer" >&2
+    echo "pre-release (e.g. v1.4.5 or v1.3.0-rc.1)." >&2
     echo "Get the right tag with: Scripts/compute-version.sh --mode next-tag" >&2
     exit 1
   fi
@@ -232,13 +251,14 @@ case "$MODE" in
   next-tag)
     # Print the tag to create for the next release, then exit. Without --bump the
     # level is auto-detected from the Conventional Commits since the last tag;
-    # with --bump it is forced relative to that tag's baseline.
+    # with --bump it is forced relative to that tag's baseline. An optional --pre
+    # appends a SemVer pre-release identifier (e.g. --pre rc.1 -> v1.3.0-rc.1).
     if [[ -z "$BUMP" ]]; then
-      echo "v$(resolve_next_semver)"
+      next_semver="$(resolve_next_semver)"
     else
       case "$BUMP" in
         patch | minor | major)
-          echo "v$(apply_bump "$(baseline_semver)" "$BUMP")"
+          next_semver="$(apply_bump "$(baseline_semver)" "$BUMP")"
           ;;
         *)
           echo "Unknown --bump: $BUMP (expected patch, minor, or major)" >&2
@@ -246,6 +266,15 @@ case "$MODE" in
           ;;
       esac
     fi
+    if [[ -n "$PRE" ]]; then
+      if [[ ! "$PRE" =~ ^${PRERELEASE_RE}$ ]]; then
+        echo "Invalid --pre '$PRE'; expected dot-separated SemVer identifiers" >&2
+        echo "of ASCII alphanumerics and hyphens (e.g. rc.1, beta, alpha.2)." >&2
+        exit 1
+      fi
+      next_semver="${next_semver}-${PRE}"
+    fi
+    echo "v${next_semver}"
     exit 0
     ;;
   *)

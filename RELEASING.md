@@ -83,10 +83,41 @@ Scripts/compute-version.sh --mode next-tag --bump patch   # force patch
 git tag -a v1.3.0 -m v1.3.0 && git push origin v1.3.0
 ```
 
-Release tags must be a fully pinned `vMAJOR.MINOR.PATCH` (e.g. `v1.4.5`). A tag
-without the `v` prefix is rejected, because the baseline only honors `v*` tags.
-If no tags exist, semver falls back to `1.0.0` (defined in
-`Scripts/compute-version.sh`).
+Release tags must be a fully pinned `vMAJOR.MINOR.PATCH` (e.g. `v1.4.5`) or a
+pre-release of one (see below). A tag without the `v` prefix is rejected, because
+the baseline only honors `v*` tags. If no tags exist, semver falls back to
+`1.0.0` (defined in `Scripts/compute-version.sh`).
+
+### Pre-release tags (RC / beta)
+
+To ship a release candidate or beta, tag a [SemVer §9
+pre-release](https://semver.org/#spec-item-9) — a `vX.Y.Z` followed by `-` and
+dot-separated identifiers of ASCII alphanumerics and hyphens (e.g.
+`v1.3.0-rc.1`, `v2.0.0-beta.2`):
+
+```sh
+Scripts/compute-version.sh --mode next-tag --bump minor --pre rc.1  # v1.3.0-rc.1
+
+git tag -a v1.3.0-rc.1 -m v1.3.0-rc.1 && git push origin v1.3.0-rc.1
+```
+
+Pushing the tag triggers `release.yml`, which builds and uploads artifacts with
+the marketing version `1.3.0-rc.1` verbatim — the same path as a final release.
+
+**Pre-releases are intentionally not baselines.** A pre-release tag never becomes
+the version that dev/CI builds report and never participates in the next-version
+computation: only strict `vX.Y.Z` tags do. This keeps the model deterministic and
+matches SemVer precedence — `1.3.0-rc.1` sorts *below* its final `1.3.0`:
+
+- While `v1.3.0-rc.1` is the only new tag past the last release `v1.2.3`, dev/CI
+  builds still report `1.2.3`, and `next-tag` keeps deriving `1.3.x` from the
+  commits since `v1.2.3` (the RC does not advance or freeze the baseline).
+- Once you cut the final `v1.3.0`, it becomes the baseline as usual; the earlier
+  `v1.3.0-rc.1` has no further effect.
+
+`--pre` works with auto-detected or forced (`--bump`) levels. Build metadata
+(`+sha`, SemVer §10) is out of scope. `CFBundleVersion` (the build number) is
+unaffected — pre-releases only change the marketing string.
 
 ## Signing so permissions survive updates
 
