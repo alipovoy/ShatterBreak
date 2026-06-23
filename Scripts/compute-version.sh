@@ -83,8 +83,7 @@ strip_v_prefix() {
   echo "$value"
 }
 
-# Marketing semver for an explicit release tag. The tag may be vMAJOR.MINOR
-# (a baseline whose patch starts at 0 and climbs afterwards) or a fully pinned
+# Marketing semver for an explicit release tag. The tag must be a fully pinned
 # vMAJOR.MINOR.PATCH. The leading `v` is required: the baseline lookup below
 # only matches `v*` tags, so a tag without it (e.g. `1.4.5`) would be silently
 # ignored afterwards and dev versions would regress.
@@ -93,19 +92,12 @@ resolve_release_semver() {
     echo "ci-release requires --tag" >&2
     exit 1
   fi
-  if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
-    echo "Invalid release tag '$TAG'; expected vMAJOR.MINOR or vMAJOR.MINOR.PATCH (e.g. v1.2 or v1.4.5)." >&2
+  if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Invalid release tag '$TAG'; expected vMAJOR.MINOR.PATCH (e.g. v1.4.5)." >&2
     echo "Get the right tag with: Scripts/compute-version.sh --mode next-tag" >&2
     exit 1
   fi
-  local semver
-  semver="$(strip_v_prefix "$TAG")"
-  # Normalize a two-part baseline (1.2) to a full three-component version (1.2.0)
-  # so the release build matches what the bump logic produces from here on.
-  if [[ "$semver" =~ ^[0-9]+\.[0-9]+$ ]]; then
-    semver="${semver}.0"
-  fi
-  echo "$semver"
+  strip_v_prefix "$TAG"
 }
 
 # Highest-version `v*` tag reachable from HEAD, or empty if none. We pick by
@@ -117,28 +109,25 @@ latest_baseline_tag() {
   git tag --merged HEAD --sort=-v:refname --list 'v[0-9]*' 2>/dev/null | head -n1
 }
 
-# The baseline version: the latest vX.Y[.Z] tag normalized to three components,
-# or DEFAULT_SEMVER when no tag exists. A two-part baseline (v1.2 -> 1.2.0) gets
-# a `.0` patch so it lines up with what the bump logic produces from here on.
+# The baseline version: the latest vX.Y.Z tag, or DEFAULT_SEMVER when no tag
+# exists.
 baseline_semver() {
-  local tag base
+  local tag
   tag="$(latest_baseline_tag)"
   if [[ -z "$tag" ]]; then
     echo "$DEFAULT_SEMVER"
     return
   fi
-  base="$(strip_v_prefix "$tag")"
-  if [[ "$base" =~ ^[0-9]+\.[0-9]+$ ]]; then
-    base="${base}.0"
-  fi
-  echo "$base"
+  strip_v_prefix "$tag"
 }
 
 # Inspect the Conventional Commit messages in a git range and echo the implied
 # SemVer bump: major | minor | patch | none. Any `!` marker (e.g. `feat!:`) or a
-# `BREAKING CHANGE` footer wins as major; a `feat:` subject is minor; any other
+# `BREAKING CHANGE:` footer wins as major; a `feat:` subject is minor; any other
 # commits are patch; an empty range is none. We squash-merge, so each commit
-# subject is the PR title and drives the decision.
+# subject is the PR title and drives the decision. The footer match is anchored
+# to a line start (per the Conventional Commits spec) so a commit that merely
+# mentions the phrase in prose does not trigger a spurious major bump.
 detect_bump() {
   local range="$1" subjects bodies
   subjects="$(git log --format='%s' "$range" 2>/dev/null)"
@@ -148,7 +137,7 @@ detect_bump() {
     return
   fi
   if printf '%s\n' "$subjects" | grep -qE '^[a-z]+(\([^)]+\))?!:' \
-    || printf '%s\n' "$bodies" | grep -qE 'BREAKING[ -]CHANGE'; then
+    || printf '%s\n' "$bodies" | grep -qE '^BREAKING[ -]CHANGE:'; then
     echo "major"
   elif printf '%s\n' "$subjects" | grep -qE '^feat(\([^)]+\))?:'; then
     echo "minor"
@@ -161,9 +150,6 @@ detect_bump() {
 apply_bump() {
   local base="$1" level="$2" major minor patch
   IFS=. read -r major minor patch <<<"$base"
-  major="${major:-1}"
-  minor="${minor:-0}"
-  patch="${patch:-0}"
   case "$level" in
     major) echo "$(( major + 1 )).0.0" ;;
     minor) echo "${major}.$(( minor + 1 )).0" ;;

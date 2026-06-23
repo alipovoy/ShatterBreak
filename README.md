@@ -122,11 +122,10 @@ Scripts/compute-version.sh --mode next-tag --bump patch   # force patch
 Create and push the printed tag, then publish a GitHub Release for it —
 `release.yml` builds and uploads the artifacts using the tag as the version.
 
-Release tags must start with `v` and be either `vMAJOR.MINOR` (a baseline whose
-patch starts at `0` — e.g. `v1.2` ships as `1.2.0`) or a fully pinned
-`vMAJOR.MINOR.PATCH`. A tag without the `v` prefix is rejected, because the
-baseline only honors `v*` tags. If no tags exist, semver falls back to `1.0.0`
-(defined in `Scripts/compute-version.sh`).
+Release tags must be a fully pinned `vMAJOR.MINOR.PATCH` (e.g. `v1.4.5`). A tag
+without the `v` prefix is rejected, because the baseline only honors `v*` tags.
+If no tags exist, semver falls back to `1.0.0` (defined in
+`Scripts/compute-version.sh`).
 
 ## Running quarantined builds
 macOS marks unsigned app as quarantined, remove the quarantine attribute before launching it:
