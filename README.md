@@ -79,6 +79,36 @@ macOS marks unsigned app as quarantined, remove the quarantine attribute before 
 xattr -dr com.apple.quarantine ShatterBreak.app
 ```
 
+## Permissions that survive updates
+The `Shatter` effect needs Screen Recording permission. macOS ties that grant to
+the app's code-signing **Designated Requirement (DR)**. An ad-hoc signature
+(`codesign --sign -`, what CI produces) has a DR equal to the binary's `cdhash`,
+which changes on every build — so each new version looks like a different app and
+you have to re-add it under *System Settings > Privacy & Security > Screen
+Recording* after every update.
+
+Signing with a **stable self-signed certificate that you create once and reuse**
+gives a constant DR (`identifier "…" and certificate leaf = H"…"`), so the grant
+carries over across updates (at most a one-click "ShatterBreak was updated — keep
+allowing?" prompt). No paid Apple Developer account or Apple secrets are needed;
+the build is still un-notarized, so the quarantine step above is unchanged.
+
+**One-time setup.** In *Keychain Access > Certificate Assistant > Create a
+Certificate…* create a certificate named `ShatterBreak Self-Signed`, with
+*Identity Type: Self Signed Root* and *Certificate Type: Code Signing*. Keep it in
+your login keychain and never delete or recreate it — that would change the DR and
+drop the grant. Back it up by exporting a password-protected `.p12`.
+
+**Sign a release locally** (do this before distributing the `.app`, since CI only
+ad-hoc signs):
+
+```bash
+Scripts/sign-release.sh path/to/ShatterBreak.app
+```
+
+Override the identity with `SIGN_IDENTITY=…` if you named the cert differently;
+`SIGN_IDENTITY=-` falls back to ad-hoc signing (not update-stable).
+
 ## How to Use
 1. Launch the app and find the `ShatterBreak` icon in the macOS menu bar.
 2. Open the menu bar popover and set `Work Duration` and `Rest Duration`.
