@@ -14,17 +14,19 @@ decoupled from PR merges:** it reflects releases, not individual PRs.
 - **`X.Y.Z`** come from the latest `vX.Y.Z` git tag (the last release). Dev and
   CI builds report that version, so it **stays stable as PRs land on `main`** —
   it only changes when you cut a new release.
-- The **bump happens once, at release time**. The `Cut Release` workflow (or
-  `Scripts/compute-version.sh --mode next-tag`) derives it from the Conventional
-  Commit subjects merged since the last tag:
-  - a `feat:` subject bumps the **minor** (`1.2.3 → 1.3.0`),
-  - a `fix:`/`perf:`/other subject bumps the **patch** (`1.2.3 → 1.2.4`),
-  - a `!` marker (e.g. `feat!:`) or a `BREAKING CHANGE` footer bumps the
-    **major** (`1.2.3 → 2.0.0`).
+- The **bump happens once, at release time**, and **you choose it** by naming the
+  tag of the release you draft. `Scripts/compute-version.sh --mode next-tag` is an
+  optional helper that *suggests* the next version from the Conventional Commit
+  subjects merged since the last tag, following SemVer:
+  - a `feat:` subject suggests a **minor** bump (`1.2.3 → 1.3.0`),
+  - a `fix:`/`perf:`/other subject suggests a **patch** bump (`1.2.3 → 1.2.4`),
+  - a `!` marker (e.g. `feat!:`) or a `BREAKING CHANGE` footer suggests a
+    **major** bump (`1.2.3 → 2.0.0`).
 
 The highest applicable bump wins (one `feat:` among several `fix:`es yields a
-minor bump), and the bump is relative to the last tag. Nothing is tagged or
-published until you decide to cut a release.
+minor bump), and the suggestion is relative to the last tag. It is only a
+suggestion — the version is whatever tag you publish, so double-check it before
+shipping. Nothing is tagged or published until you decide to cut a release.
 
 Conventional Commits keep the history changelog-ready and make the release bump
 trustworthy. Which string drives the bump depends on the merge method:
@@ -59,50 +61,63 @@ writes `Config/Version.xcconfig` on each build to override them.
 
 ## Cutting a release
 
-When you're ready to ship, run the **Cut Release** workflow
-(`.github/workflows/cut-release.yml`) from the Actions tab. Pick a bump:
+Releases are cut by hand from the GitHub UI. The **Release Build** workflow
+(`.github/workflows/release.yml`) then attaches the built artifacts. There is a
+single trigger — publishing a release — so a release produces exactly one build.
 
-- **`auto`** (default) derives the bump from the Conventional Commits since the
-  last tag,
-- **`patch` / `minor` / `major`** force a level relative to the last release.
+1. *(Optional)* Ask for the suggested next version:
 
-It computes the next `vX.Y.Z`, creates and pushes the tag, then dispatches
-**Release Build** (`release.yml`) at that tag to archive and upload the
-artifacts. One run takes you from "accumulated PRs on `main`" to a tagged,
-built release.
+   ```sh
+   Scripts/compute-version.sh --mode next-tag                # e.g. v1.3.0 (auto)
+   Scripts/compute-version.sh --mode next-tag --bump minor   # force minor
+   Scripts/compute-version.sh --mode next-tag --bump major   # force major
+   Scripts/compute-version.sh --mode next-tag --bump patch   # force patch
+   ```
 
-Prefer the command line? Ask the script which tag to create, then tag it
-yourself — pushing a `vX.Y.Z` tag triggers `release.yml` directly:
+2. On GitHub, go to **Releases → Draft a new release**.
+3. Under **Choose a tag**, type the new `vX.Y.Z` tag (e.g. `v1.3.0`) and select
+   *Create new tag on publish*. Target `main` (or the commit you want to ship).
+4. Click **Generate release notes** — GitHub builds the changelog from the PRs
+   and commits merged since the last release (the history is Conventional-Commit
+   clean). Edit the notes if you like.
+5. Click **Publish release**.
 
-```sh
-Scripts/compute-version.sh --mode next-tag                # e.g. v1.3.0 (auto)
-Scripts/compute-version.sh --mode next-tag --bump minor   # force minor
-Scripts/compute-version.sh --mode next-tag --bump major   # force major
-Scripts/compute-version.sh --mode next-tag --bump patch   # force patch
-
-git tag -a v1.3.0 -m v1.3.0 && git push origin v1.3.0
-```
+Publishing fires **Release Build** once: it checks out the tagged commit, runs
+the tests, archives, signs, and uploads `ShatterBreak-vX.Y.Z.zip` (plus the
+dSYM) as assets on that release. When it finishes, the release in the Releases
+section has both your notes and the downloadable build.
 
 Release tags must be a fully pinned `vMAJOR.MINOR.PATCH` (e.g. `v1.4.5`) or a
 pre-release of one (see below). A tag without the `v` prefix is rejected, because
 the baseline only honors `v*` tags. If no tags exist, semver falls back to
 `1.0.0` (defined in `Scripts/compute-version.sh`).
 
+> **Don't push a bare `vX.Y.Z` tag and expect a build.** Nothing is wired to a
+> tag push — releases are built only when you *publish a release* in the UI. This
+> is deliberate: it is what keeps a release to exactly one build.
+
+### Re-running a build
+
+If a Release Build fails (e.g. a transient CI error) after the release is already
+published, don't unpublish it. Re-run from the Actions tab: **Release Build → Run
+workflow**, enter the existing tag in **release_tag**, and run. It rebuilds and
+re-uploads the assets to that release (`--clobber` overwrites any partial
+uploads).
+
 ### Pre-release tags (RC / beta)
 
-To ship a release candidate or beta, tag a [SemVer §9
-pre-release](https://semver.org/#spec-item-9) — a `vX.Y.Z` followed by `-` and
-dot-separated identifiers of ASCII alphanumerics and hyphens (e.g.
-`v1.3.0-rc.1`, `v2.0.0-beta.2`):
+To ship a release candidate or beta, draft the release exactly as above but use a
+[SemVer §9 pre-release](https://semver.org/#spec-item-9) tag — a `vX.Y.Z`
+followed by `-` and dot-separated identifiers of ASCII alphanumerics and hyphens
+(e.g. `v1.3.0-rc.1`, `v2.0.0-beta.2`) — and check **Set as a pre-release** before
+publishing:
 
 ```sh
 Scripts/compute-version.sh --mode next-tag --bump minor --pre rc.1  # v1.3.0-rc.1
-
-git tag -a v1.3.0-rc.1 -m v1.3.0-rc.1 && git push origin v1.3.0-rc.1
 ```
 
-Pushing the tag triggers `release.yml`, which builds and uploads artifacts with
-the marketing version `1.3.0-rc.1` verbatim — the same path as a final release.
+Publishing builds and uploads artifacts with the marketing version `1.3.0-rc.1`
+verbatim — the same path as a final release.
 
 **Pre-releases are intentionally not baselines.** A pre-release tag never becomes
 the version that dev/CI builds report and never participates in the next-version
