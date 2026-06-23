@@ -37,6 +37,9 @@ jobs:
           # vX.Y.Z tag (the last release) as the build's version.
           fetch-depth: 0
 
+      - name: Test compute-version.sh
+        run: Scripts/test-compute-version.sh
+
       - name: Compute version
         run: |
           eval "$(Scripts/compute-version.sh --mode ci-test --export)"
