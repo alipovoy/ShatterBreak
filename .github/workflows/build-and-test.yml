@@ -33,8 +33,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          # Full history + tags so compute-version.sh can read the Conventional
-          # Commit subjects since the latest vX.Y.Z tag to derive the version.
+          # Full history + tags so compute-version.sh can resolve the latest
+          # vX.Y.Z tag (the last release) as the build's version.
           fetch-depth: 0
 
       - name: Compute version

@@ -14,15 +14,20 @@ Usage: compute-version.sh --mode MODE [options]
 
 Modes:
   local-auto    Detect suffix from Xcode build context (dev/test/local)
-  ci-test       CI PR/push: derived semver with -test suffix
+  ci-test       CI PR/push: last-release semver with -test suffix
   ci-release    CI release: semver taken verbatim from the release tag
   next-tag      Print the git tag to create for the next release, then exit
 
 Versioning:
-  X.Y.Z come from the latest vX.Y.Z tag. The next version is derived from the
-  Conventional Commit subjects merged since that tag: `feat:` bumps the minor,
-  `fix:`/`perf:`/other types bump the patch, and a `!` marker or `BREAKING
-  CHANGE` footer bumps the major. Creating a new vX.Y.Z tag resets the baseline.
+  Dev and CI builds report the LAST released version — the latest vX.Y.Z tag
+  (or 1.0.0 before any tag) — so the version stays stable as PRs land on main; it
+  does not move until you cut a release.
+
+  The bump happens only at release time. `next-tag` derives it from the
+  Conventional Commit subjects merged since the latest tag: `feat:` bumps the
+  minor, `fix:`/`perf:`/other types bump the patch, and a `!` marker or
+  `BREAKING CHANGE` footer bumps the major. Creating that vX.Y.Z tag becomes the
+  new baseline that dev/CI builds then report.
 
 Options:
   --tag TAG             Release tag (e.g. v1.0.0); used with ci-release
@@ -171,10 +176,11 @@ apply_bump() {
   esac
 }
 
-# Marketing semver for dev/CI builds and for the next release tag. X.Y.Z come
-# from the latest vX.Y[.Z] tag; the bump is derived from the Conventional Commit
-# messages merged since that tag. Before the first tag exists, the next release
-# is simply DEFAULT_SEMVER.
+# Marketing semver for the NEXT release tag. X.Y.Z come from the latest vX.Y.Z
+# tag; the bump is derived from the Conventional Commit messages merged since
+# that tag. Before the first tag exists, the next release is simply
+# DEFAULT_SEMVER. Only `next-tag` uses this — dev/CI builds report the baseline
+# (the last release) so the displayed version does not move as PRs land.
 resolve_next_semver() {
   local tag
   tag="$(latest_baseline_tag)"
@@ -208,11 +214,11 @@ hash="$(resolve_hash)"
 case "$MODE" in
   local-auto)
     suffix="$(resolve_local_suffix)"
-    marketing_version="$(resolve_next_semver)-${suffix}"
+    marketing_version="$(baseline_semver)-${suffix}"
     project_version="$(git rev-list --count HEAD)"
     ;;
   ci-test)
-    marketing_version="$(resolve_next_semver)-test"
+    marketing_version="$(baseline_semver)-test"
     project_version="$GITHUB_RUN_NUMBER"
     ;;
   ci-release)
