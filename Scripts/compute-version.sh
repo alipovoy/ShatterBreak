@@ -105,12 +105,20 @@ resolve_release_semver() {
 # tags can sit on the same commit (e.g. v1.2.3 then v1.4) and `git describe`'s
 # tie-break between them is unreliable. Highest-reachable is deterministic and,
 # since versions only move up, always the latest baseline.
+# The grep filter keeps only strict vMAJOR.MINOR.PATCH tags, so partial or
+# pre-release tags (v1, v1.4, v1.3.0-rc.1, v2-beta) are ignored rather than
+# chosen as the baseline — they aren't releases in this project's model. This
+# also guarantees apply_bump only ever receives a clean three-component version,
+# instead of silently drifting (v1.4 -> 1.4.1) or crashing its arithmetic.
+# The trailing `|| true` keeps a no-match grep (no conforming tags) from tripping
+# `set -o pipefail` and aborting the DEFAULT_SEMVER fallback.
 latest_baseline_tag() {
-  git tag --merged HEAD --sort=-v:refname --list 'v[0-9]*' 2>/dev/null | head -n1
+  git tag --merged HEAD --sort=-v:refname --list 'v[0-9]*' 2>/dev/null \
+    | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n1 || true
 }
 
 # The baseline version: the latest vX.Y.Z tag, or DEFAULT_SEMVER when no tag
-# exists.
+# exists. latest_baseline_tag guarantees a strict three-component tag here.
 baseline_semver() {
   local tag
   tag="$(latest_baseline_tag)"
@@ -124,10 +132,11 @@ baseline_semver() {
 # Inspect the Conventional Commit messages in a git range and echo the implied
 # SemVer bump: major | minor | patch | none. Any `!` marker (e.g. `feat!:`) or a
 # `BREAKING CHANGE:` footer wins as major; a `feat:` subject is minor; any other
-# commits are patch; an empty range is none. We squash-merge, so each commit
-# subject is the PR title and drives the decision. The footer match is anchored
-# to a line start (per the Conventional Commits spec) so a commit that merely
-# mentions the phrase in prose does not trigger a spurious major bump.
+# commits are patch; an empty range is none. Every subject in the range drives
+# the decision: with squash-merge that is one subject (the PR title); with
+# rebase-merge it is one per replayed commit. The footer match is anchored to a
+# line start (per the Conventional Commits spec) so a commit that merely mentions
+# the phrase in prose does not trigger a spurious major bump.
 detect_bump() {
   local range="$1" subjects bodies
   subjects="$(git log --format='%s' "$range" 2>/dev/null)"
