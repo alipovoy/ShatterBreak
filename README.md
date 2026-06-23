@@ -64,21 +64,69 @@ xcodebuild -project ShatterBreak.xcodeproj -scheme ShatterBreak test
 
 ## Versioning
 
-App version strings are computed automatically from git tags and the current commit.
+App version strings are computed automatically by `Scripts/compute-version.sh`,
+following [Semantic Versioning](https://semver.org) and
+[Conventional Commits](https://www.conventionalcommits.org):
+
+- **`X.Y.Z`** come from the latest `vX.Y.Z` git tag (the last release).
+- The **next version is derived from the commit subjects merged since that tag**:
+  - a `feat:` subject bumps the **minor** (`1.2.3 → 1.3.0`),
+  - a `fix:`/`perf:`/other subject bumps the **patch** (`1.2.3 → 1.2.4`),
+  - a `!` marker (e.g. `feat!:`) or a `BREAKING CHANGE` footer bumps the
+    **major** (`1.2.3 → 2.0.0`).
+
+So the version you see in a dev build is *the version the next release will be*.
+The highest applicable bump wins (one `feat:` among several `fix:`es yields a
+minor bump), and the bump is relative to the last tag — it does not stack across
+intermediate builds. Releases stay **manual**: nothing is tagged or published
+until you decide to cut a release.
+
+Because we squash-merge, each PR's title becomes the commit subject that drives
+this, so **PR titles must be valid Conventional Commits** — enforced by the
+`PR Title` check (`.github/workflows/pr-title.yml`). For the title to carry
+through, enable *Settings → General → "Default to PR title for squash merge
+commits"* on the repository.
 
 | Build context | Version format | Example |
 |---------------|----------------|---------|
-| Local Debug (Xcode Run/Build) | `{semver}-dev-{hash}` | `1.0.0-dev-4169568` |
-| Local Test (`xcodebuild test`) | `{semver}-test-{hash}` | `1.0.0-test-4169568` |
-| Local Archive | `{semver}-local-{hash}` | `1.0.0-local-4169568` |
-| GitHub CI (PR/push) | `{semver}-{hash}` | `1.0.0-4169568` |
-| GitHub Release | `{semver}` | `1.0.0` |
+| Local Debug (Xcode Run/Build) | `{semver}-dev` | `1.3.0-dev` |
+| Local Test (`xcodebuild test`) | `{semver}-test` | `1.3.0-test` |
+| Local Archive | `{semver}-local` | `1.3.0-local` |
+| GitHub CI (PR/push) | `{semver}-test` | `1.3.0-test` |
+| GitHub Release | `{semver}` | `1.3.0` |
 
-- **Semver** comes from the nearest `v*` git tag (e.g. `v1.0.0` → `1.0.0`). Release builds use the release tag directly.
-- **Hash** is the 7-character git commit SHA.
-- If no tags exist, semver falls back to `1.0.0` (defined in `Scripts/compute-version.sh`).
+The build number (`CFBundleVersion`) is the commit count locally and the CI run
+number in Actions, so every build is uniquely identifiable even when the
+marketing version is unchanged. The 7-character build hash is stored separately
+in the `AppBuildHash` Info.plist key.
 
-To release, create and push a tag such as `v1.0.0` and publish a GitHub Release for it.
+### Cutting a release
+
+Ask the script which tag to create — it reads the merged PRs and applies the
+right bump automatically:
+
+```sh
+# Auto: derive the bump from the Conventional Commits since the last tag
+Scripts/compute-version.sh --mode next-tag                # e.g. v1.3.0
+```
+
+To deviate from what the commits imply, force a level (relative to the last
+release baseline):
+
+```sh
+Scripts/compute-version.sh --mode next-tag --bump minor   # force minor
+Scripts/compute-version.sh --mode next-tag --bump major   # force major
+Scripts/compute-version.sh --mode next-tag --bump patch   # force patch
+```
+
+Create and push the printed tag, then publish a GitHub Release for it —
+`release.yml` builds and uploads the artifacts using the tag as the version.
+
+Release tags must start with `v` and be either `vMAJOR.MINOR` (a baseline whose
+patch starts at `0` — e.g. `v1.2` ships as `1.2.0`) or a fully pinned
+`vMAJOR.MINOR.PATCH`. A tag without the `v` prefix is rejected, because the
+baseline only honors `v*` tags. If no tags exist, semver falls back to `1.0.0`
+(defined in `Scripts/compute-version.sh`).
 
 ## Running quarantined builds
 macOS marks unsigned app as quarantined, remove the quarantine attribute before launching it:
