@@ -6,6 +6,11 @@ on:
       release_tag:
         description: Release tag to upload artifacts to
         required: true
+  # A human-pushed vX.Y.Z tag builds directly. (The Cut Release workflow pushes
+  # with GITHUB_TOKEN, which does not fire this trigger, so it dispatches the
+  # workflow_dispatch path above instead — no double build.)
+  push:
+    tags: ["v[0-9]*"]
   release:
     types: [published]
 

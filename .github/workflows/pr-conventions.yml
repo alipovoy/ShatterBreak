@@ -1,10 +1,11 @@
 name: PR Conventions
 
-# We version from Conventional Commits (see Scripts/compute-version.sh). The
-# string that lands on main depends on the merge method: squash-merge uses the
-# PR title, rebase-merge replays the commit subjects verbatim. So both must be
-# valid Conventional Commits for the version bump to be trustworthy — each is
-# checked in its own job below so either can be required independently.
+# Conventional Commits drive the release-time version bump (Cut Release →
+# Scripts/compute-version.sh --mode next-tag) and keep history changelog-ready.
+# The string that lands on main depends on the merge method: squash-merge uses
+# the PR title, rebase-merge replays the commit subjects verbatim. So both must
+# be valid Conventional Commits for the bump to be trustworthy — each is checked
+# in its own job below so either can be required independently.
 
 on:
   pull_request:

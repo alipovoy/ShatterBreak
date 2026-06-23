@@ -1,0 +1,74 @@
+name: Cut Release
+
+# Bump + tag in one shot, decoupled from PR merges. Pick a bump level (or let it
+# be derived from the Conventional Commits since the last tag), and this computes
+# the next vX.Y.Z, creates and pushes the tag, then dispatches Release Build to
+# archive and upload artifacts for it. Versions reflect releases, not individual
+# PRs — see Scripts/compute-version.sh.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump (auto derives it from Conventional Commits since the last tag)
+        type: choice
+        default: auto
+        options: [auto, patch, minor, major]
+        required: true
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: cut-release
+  cancel-in-progress: false
+
+jobs:
+  cut-release:
+    name: Compute, tag, and dispatch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Full history + tags so compute-version.sh can read the latest vX.Y.Z
+          # baseline and the Conventional Commit subjects since it.
+          fetch-depth: 0
+
+      - name: Compute next tag
+        id: compute
+        run: |
+          if [ "${{ inputs.bump }}" = "auto" ]; then
+            TAG="$(Scripts/compute-version.sh --mode next-tag)"
+          else
+            TAG="$(Scripts/compute-version.sh --mode next-tag --bump "${{ inputs.bump }}")"
+          fi
+          echo "Next release tag: $TAG"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Tag $TAG already exists. Nothing to release, or force a higher --bump."
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        env:
+          TAG: ${{ steps.compute.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$TAG"
+          git push origin "$TAG"
+
+      - name: Dispatch Release Build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.compute.outputs.tag }}
+        run: |
+          # Push by GITHUB_TOKEN does not fire release.yml's push trigger (Actions
+          # suppresses workflow chaining on token-authored events), so dispatch it
+          # explicitly at the new tag's ref — building the exact tagged commit.
+          gh workflow run release.yml --ref "$TAG" -f release_tag="$TAG"
+          echo "Dispatched Release Build for $TAG"
