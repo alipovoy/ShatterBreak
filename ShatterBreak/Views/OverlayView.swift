@@ -11,6 +11,7 @@ struct OverlayView: View {
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
     @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone = PreferenceDefaults.allowPostpone
+    @AppStorage(PreferenceKeys.crackStyle) private var crackStyle = PreferenceDefaults.crackStyle
 
     private enum Shake {
         static let distance: CGFloat = 10
@@ -29,7 +30,7 @@ struct OverlayView: View {
             )
 
             if presentation.showsCracks {
-                CrackedGlassView()
+                CrackedGlassView(style: crackStyle)
             }
 
             if showsForegroundContent {

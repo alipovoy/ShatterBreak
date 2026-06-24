@@ -6,6 +6,7 @@ struct PreferencesView: View {
 
     @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
     @AppStorage(PreferenceKeys.effectType) private var effectType = PreferenceDefaults.effectType
+    @AppStorage(PreferenceKeys.crackStyle) private var crackStyle = PreferenceDefaults.crackStyle
     @AppStorage(PreferenceKeys.softOverlay) private var softOverlay = PreferenceDefaults.softOverlay
     @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone = PreferenceDefaults.allowPostpone
     @AppStorage(PreferenceKeys.showTimerInMenuBar)
@@ -34,6 +35,19 @@ struct PreferencesView: View {
                         guard newValue == .shatter else { return }
                         guard permissions.status != .granted else { return }
                         showPermissionAlert = true
+                    }
+
+                    // Temporary: lets the cracked-glass highlight styles be compared
+                    // in a real break. Collapses to the chosen style once picked.
+                    if effectType == .shatter {
+                        Picker(selection: $crackStyle) {
+                            ForEach(CrackStyle.allCases) { style in
+                                Text(verbatim: style.label).tag(style)
+                            }
+                        } label: {
+                            Text(verbatim: "Crack style")
+                        }
+                        .pickerStyle(.radioGroup)
                     }
 
                     if permissions.status == .denied {

@@ -2,6 +2,7 @@ import Foundation
 
 enum PreferenceKeys {
     static let allowPostpone = "allowPostpone"
+    static let crackStyle = "crackStyle"
     static let effectType = "effectType"
     static let playSound = "playSound"
     static let restDurationSecs = "restDurationSecs"

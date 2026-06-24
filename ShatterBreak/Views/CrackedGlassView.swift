@@ -1,30 +1,5 @@
 import SwiftUI
 
-/// The visual treatment used to render the cracked-glass fracture lines.
-///
-/// All three keep the cracks readable over the frosted capture by drawing the
-/// highlights as *additive* light (`.plusLighter`) rather than flat white paint —
-/// that is what makes a fracture read as glass catching light instead of a dark
-/// drawn line. They differ only in how far the effect is pushed.
-enum CrackStyle: String, CaseIterable, Identifiable {
-    /// Additive fracture lines over a thin, offset dark stroke for depth.
-    case glint
-    /// ``glint`` plus bright twinkles where secondary cracks branch off.
-    case sparkle
-    /// ``glint`` plus a soft blurred glow hugging the main cracks (wet sheen).
-    case glossy
-
-    var id: Self { self }
-
-    var label: String {
-        switch self {
-        case .glint: "Glint"
-        case .sparkle: "Sparkle"
-        case .glossy: "Glossy"
-        }
-    }
-}
-
 struct CrackedGlassView: View {
     var style: CrackStyle = .glint
     private let generator = CrackedGlassGenerator()
