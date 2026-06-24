@@ -11,7 +11,7 @@ struct FrostedCaptureView: View {
     let image: CGImage
 
     private enum Frost {
-        static let blurRadius: CGFloat = 8
+        static let blurRadius: CGFloat = 5
         /// Enlarges the blurred image so its faded edges fall outside the frame,
         /// hiding the translucent border the blur kernel leaves where it samples
         /// past the screenshot's bounds.
