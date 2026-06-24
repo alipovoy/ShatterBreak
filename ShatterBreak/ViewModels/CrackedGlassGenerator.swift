@@ -14,6 +14,12 @@ struct CrackedGlass: Equatable {
 /// the produced geometry deterministic and unit-testable while the view stays
 /// purely presentational.
 struct CrackedGlassGenerator {
+    /// How far the impact point may stray from the center, as a fraction of each
+    /// axis. A fixed point offset read as nearly centered on large displays; scaling
+    /// by the display size lets the impact land well off-center while staying within
+    /// bounds (the center sits in the inner 1 − 2·fraction of the screen).
+    private static let impactJitterFraction: CGFloat = 0.35
+
     /// Generates fracture geometry filling `size`, or `nil` when `size` has no area.
     func generate(
         size: CGSize,
@@ -21,9 +27,10 @@ struct CrackedGlassGenerator {
     ) -> CrackedGlass? {
         guard size.width > 0, size.height > 0 else { return nil }
 
+        let jitter = Self.impactJitterFraction
         let center = CGPoint(
-            x: size.width * 0.5 + CGFloat.random(in: -100...100, using: &rng),
-            y: size.height * 0.5 + CGFloat.random(in: -100...100, using: &rng)
+            x: size.width * (0.5 + CGFloat.random(in: -jitter...jitter, using: &rng)),
+            y: size.height * (0.5 + CGFloat.random(in: -jitter...jitter, using: &rng))
         )
 
         var main = Path()

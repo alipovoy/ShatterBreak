@@ -49,15 +49,18 @@ struct CrackedGlassGeneratorTests {
         #expect(firstGlass != secondGlass)
     }
 
-    @Test("the impact point stays near the center")
-    func impactPointNearCenter() throws {
+    @Test("the impact point is offset from center but stays on screen")
+    func impactPointOffsetButOnScreen() throws {
         var rng = SeededRandomNumberGenerator(seed: 7)
 
         let size = CGSize(width: 400, height: 300)
         let glass = try #require(generator.generate(size: size, using: &rng))
 
-        // The center is jittered by at most 100 points on each axis.
-        #expect(abs(glass.shatterCenter.x - size.width * 0.5) <= 100)
-        #expect(abs(glass.shatterCenter.y - size.height * 0.5) <= 100)
+        // The impact is jittered by up to 35% of each axis, so it lands off-center
+        // while remaining within the display bounds.
+        #expect(abs(glass.shatterCenter.x - size.width * 0.5) <= size.width * 0.35)
+        #expect(abs(glass.shatterCenter.y - size.height * 0.5) <= size.height * 0.35)
+        #expect((0...size.width).contains(glass.shatterCenter.x))
+        #expect((0...size.height).contains(glass.shatterCenter.y))
     }
 }

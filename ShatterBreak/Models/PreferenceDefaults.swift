@@ -8,7 +8,6 @@ import Foundation
 /// call sites from silently drifting apart when a default changes.
 enum PreferenceDefaults {
     static let allowPostpone = false
-    static let crackStyle: CrackStyle = .glint
     static let effectType: EffectType = .shatter
     static let playSound = true
     static let restDurationSecs: Double = 300
