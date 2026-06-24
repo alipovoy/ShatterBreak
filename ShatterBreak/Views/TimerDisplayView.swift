@@ -9,7 +9,7 @@ struct TimerDisplayView: View {
             if state.isRunning || state.isPaused {
                 CountdownTextView(state: state, isActive: isActive)
                     .font(.system(size: 48, weight: .light, design: .monospaced))
-                    .foregroundStyle(state.isResting ? .green : .primary)
+                    .foregroundStyle(state.isResting ? .secondary : .primary)
             } else {
                 Text(.ready)
                     .font(.system(size: 48, weight: .light))
