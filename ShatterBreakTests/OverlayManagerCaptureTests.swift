@@ -93,8 +93,8 @@ struct OverlayManagerCaptureTests {
 
     private func makeOverlayStates() -> [CGDirectDisplayID: OverlayPresentationState] {
         [
-            primaryDisplay: OverlayPresentationState(effectType: .shatter, allowsShatterUpgrade: true),
-            secondaryDisplay: OverlayPresentationState(effectType: .shatter, allowsShatterUpgrade: true)
+            primaryDisplay: OverlayPresentationState(effectType: .shatter),
+            secondaryDisplay: OverlayPresentationState(effectType: .shatter)
         ]
     }
 
