@@ -10,8 +10,7 @@ struct OverlayBackgroundView: View {
         Group {
             if isShatterEffect {
                 if let backgroundImage, phase != .plain {
-                    Image(decorative: backgroundImage, scale: 1)
-                        .resizable()
+                    FrostedCaptureView(image: backgroundImage)
                 } else if phase == .plain {
                     Color.clear
                 } else {
