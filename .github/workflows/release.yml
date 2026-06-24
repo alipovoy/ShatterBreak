@@ -1,24 +1,29 @@
 name: Release Build
 
+# Builds, signs, and attaches the downloadable artifacts to a release. Releases
+# are cut by hand: draft one in the GitHub UI (Releases → Draft a new release),
+# pick the vX.Y.Z tag, generate the notes, and publish. Publishing fires this
+# workflow once — it checks out the tagged commit, archives, signs, and uploads
+# the .app/.dSYM zips onto that release. Nothing auto-builds on a bare tag push,
+# so there is no double run. See RELEASING.md.
+
 on:
+  # The maintainer publishes a release in the UI; this attaches the artifacts.
+  release:
+    types: [published]
+  # Re-run hook: rebuild and re-upload artifacts to an existing release without
+  # unpublishing it (e.g. after a transient build/upload failure).
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Release tag to upload artifacts to
+        description: Existing release tag to (re)build and upload artifacts to
         required: true
-  # A human-pushed vX.Y.Z tag builds directly. (The Cut Release workflow pushes
-  # with GITHUB_TOKEN, which does not fire this trigger, so it dispatches the
-  # workflow_dispatch path above instead — no double build.)
-  push:
-    tags: ["v[0-9]*"]
-  release:
-    types: [published]
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -41,6 +46,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          # Build the exact tagged commit, whether triggered by the release event
+          # (github.ref_name is the tag) or a manual re-run (inputs.release_tag).
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
 
       - name: Compute version
         run: |
@@ -122,15 +131,9 @@ jobs:
             RELEASE_FILES+=("$DSYM_ZIP")
           fi
 
-          # Create release if it doesn't exist yet; no-op if it does.
-          # --generate-notes builds the changelog from the PRs/commits merged
-          # since the previous tag (the history is Conventional-Commit clean).
-          gh release create "$RELEASE_TAG" \
-            --title "$RELEASE_TAG" \
-            --generate-notes 2>/dev/null || true
-
-          for file in "${RELEASE_FILES[@]}"; do
-            gh release upload "$RELEASE_TAG" "$file" --clobber
-          done
+          # The release already exists (published in the UI, or being re-run), so
+          # this only attaches assets — no create step to fail or swallow. If the
+          # release is missing, this fails loudly: create it in the UI first.
+          gh release upload "$RELEASE_TAG" "${RELEASE_FILES[@]}" --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
