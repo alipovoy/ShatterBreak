@@ -50,8 +50,7 @@ final class OverlayManager {
 
         for screen in captureClient.availableScreens() {
             let overlayState = OverlayPresentationState(
-                effectType: effectType,
-                allowsShatterUpgrade: shouldCaptureScreenshots
+                effectType: effectType
             )
             let window = makeWindow(frame: screen.frame)
             let hostingView = NSHostingView(

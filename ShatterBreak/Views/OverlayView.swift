@@ -171,8 +171,7 @@ struct OverlayView: View {
         OverlayView(
             state: restingState,
             presentation: OverlayPresentationState(
-                effectType: .overlay,
-                allowsShatterUpgrade: false
+                effectType: .overlay
             )
         )
             .frame(width: 400, height: 300)
@@ -181,8 +180,7 @@ struct OverlayView: View {
         OverlayView(
             state: awaitingState,
             presentation: OverlayPresentationState(
-                effectType: .overlay,
-                allowsShatterUpgrade: false
+                effectType: .overlay
             )
         )
             .frame(width: 400, height: 300)

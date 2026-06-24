@@ -9,8 +9,7 @@ struct OverlayPresentationStateTests {
     @MainActor
     func shatterUpgradeTransitionsOnce() throws {
         let state = OverlayPresentationState(
-            effectType: .shatter,
-            allowsShatterUpgrade: true
+            effectType: .shatter
         )
         let firstImage = try #require(makeTestImage(width: 1))
         let secondImage = try #require(makeTestImage(width: 2))
@@ -36,8 +35,7 @@ struct OverlayPresentationStateTests {
     @MainActor
     func plainOverlayIgnoresCapture() throws {
         let state = OverlayPresentationState(
-            effectType: .overlay,
-            allowsShatterUpgrade: false
+            effectType: .overlay
         )
         let image = try #require(makeTestImage(width: 1))
 
@@ -51,8 +49,7 @@ struct OverlayPresentationStateTests {
     @MainActor
     func shatterWithoutScreenshotStillTransitions() {
         let state = OverlayPresentationState(
-            effectType: .shatter,
-            allowsShatterUpgrade: false
+            effectType: .shatter
         )
 
         state.startShatter(with: nil)

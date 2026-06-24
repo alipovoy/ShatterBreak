@@ -11,14 +11,12 @@ final class OverlayPresentationState {
     }
 
     let effectType: EffectType
-    let allowsShatterUpgrade: Bool
 
     var backgroundImage: CGImage?
     var phase: Phase = .plain
 
-    init(effectType: EffectType, allowsShatterUpgrade: Bool) {
+    init(effectType: EffectType) {
         self.effectType = effectType
-        self.allowsShatterUpgrade = allowsShatterUpgrade
     }
 
     var isShatterEffect: Bool {
