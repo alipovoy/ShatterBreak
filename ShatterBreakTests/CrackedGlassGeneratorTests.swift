@@ -56,10 +56,10 @@ struct CrackedGlassGeneratorTests {
         let size = CGSize(width: 400, height: 300)
         let glass = try #require(generator.generate(size: size, using: &rng))
 
-        // The impact is jittered by up to 35% of each axis, so it lands off-center
+        // The impact is jittered by up to 15% of each axis, so it lands off-center
         // while remaining within the display bounds.
-        #expect(abs(glass.shatterCenter.x - size.width * 0.5) <= size.width * 0.35)
-        #expect(abs(glass.shatterCenter.y - size.height * 0.5) <= size.height * 0.35)
+        #expect(abs(glass.shatterCenter.x - size.width * 0.5) <= size.width * 0.15)
+        #expect(abs(glass.shatterCenter.y - size.height * 0.5) <= size.height * 0.15)
         #expect((0...size.width).contains(glass.shatterCenter.x))
         #expect((0...size.height).contains(glass.shatterCenter.y))
     }

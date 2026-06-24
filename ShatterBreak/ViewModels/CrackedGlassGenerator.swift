@@ -18,7 +18,7 @@ struct CrackedGlassGenerator {
     /// axis. A fixed point offset read as nearly centered on large displays; scaling
     /// by the display size lets the impact land well off-center while staying within
     /// bounds (the center sits in the inner 1 − 2·fraction of the screen).
-    private static let impactJitterFraction: CGFloat = 0.35
+    private static let impactJitterFraction: CGFloat = 0.15
 
     /// Generates fracture geometry filling `size`, or `nil` when `size` has no area.
     func generate(
