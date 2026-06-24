@@ -29,10 +29,11 @@ struct FrostedCaptureView: View {
     }
 }
 
-/// A stand-in desktop wallpaper for the preview, since a real screen capture
-/// isn't available in Xcode Previews. Its gradient and glyph give the frost's
-/// blur and dim something to soften so the effect is visible.
-private struct PreviewWallpaper: View {
+/// A stand-in desktop wallpaper for previews, since a real screen capture isn't
+/// available in Xcode Previews. Its gradient and glyph give the frost's blur and
+/// dim something to soften so the effect is visible. Shared with the cracked-glass
+/// previews so both treatments are compared over the same wallpaper.
+struct PreviewWallpaper: View {
     var body: some View {
         LinearGradient(
             colors: [.blue, .purple, .pink],
