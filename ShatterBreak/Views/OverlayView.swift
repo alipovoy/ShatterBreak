@@ -50,12 +50,7 @@ struct OverlayView: View {
                         } label: {
                             Text(.postpone)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.extraLarge)
-                        // The overlay is a borderless, non-key window, so the prominent
-                        // style renders its fill in AppKit's inactive grey. Drawing the
-                        // capsule explicitly keeps the accent color regardless of key state.
-                        .background(Color.accentColor, in: Capsule())
+                        .buttonStyle(OverlayActionButtonStyle())
                     }
 
                     if state.awaitingReturn {
@@ -64,12 +59,7 @@ struct OverlayView: View {
                         } label: {
                             Text(.imBack)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.extraLarge)
-                        // The overlay is a borderless, non-key window, so the prominent
-                        // style renders its fill in AppKit's inactive grey. Drawing the
-                        // capsule explicitly keeps the accent color regardless of key state.
-                        .background(Color.accentColor, in: Capsule())
+                        .buttonStyle(OverlayActionButtonStyle())
                     }
                 }
             }
@@ -151,7 +141,7 @@ struct OverlayView: View {
             let view = NSView()
             Task { @MainActor in
                 guard let window = view.window else { return }
-                window.isOpaque = false
+                window.isOpaque = true
                 window.backgroundColor = .clear
             }
             return view
@@ -185,5 +175,35 @@ struct OverlayView: View {
         )
             .frame(width: 400, height: 300)
             .padding()
+    }
+}
+
+#Preview("Over Frosted Wallpaper") { @MainActor in
+    // Render the stand-in wallpaper to a CGImage so the shatter effect has a real
+    // capture to frost, putting the action buttons over actual frosted glass.
+    let backgroundImage = ImageRenderer(content: PreviewWallpaper()).cgImage
+
+    let restingPresentation = OverlayPresentationState(effectType: .shatter)
+    restingPresentation.backgroundImage = backgroundImage
+    restingPresentation.phase = .shattered
+
+    let awaitingPresentation = OverlayPresentationState(effectType: .shatter)
+    awaitingPresentation.backgroundImage = backgroundImage
+    awaitingPresentation.phase = .shattered
+
+    // resting → Postpone button
+    let restingState = TimerState()
+    restingState.mode = .resting
+
+    // awaiting return → I'm back button
+    let awaitingState = TimerState()
+    awaitingState.mode = .awaitingReturn
+
+    return VStack(spacing: 0) {
+        OverlayView(state: restingState, presentation: restingPresentation)
+            .frame(width: 480, height: 320)
+
+        OverlayView(state: awaitingState, presentation: awaitingPresentation)
+            .frame(width: 480, height: 320)
     }
 }
