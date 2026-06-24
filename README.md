@@ -1,3 +1,5 @@
+# Test of the workflow. DELME
+
 # ShatterBreak
 
 ShatterBreak is a native macOS menu bar app for structured focus and break cycles.
