@@ -127,9 +127,25 @@ extension ScreenCaptureClient {
 
     private static func screenshotConfiguration(for display: SCDisplay) -> SCStreamConfiguration {
         let config = SCStreamConfiguration()
-        config.width = display.width
-        config.height = display.height
+        let pixelSize = pixelSize(for: display)
+        config.width = pixelSize.width
+        config.height = pixelSize.height
         config.showsCursor = false
         return config
+    }
+
+    /// The display's native pixel dimensions.
+    ///
+    /// `SCStreamConfiguration.width`/`height` are measured in **pixels**, whereas
+    /// `SCDisplay.width`/`height` are in **points**. Configuring the capture with the
+    /// point size halves the resolution on a 2× Retina display, producing a blurry,
+    /// upscaled screenshot. The current `CGDisplayMode` reports the true backing-store
+    /// pixel size, so we capture at native resolution and fall back to the point size
+    /// only if the mode is unavailable.
+    private static func pixelSize(for display: SCDisplay) -> (width: Int, height: Int) {
+        guard let mode = CGDisplayCopyDisplayMode(display.displayID) else {
+            return (display.width, display.height)
+        }
+        return (mode.pixelWidth, mode.pixelHeight)
     }
 }
