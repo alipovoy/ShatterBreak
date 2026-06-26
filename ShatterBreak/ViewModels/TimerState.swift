@@ -167,6 +167,16 @@ final class TimerState {
         beginCountdown(for: workDurationSecs)
     }
 
+    /// Starts a work session at launch when the user has opted in.
+    ///
+    /// Guarded to `.idle` so it only fires for a fresh launch and never disrupts an
+    /// already-active cycle if invoked more than once.
+    func autoStartIfEnabled() {
+        let enabled = defaults.object(forKey: PreferenceKeys.autoStartOnLaunch) as? Bool
+        guard mode == .idle, enabled ?? PreferenceDefaults.autoStartOnLaunch else { return }
+        start()
+    }
+
     func pause() {
         switch mode {
         case .running, .postponedWork:
