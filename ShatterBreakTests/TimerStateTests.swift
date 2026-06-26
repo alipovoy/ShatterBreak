@@ -119,6 +119,48 @@ struct TimerStateBasicTests {
         #expect(state.awaitingReturn == false, "Starting from awaiting return should clear the waiting state.")
     }
 
+    @Test("autoStartIfEnabled() starts work when the launch preference is on")
+    @MainActor
+    func autoStartLaunchEnabledStartsWork() {
+        let environment = TestEnvironment()
+        environment.defaults.set(true, forKey: PreferenceKeys.autoStartOnLaunch)
+
+        let state = environment.makeTimerState()
+        state.autoStartIfEnabled()
+
+        #expect(state.isRunning, "Auto-start on launch should begin a work session when enabled.")
+        #expect(state.mode == .running, "Auto-start should put the timer into the running work state.")
+    }
+
+    @Test("autoStartIfEnabled() does nothing when the launch preference is off")
+    @MainActor
+    func autoStartLaunchDisabledStaysIdle() {
+        let environment = TestEnvironment()
+        // Default is off; leave the preference unset to exercise the fallback.
+        let state = environment.makeTimerState()
+        state.autoStartIfEnabled()
+
+        #expect(state.mode == .idle, "Auto-start should leave the timer idle when the preference is off.")
+        #expect(state.isRunning == false, "A disabled launch preference should not start the timer.")
+    }
+
+    @Test("autoStartIfEnabled() does not disrupt an already-running timer")
+    @MainActor
+    func autoStartLaunchIgnoredWhenNotIdle() {
+        let environment = TestEnvironment()
+        environment.defaults.set(true, forKey: PreferenceKeys.autoStartOnLaunch)
+
+        let state = environment.makeTimerState()
+        state.workDurationSecs = 5
+        state.start()
+        let snapshot = state.timeRemaining
+
+        state.autoStartIfEnabled()
+
+        #expect(state.mode == .running, "Auto-start should not change the mode of an active timer.")
+        #expect(state.timeRemaining == snapshot, "Auto-start should not restart an already-running work session.")
+    }
+
     @Test("formatting helper produces zero-padded strings")
     @MainActor
     func formattingProducesCorrectOutput() {

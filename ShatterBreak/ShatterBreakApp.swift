@@ -22,6 +22,9 @@ struct ShatterBreakApp: App {
                         .font(.system(.body, design: .monospaced))
                 }
             }
+            // The label is always rendered, so this fires once at launch — unlike the
+            // menu content, which is built lazily when the user opens the menu.
+            .task { timerState.autoStartIfEnabled() }
         }
         .menuBarExtraStyle(.window)
 

@@ -11,6 +11,8 @@ struct PreferencesView: View {
     @AppStorage(PreferenceKeys.showTimerInMenuBar)
     private var showTimerInMenuBar = PreferenceDefaults.showTimerInMenuBar
     @AppStorage(PreferenceKeys.workStartMode) private var workStartMode = PreferenceDefaults.workStartMode
+    @AppStorage(PreferenceKeys.autoStartOnLaunch)
+    private var autoStartOnLaunch = PreferenceDefaults.autoStartOnLaunch
 
     @State private var showPermissionAlert = false
 
@@ -51,6 +53,9 @@ struct PreferencesView: View {
 
                     Toggle(.showTimerInMenuBarToggle, isOn: $showTimerInMenuBar)
                         .help(Text(.showTimerInMenuBarHelp))
+
+                    Toggle(.autoStartOnLaunchToggle, isOn: $autoStartOnLaunch)
+                        .help(Text(.autoStartOnLaunchHelp))
                 }
                 .headerProminence(.increased)
             }
