@@ -325,9 +325,8 @@ final class TimerState {
         let workMode = mode == .running || mode == .postponedWork
         if workMode, awayDuration >= restDurationSecs {
             // A long absence counts as the break itself: discard the cycle and begin a
-            // fresh work session with postpone available again.
-            hasPostponeBeenUsedThisCycle = false
-            savedRestRemaining = nil
+            // fresh work session. `enterRestPhase` later restores postpone availability
+            // and clears any saved rest for the new cycle.
             start()
         } else if isRunning {
             // Otherwise resolve the wall-clock time that elapsed while away.
