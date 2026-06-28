@@ -220,84 +220,104 @@ struct TimerStateBasicTests {
 
 @Suite("TimerState sleep/wake behaviors", .tags(.timerState, .sleepWake), .timeLimit(.minutes(1)))
 struct TimerStateSleepWakeTests {
-    @Test("display sleep auto-pauses work; wake auto-resumes")
+    @Test("short display sleep never pauses work and continues the countdown")
     @MainActor
-    func displaySleepAutoPauseAndResume() async {
+    func shortDisplaySleepContinuesWork() async {
         let environment = TestEnvironment()
         let state = environment.makeTimerState()
-        state.workDurationSecs = 3
-        state.restDurationSecs = 2
+        state.workDurationSecs = 5
+        state.restDurationSecs = 4
 
         state.start()
 
         let notificationCenter = environment.workspaceNotificationCenter
         notificationCenter.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
-        #expect(state.isPaused, "Work should auto-pause on display sleep.")
+        // Away for less than a full break, so the work countdown must keep running.
+        environment.elapseTimeWithoutTick(by: 2)
+        #expect(state.isPaused == false, "Work must never pause on display sleep (issue #4).")
 
         notificationCenter.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
-        #expect(state.isPaused == false, "Work should auto-resume on display wake.")
+        #expect(state.mode == .running, "A short absence should keep the work session running.")
+        #expect(state.timeRemaining == 3, "The countdown should reflect the time spent asleep.")
 
         await environment.advanceTime(ticks: 3)
-        #expect(state.isResting, "The timer should still transition to rest after resume.")
+        #expect(state.isResting, "The timer should still transition to rest after waking.")
     }
 
-    @Test("rest expires while system is asleep returns to idle on wake")
+    @Test("long sleep during work starts a fresh work session on wake")
     @MainActor
-    func restExpiresWhileAwayReturnsIdle() async {
+    func longSleepDuringWorkStartsFreshSession() async {
         let environment = TestEnvironment()
-        let defaults = environment.defaults
-        defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
-
         let state = environment.makeTimerState()
-        state.workDurationSecs = 1
-        state.restDurationSecs = 1
+        state.workDurationSecs = 10
+        state.restDurationSecs = 3
 
         state.start()
-        await environment.advanceUntil(maxTicks: 2) { state.isResting }
-        #expect(state.isResting, "The test setup should enter rest before simulating sleep.")
+        await environment.advanceTime(by: 4)
+        #expect(state.timeRemaining == 6, "The test setup should consume part of the work period.")
 
         let notificationCenter = environment.workspaceNotificationCenter
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
-
-        await environment.advanceTime()
-
+        // Away at least one full break, so the absence counts as the break itself.
+        environment.elapseTimeWithoutTick(by: 5)
         notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
 
-        #expect(state.isRunning == false, "The app should be idle after waking from an expired rest.")
-        #expect(state.isResting == false, "Rest should be cleared after wake when it expired asleep.")
-        #expect(state.mode == .idle, "The timer mode should be idle after waking from an expired rest.")
+        #expect(state.mode == .running, "A long absence should start a fresh work session (issue #69).")
+        #expect(state.timeRemaining == 10, "The fresh session should restore the full work duration.")
     }
 
-    @Test("wake during rest handles elapsed wall-clock time without needing a tick")
+    @Test("break elapsed while away auto-resumes work when auto-start is on")
     @MainActor
-    func wakeFromRestDoesNotNeedManualTick() async {
+    func breakElapsedWhileAwayAutoResumesWork() async {
         let environment = TestEnvironment()
         let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let state = environment.makeTimerState()
-        state.workDurationSecs = 1
+        state.workDurationSecs = 5
         state.restDurationSecs = 1
 
         state.start()
-        await environment.advanceUntil(maxTicks: 2) { state.isResting }
+        await environment.advanceUntil(maxTicks: 6) { state.isResting }
         #expect(state.isResting, "The test setup should enter rest before simulating sleep.")
 
         let notificationCenter = environment.workspaceNotificationCenter
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
-
         environment.elapseTimeWithoutTick(by: 1)
-
         notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
 
-        #expect(state.mode == .idle, "Wake should resolve expired rest to idle without a manual tick.")
-        #expect(state.isRunning == false, "Wake after expired rest should not keep the timer running.")
-        #expect(state.isResting == false, "Wake after expired rest should clear the resting state.")
+        #expect(state.mode == .running, "An elapsed break should auto-resume into work on logon (issue #4).")
+        #expect(state.timeRemaining == 5, "Auto-resume should begin a fresh work session.")
     }
 
-    @Test("system sleep auto-pauses postponed work; wake restores and resumes it")
+    @Test("break elapsed while away awaits the user when auto-start is off")
     @MainActor
-    func sleepAutoPausesPostponedWorkAndWakeRestoresIt() async {
+    func breakElapsedWhileAwayAwaitsUser() async {
+        let environment = TestEnvironment()
+        let defaults = environment.defaults
+        defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
+
+        let recorder = OverlayRecorder()
+        let state = environment.makeTimerState(overlays: recorder.presenter)
+        state.workDurationSecs = 5
+        state.restDurationSecs = 1
+
+        state.start()
+        await environment.advanceUntil(maxTicks: 6) { state.isResting }
+        #expect(state.isResting, "The test setup should enter rest before simulating sleep.")
+
+        let notificationCenter = environment.workspaceNotificationCenter
+        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        environment.elapseTimeWithoutTick(by: 1)
+        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+
+        #expect(state.awaitingReturn, "Without auto-start, an elapsed break should await the user on wake.")
+        #expect(recorder.dismissCount == 0, "The break overlay should remain visible until the user returns.")
+    }
+
+    @Test("short sleep during postponed work continues counting toward rest")
+    @MainActor
+    func shortSleepDuringPostponedWorkContinues() async {
         let environment = TestEnvironment()
         let state = environment.makeTimerState(postponeDurationSecs: 5)
         state.workDurationSecs = 1
@@ -309,29 +329,47 @@ struct TimerStateSleepWakeTests {
 
         state.postpone()
         #expect(state.mode == .postponedWork, "Postpone should switch into postponed work.")
-        let postponedRemaining = state.timeRemaining
 
         let notificationCenter = environment.workspaceNotificationCenter
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
-        #expect(state.isPaused, "System sleep should auto-pause postponed work.")
-        #expect(
-            state.timeRemaining == postponedRemaining,
-            "Sleep should freeze the postponed-work countdown."
-        )
+        #expect(state.isPaused == false, "Postponed work must never pause on sleep (issue #4).")
 
-        // Wall-clock time passes while asleep, but the frozen countdown must not advance.
+        // Away for less than a full break, so the postponed countdown keeps running.
         environment.elapseTimeWithoutTick(by: 3)
 
         notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
-        #expect(state.mode == .postponedWork, "Wake should restore postponed work after a system auto-pause.")
-        #expect(
-            state.timeRemaining == postponedRemaining,
-            "Resumed postponed work should keep its frozen remaining time."
-        )
+        #expect(state.mode == .postponedWork, "A short absence should keep postponed work running.")
+        #expect(state.timeRemaining == 2, "Postponed work should reflect the time spent asleep.")
 
-        await environment.advanceTime(ticks: 5)
+        await environment.advanceUntil(maxTicks: 3) { state.isResting }
         #expect(state.isResting, "Postponed work should expire back into rest after waking.")
         #expect(state.timeRemaining == 10, "Rest should resume with the saved full duration.")
+    }
+
+    @Test("long sleep during postponed work starts a fresh work session on wake")
+    @MainActor
+    func longSleepDuringPostponedWorkStartsFreshSession() async {
+        let environment = TestEnvironment()
+        let state = environment.makeTimerState(postponeDurationSecs: 5)
+        state.workDurationSecs = 8
+        state.restDurationSecs = 3
+
+        state.start()
+        await environment.advanceUntil(maxTicks: 9) { state.isResting }
+        #expect(state.isResting, "The test setup should enter rest before postponing.")
+
+        state.postpone()
+        #expect(state.mode == .postponedWork, "Postpone should switch into postponed work.")
+        #expect(state.canPostpone == false, "Postpone should be spent for this cycle.")
+
+        let notificationCenter = environment.workspaceNotificationCenter
+        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        // Away at least one full break, so the absence counts as the break itself.
+        environment.elapseTimeWithoutTick(by: 4)
+        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+
+        #expect(state.mode == .running, "A long absence should start a fresh work session (issue #69).")
+        #expect(state.timeRemaining == 8, "The fresh session should restore the full work duration.")
     }
 
     @Test("manual pause does not auto-resume on wake")
