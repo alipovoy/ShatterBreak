@@ -19,23 +19,6 @@ final class TimerState {
         case awaitingReturn // Manual mode: rest complete, waiting for user
     }
 
-    /// Why the timer is paused, carrying the mode to restore on resume.
-    ///
-    /// Only a `.system` pause auto-resumes on wake; a `.user` pause stays paused
-    /// until the user resumes. Keeping provenance in one value makes that rule a
-    /// single, hard-to-misread switch.
-    private enum PauseReason {
-        case user(previous: Mode)
-        case system(previous: Mode)
-
-        /// The mode that was active before pausing.
-        var previousMode: Mode {
-            switch self {
-            case .user(let previous), .system(let previous): previous
-            }
-        }
-    }
-
     // MARK: - Properties
 
     /// The current operational mode. All boolean state flags derive from this.
@@ -90,7 +73,13 @@ final class TimerState {
 
     private var savedRestRemaining: TimeInterval?
     private var isSystemAsleep = false
-    private var pauseReason: PauseReason?
+
+    /// The mode to restore when a user pause resumes; `nil` when not paused.
+    private var modeBeforePause: Mode?
+
+    /// The moment sleep/display-off began, used to measure how long the user was
+    /// away on wake. `nil` while awake.
+    private var sleptAt: Date?
 
     private let countdown: Countdown
     private let sleepWakeObserver: SleepWakeObserver
@@ -163,7 +152,7 @@ final class TimerState {
         }
 
         mode = .running
-        pauseReason = nil
+        modeBeforePause = nil
         beginCountdown(for: workDurationSecs)
     }
 
@@ -180,9 +169,8 @@ final class TimerState {
     func pause() {
         switch mode {
         case .running, .postponedWork:
-            let previousMode = mode
+            modeBeforePause = mode
             countdown.freeze()
-            pauseReason = .user(previous: previousMode)
             mode = .paused
         case .resting:
             // `start()` dismisses the overlays because `mode` is still `.resting`.
@@ -196,9 +184,8 @@ final class TimerState {
     func resume() {
         guard mode == .paused else { return }
 
-        let resumedMode = pauseReason?.previousMode ?? .running
-        pauseReason = nil
-        mode = resumedMode
+        mode = modeBeforePause ?? .running
+        modeBeforePause = nil
         resumeCountdown()
     }
 
@@ -246,13 +233,15 @@ final class TimerState {
     private func handleCountdownExpiryIfNeeded() {
         guard countdown.remaining(at: countdown.now) <= 0 else { return }
 
+        // While the system or display is asleep we defer every transition until wake,
+        // where `handleWake` decides what to do with the time the user spent away.
+        guard isSystemAsleep == false else { return }
+
         switch mode {
         case .postponedWork:
             countdown.clear()
             resumeRest()
         case .resting:
-            guard isSystemAsleep == false else { return }
-
             countdown.clear()
 
             if autoStartWorkTimer {
@@ -278,7 +267,7 @@ final class TimerState {
     private func resetToIdle() {
         countdown.clear()
         mode = .idle
-        pauseReason = nil
+        modeBeforePause = nil
         savedRestRemaining = nil
         hasPostponeBeenUsedThisCycle = false
         overlays.dismiss()
@@ -287,7 +276,7 @@ final class TimerState {
 
     private func enterRestPhase() {
         mode = .resting
-        pauseReason = nil
+        modeBeforePause = nil
         hasPostponeBeenUsedThisCycle = false
         savedRestRemaining = nil
         overlays.show(self)
@@ -298,7 +287,7 @@ final class TimerState {
         guard let saved = savedRestRemaining else { return }
 
         mode = .resting
-        pauseReason = nil
+        modeBeforePause = nil
         savedRestRemaining = nil
         overlays.show(self)
         beginCountdown(for: saved)
@@ -306,34 +295,53 @@ final class TimerState {
 
     // MARK: - Sleep/Wake Handling
 
+    /// Records that the system or display went to sleep.
+    ///
+    /// The countdown is deliberately *not* frozen: per issue #4 the timer never stops
+    /// on sleep or screen lock. We only note the moment so `handleWake` can measure
+    /// how long the user was away. A duplicate notification (system *and* display
+    /// sleep can both fire) keeps the original timestamp.
     private func handleSleep() {
+        guard isSystemAsleep == false else { return }
+
         isSystemAsleep = true
-
-        guard mode == .running || mode == .postponedWork else { return }
-
-        let previousMode = mode
-        countdown.freeze()
-        pauseReason = .system(previous: previousMode)
-        mode = .paused
+        sleptAt = countdown.now
     }
 
+    /// Reconciles the timer with the wall-clock time that elapsed while asleep.
+    ///
+    /// Work and postponed work follow the hybrid rule from issues #4 and #69: an
+    /// absence at least as long as a full break counts as the break itself and starts
+    /// a fresh work session, while a shorter absence simply continues the wall-clock
+    /// countdown. A break that elapsed while away resolves on wake (auto-resuming into
+    /// work when enabled). A user pause is left untouched.
     private func handleWake() {
+        guard isSystemAsleep else { return }
+
         isSystemAsleep = false
+        let awayDuration = sleptAt.map { countdown.now.timeIntervalSince($0) } ?? 0
+        sleptAt = nil
 
-        if mode == .resting {
-            if countdown.remaining(at: countdown.now) <= 0 {
-                resetToIdle()
-            }
-
-            return
+        let workMode = mode == .running || mode == .postponedWork
+        if workMode, awayDuration >= restDurationSecs {
+            // A long absence counts as the break itself: discard the cycle and begin a
+            // fresh work session. `enterRestPhase` later restores postpone availability
+            // and clears any saved rest for the new cycle.
+            start()
+        } else if isRunning {
+            // Otherwise resolve the wall-clock time that elapsed while away.
+            resolveCountdownAfterWake()
         }
+    }
 
-        // Only a system auto-pause resumes on wake; a user pause stays paused.
-        guard case .system(let previousMode) = pauseReason else { return }
-
-        pauseReason = nil
-        mode = previousMode
-        resumeCountdown()
+    /// After waking, fires a transition the countdown elapsed into while away, or
+    /// re-arms the expiry for the time that still remains.
+    private func resolveCountdownAfterWake() {
+        if timeRemaining <= 0 {
+            handleCountdownExpiryIfNeeded()
+        } else {
+            resumeCountdown()
+        }
     }
 
     // MARK: - Formatting
