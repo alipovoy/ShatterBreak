@@ -7,6 +7,7 @@ struct OverlayView: View {
 
     @State private var shakeOffset: CGFloat = 0
     @State private var hasPlayedSound = false
+    @State private var hasAppeared = false
 
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
@@ -19,10 +20,14 @@ struct OverlayView: View {
         static let introDelay: Duration = .milliseconds(900)
     }
 
+    private enum Intro {
+        static let fadeDuration = 0.45
+    }
+
     var body: some View {
         ZStack {
             OverlayBackgroundView(
-                isShatterEffect: presentation.isShatterEffect,
+                effectType: presentation.effectType,
                 backgroundImage: presentation.backgroundImage,
                 phase: presentation.phase,
                 shakeOffset: shakeOffset
@@ -64,9 +69,12 @@ struct OverlayView: View {
                 }
             }
         }
+        .opacity(introOpacity)
+        .animation(.easeOut(duration: Intro.fadeDuration), value: hasAppeared)
         .task(id: presentation.phase) {
             await handlePhase()
         }
+        .onAppear { hasAppeared = true }
     }
 
     private var showsForegroundContent: Bool {
@@ -75,6 +83,14 @@ struct OverlayView: View {
         }
 
         return true
+    }
+
+    /// The overlay's opacity during its intro. The shatter effect stages its own
+    /// entrance through the shake-and-crack sequence, so it appears at full opacity;
+    /// the dimmed and fogged effects gently fade in instead of snapping on (issue #62).
+    private var introOpacity: Double {
+        guard presentation.isShatterEffect == false else { return 1 }
+        return hasAppeared ? 1 : 0
     }
 
     /// Reacts to the current overlay phase: plays the break sound, and for the shatter
@@ -132,49 +148,6 @@ struct OverlayView: View {
         guard playSound, hasPlayedSound == false else { return }
         hasPlayedSound = true
         NSSound(named: "Glass")?.play()
-    }
-}
-
-#Preview("OverlayView") { @MainActor in
-    struct WindowConfigurator: NSViewRepresentable {
-        func makeNSView(context: Context) -> NSView {
-            let view = NSView()
-            Task { @MainActor in
-                guard let window = view.window else { return }
-                window.isOpaque = true
-                window.backgroundColor = .clear
-            }
-            return view
-        }
-        func updateNSView(_ nsView: NSView, context: Context) {}
-    }
-
-    // show resting state
-    let restingState = TimerState()
-    restingState.mode = .resting
-
-    // show awaiting-return state
-    let awaitingState = TimerState()
-    awaitingState.mode = .awaitingReturn
-
-    return VStack {
-        OverlayView(
-            state: restingState,
-            presentation: OverlayPresentationState(
-                effectType: .overlay
-            )
-        )
-            .frame(width: 400, height: 300)
-            .padding()
-
-        OverlayView(
-            state: awaitingState,
-            presentation: OverlayPresentationState(
-                effectType: .overlay
-            )
-        )
-            .frame(width: 400, height: 300)
-            .padding()
     }
 }
 

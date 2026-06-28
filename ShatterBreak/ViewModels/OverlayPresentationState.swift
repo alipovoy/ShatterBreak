@@ -23,8 +23,18 @@ final class OverlayPresentationState {
         effectType == .shatter
     }
 
+    /// Whether the cracked-glass overlay is drawn. The shatter effect only cracks
+    /// once it has settled into the shattered phase; the fogged effect always shows
+    /// cracks over its live glass; the dimmed effect never cracks.
     var showsCracks: Bool {
-        isShatterEffect && phase == .shattered
+        switch effectType {
+        case .shatter:
+            phase == .shattered
+        case .fogged:
+            true
+        case .dimmed:
+            false
+        }
     }
 
     func startShatter(with image: CGImage?) {
