@@ -14,4 +14,13 @@ enum DurationBounds {
 
     /// Largest rest duration.
     static let restMaximumSecs: Double = 3600
+
+    /// Largest window the Postpone button stays visible after a break begins.
+    static let postponeWindowMaximumSecs: Double = 600
+
+    /// Largest delay a single postpone pushes the break back by.
+    static let postponeDurationMaximumSecs: Double = 600
+
+    /// Largest lead before a break ends that the "I'm back" button appears.
+    static let earlyReturnLeadMaximumSecs: Double = 600
 }

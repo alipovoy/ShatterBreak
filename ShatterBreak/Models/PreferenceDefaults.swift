@@ -7,10 +7,14 @@ import Foundation
 /// (``OverlayManager``, ``TimerState``). Sourcing every default from here keeps the
 /// call sites from silently drifting apart when a default changes.
 enum PreferenceDefaults {
+    static let allowEarlyReturn = false
     static let allowPostpone = false
     static let autoStartOnLaunch = false
+    static let earlyReturnLeadSecs: Double = 30
     static let effectType: EffectType = .shatter
     static let playSound = true
+    static let postponeDurationSecs: Double = 60
+    static let postponeWindowSecs: Double = 60
     static let restDurationSecs: Double = 300
     static let showTimerInMenuBar = false
     static let softOverlay = true

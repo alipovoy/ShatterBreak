@@ -22,7 +22,7 @@ final class TestEnvironment {
     @MainActor
     func makeTimerState(
         overlays: OverlayPresenter = .disabled,
-        postponeDurationSecs: Double = 60
+        postponeDurationSecs: Double? = nil
     ) -> TimerState {
         TimerState(
             overlays: overlays,

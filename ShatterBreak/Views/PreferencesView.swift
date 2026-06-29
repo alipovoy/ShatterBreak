@@ -13,10 +13,24 @@ struct PreferencesView: View {
     @AppStorage(PreferenceKeys.workStartMode) private var workStartMode = PreferenceDefaults.workStartMode
     @AppStorage(PreferenceKeys.autoStartOnLaunch)
     private var autoStartOnLaunch = PreferenceDefaults.autoStartOnLaunch
+    @AppStorage(PreferenceKeys.postponeWindowSecs)
+    private var postponeWindowSecs = PreferenceDefaults.postponeWindowSecs
+    @AppStorage(PreferenceKeys.postponeDurationSecs)
+    private var postponeDurationSecs = PreferenceDefaults.postponeDurationSecs
+    @AppStorage(PreferenceKeys.allowEarlyReturn)
+    private var allowEarlyReturn = PreferenceDefaults.allowEarlyReturn
+    @AppStorage(PreferenceKeys.earlyReturnLeadSecs)
+    private var earlyReturnLeadSecs = PreferenceDefaults.earlyReturnLeadSecs
+    @AppStorage(PreferenceKeys.restDurationSecs)
+    private var restDurationSecs = PreferenceDefaults.restDurationSecs
 
     @State private var showPermissionAlert = false
 
     private let buildHash = AppInfo.current.commitHash
+
+    /// Break windows top out at 10 minutes, so their MM:SS field needs far less room
+    /// than the menu's hour-scale Work/Rest fields.
+    private let breakInputWidth: CGFloat = 64
 
     var body: some View {
         VStack {
@@ -25,6 +39,45 @@ struct PreferencesView: View {
                     Toggle(.playSoundToggle, isOn: $playSound)
                     Toggle(.softOverlayToggle, isOn: $softOverlay)
                     Toggle(.allowPostponeToggle, isOn: $allowPostpone)
+
+                    if allowPostpone {
+                        DurationSliderView(
+                            title: .postponeWindowLabel,
+                            systemImage: nil,
+                            value: $postponeWindowSecs,
+                            min: DurationBounds.minimumSecs,
+                            max: DurationBounds.postponeWindowMaximumSecs,
+                            inputWidth: breakInputWidth
+                        )
+                        .help(Text(.postponeWindowHelp))
+
+                        DurationSliderView(
+                            title: .postponeDurationLabel,
+                            systemImage: nil,
+                            value: $postponeDurationSecs,
+                            min: DurationBounds.minimumSecs,
+                            max: DurationBounds.postponeDurationMaximumSecs,
+                            inputWidth: breakInputWidth
+                        )
+                        .help(Text(.postponeDurationHelp))
+                    }
+
+                    Toggle(.allowEarlyReturnToggle, isOn: $allowEarlyReturn)
+                        .help(Text(.allowEarlyReturnHelp))
+
+                    if allowEarlyReturn {
+                        DurationSliderView(
+                            title: .earlyReturnLeadLabel,
+                            systemImage: nil,
+                            value: $earlyReturnLeadSecs,
+                            min: DurationBounds.minimumSecs,
+                            max: DurationBounds.earlyReturnLeadMaximumSecs,
+                            inputWidth: breakInputWidth
+                        )
+                        .help(Text(.earlyReturnLeadHelp))
+                    }
+
+                    BreakTimingWarningsView(warnings: breakTimingWarnings)
 
                     Picker(.effectTypePicker, selection: $effectType) {
                         ForEach(EffectType.allCases) { effect in
@@ -59,7 +112,7 @@ struct PreferencesView: View {
                     Toggle(.autoStartOnLaunchToggle, isOn: $autoStartOnLaunch)
                         .help(Text(.autoStartOnLaunchHelp))
                 }
-                .headerProminence(.increased)
+                .padding(.horizontal)
             }
             .formStyle(.grouped)
             .scrollDisabled(true)
@@ -83,6 +136,18 @@ struct PreferencesView: View {
         } message: {
             Text(.permissionAlertMessage)
         }
+    }
+
+    /// The break-timing contradiction warnings for the current settings. Recomputes as
+    /// any of the inputs change, including Rest edited from the menu (shared key).
+    private var breakTimingWarnings: [BreakTimingWarning] {
+        BreakTimingValidator.warnings(
+            restDurationSecs: restDurationSecs,
+            allowPostpone: allowPostpone,
+            postponeWindowSecs: postponeWindowSecs,
+            allowEarlyReturn: allowEarlyReturn,
+            earlyReturnLeadSecs: earlyReturnLeadSecs
+        )
     }
 
     private func openSystemSettings() {

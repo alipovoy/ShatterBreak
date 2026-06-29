@@ -2,11 +2,16 @@ import SwiftUI
 
 struct DurationSliderView: View {
     let title: LocalizedStringResource
-    let systemImage: String
+    /// Leading glyph for the row; pass `nil` to omit it (e.g. in Preferences, where the
+    /// titles already read as a settings list and an icon would only add clutter).
+    let systemImage: String?
     @Binding var value: Double
     let min: Double
     let max: Double
-    let disabled: Bool
+    var disabled: Bool = false
+    /// Width of the trailing MM:SS field. The default fits the menu's hour-scale
+    /// durations ("1h 5m"); short break windows can pass a narrower value.
+    var inputWidth: CGFloat = 85
 
     @State private var manualInput = ""
     @State private var isEditing = false
@@ -19,8 +24,10 @@ struct DurationSliderView: View {
                 .bold()
 
             HStack {
-                Image(systemName: systemImage)
-                    .foregroundStyle(.secondary)
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .foregroundStyle(.secondary)
+                }
 
                 Slider(
                     value: sliderBinding,
@@ -29,12 +36,21 @@ struct DurationSliderView: View {
                         isEditing = editing
                     }
                 )
+                // A grouped Form reserves a leading label gutter for each control; the
+                // slider has no label, so hide it to reclaim that space and span the row.
+                .labelsHidden()
                 .disabled(disabled)
 
-                TextField("00:00", text: $manualInput)
-                    .textFieldStyle(.roundedBorder)
+                // The label is the field's accessibility name only; a Form would
+                // otherwise promote it to a visible "00:00" label beside the field,
+                // so it is hidden and the placeholder moved to `prompt`.
+                TextField(text: $manualInput, prompt: Text(verbatim: "00:00")) {
+                    Text(title)
+                }
+                .labelsHidden()
+                .textFieldStyle(.roundedBorder)
                     .font(.body.monospacedDigit())
-                    .frame(width: 85, alignment: .trailing)
+                    .frame(width: inputWidth, alignment: .trailing)
                     .multilineTextAlignment(.trailing)
                     .focused($isInputFocused)
                     .disabled(disabled)
@@ -57,6 +73,9 @@ struct DurationSliderView: View {
             }
         }
         .padding(10)
+        // Claim the full row width so a grouped Form lays the title and slider out as
+        // one full-width cell instead of splitting them into a label/control column pair.
+        .frame(maxWidth: .infinity, alignment: .leading)
         .onAppear {
             manualInput = isInputFocused ? DurationFormat.clock(value) : DurationFormat.friendly(value)
         }
