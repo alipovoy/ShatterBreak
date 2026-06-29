@@ -113,12 +113,11 @@ struct PreferencesView: View {
                     Toggle(.autoStartOnLaunchToggle, isOn: $autoStartOnLaunch)
                         .help(Text(.autoStartOnLaunchHelp))
                 }
-                .headerProminence(.increased)
+                .padding(.horizontal)
             }
             .formStyle(.grouped)
             .scrollDisabled(true)
             .fixedSize(horizontal: false, vertical: true)
-            .frame(width: 420)
 
             HStack {
                 Text(buildHash)
