@@ -38,8 +38,14 @@ struct DurationSliderView: View {
                 )
                 .disabled(disabled)
 
-                TextField("00:00", text: $manualInput)
-                    .textFieldStyle(.roundedBorder)
+                // The label is the field's accessibility name only; a Form would
+                // otherwise promote it to a visible "00:00" label beside the field,
+                // so it is hidden and the placeholder moved to `prompt`.
+                TextField(text: $manualInput, prompt: Text(verbatim: "00:00")) {
+                    Text(title)
+                }
+                .labelsHidden()
+                .textFieldStyle(.roundedBorder)
                     .font(.body.monospacedDigit())
                     .frame(width: inputWidth, alignment: .trailing)
                     .multilineTextAlignment(.trailing)
