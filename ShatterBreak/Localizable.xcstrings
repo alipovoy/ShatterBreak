@@ -109,14 +109,26 @@
         }
       }
     },
-    "effectOverlay": {
-      "comment": "Display name for the overlay break effect.",
+    "effectDimmed": {
+      "comment": "Display name for the dimmed break effect (a plain dimmed overlay).",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Overlay"
+            "value": "Dimmed"
+          }
+        }
+      }
+    },
+    "effectFogged": {
+      "comment": "Display name for the fogged break effect (fogged glass over the desktop with cracks).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fogged"
           }
         }
       }
@@ -224,7 +236,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shatter requires Screen Recording permission. Enable it in System Settings → Privacy & Security → Screen & System Audio Recording."
+            "value": "Shatter requires Screen Recording permission to capture your screen. Without it, breaks fall back to a frosted-glass effect. Enable it in System Settings → Privacy & Security → Screen & System Audio Recording."
           }
         }
       }
@@ -248,7 +260,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shatter requires Screen Recording permission."
+            "value": "Shatter requires Screen Recording permission. Without it, breaks use a frosted-glass effect instead."
           }
         }
       }

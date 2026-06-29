@@ -1,29 +1,20 @@
 import Foundation
 
 /// Defines the types of visual effects available for the working state.
-enum EffectType: CaseIterable, Identifiable, RawRepresentable {
+///
+/// The lowercase `rawValue` of each case is the string persisted in user defaults,
+/// so renaming a case changes the stored key. Any unrecognized stored value decodes
+/// to `nil`, letting the read sites fall back to a default rather than trusting a
+/// corrupt preference.
+enum EffectType: String, CaseIterable, Identifiable {
+    /// A captured screenshot frozen, frosted, and fractured with cracks. Requires
+    /// Screen Recording permission; falls back to ``fogged`` when it is missing.
     case shatter
-    case overlay
-
-    init?(rawValue: String) {
-        switch rawValue {
-        case "shatter", "Shatter":
-            self = .shatter
-        case "overlay", "Overlay":
-            self = .overlay
-        default:
-            return nil
-        }
-    }
-
-    var rawValue: String {
-        switch self {
-        case .shatter:
-            "shatter"
-        case .overlay:
-            "overlay"
-        }
-    }
+    /// Fogged glass over the live desktop with cracks, but no screenshot capture
+    /// or shatter animation. Doubles as the permission-less ``shatter`` fallback.
+    case fogged
+    /// A simple dimmed overlay over the desktop, with no cracks or shatter.
+    case dimmed
 
     var id: String { rawValue }
 
@@ -31,8 +22,10 @@ enum EffectType: CaseIterable, Identifiable, RawRepresentable {
         switch self {
         case .shatter:
             .effectShatter
-        case .overlay:
-            .effectOverlay
+        case .fogged:
+            .effectFogged
+        case .dimmed:
+            .effectDimmed
         }
     }
 }

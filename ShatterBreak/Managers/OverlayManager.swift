@@ -9,7 +9,6 @@ final class OverlayManager {
         let id: UUID
         let state: TimerState
         let effectType: EffectType
-        let shouldCaptureScreenshots: Bool
     }
 
     private var windows: [CGDirectDisplayID: NSWindow] = [:]
@@ -56,31 +55,48 @@ final class OverlayManager {
             : .screenSaver
     }
 
+    /// Resolves the effect actually presented from the user's selection and the
+    /// current permission state.
+    ///
+    /// ``EffectType/shatter`` needs Screen Recording permission to capture the screen;
+    /// without it the break falls back to ``EffectType/fogged`` — fogged glass over
+    /// the live desktop with cracks — instead of an empty shatter with nothing to
+    /// fracture (issue #62). Every other selection is presented as chosen.
+    static func resolveEffectType(
+        selected: EffectType,
+        hasScreenRecordingPermission: Bool
+    ) -> EffectType {
+        guard selected == .shatter, hasScreenRecordingPermission == false else {
+            return selected
+        }
+        return .fogged
+    }
+
     func showOverlays(state: TimerState) {
         dismissOverlays()
 
         let hasScreenRecordingPermission = captureClient.hasPermission()
-        let effectType = selectedEffectType
-        let shouldCaptureScreenshots = hasScreenRecordingPermission && effectType == .shatter
+        let effectType = Self.resolveEffectType(
+            selected: selectedEffectType,
+            hasScreenRecordingPermission: hasScreenRecordingPermission
+        )
         let sessionID = UUID()
         activeSessionID = sessionID
         session = ActiveSession(
             id: sessionID,
             state: state,
-            effectType: effectType,
-            shouldCaptureScreenshots: shouldCaptureScreenshots
+            effectType: effectType
         )
 
         for screen in captureClient.availableScreens() {
             presentOverlay(for: screen, state: state, effectType: effectType)
         }
 
+        // Only the shatter effect captures the screen. A resolved `.shatter` always
+        // has permission (`resolveEffectType` downgrades to `.fogged` otherwise), so
+        // a failed or partial capture falls back per-display to the live fogged
+        // desktop rather than an empty shatter.
         guard effectType == .shatter else { return }
-
-        guard shouldCaptureScreenshots else {
-            beginShatter(with: [:], sessionID: sessionID)
-            return
-        }
 
         startCapture(for: Set(overlayStates.keys), sessionID: sessionID)
     }
@@ -133,15 +149,12 @@ final class OverlayManager {
         }
 
         // Newly added overlays start in the `.plain` phase; the shatter effect must
-        // catch them up. `beginShatter`/`startCapture` paint only the still-`.plain`
-        // displays — already-shattered overlays are left untouched by `startShatter`'s
-        // phase guard — so existing displays never re-shatter.
+        // catch them up. `startCapture` paints only the still-`.plain` displays —
+        // already-shattered overlays are left untouched by `startShatter`'s phase
+        // guard — so existing displays never re-shatter. The fogged and dimmed
+        // effects need no catch-up: their overlays render fully from the `.plain`
+        // phase, so a freshly added display matches the rest on its own.
         guard session.effectType == .shatter else { return }
-
-        guard session.shouldCaptureScreenshots else {
-            beginShatter(with: [:], sessionID: session.id)
-            return
-        }
 
         startCapture(for: addedDisplayIDs, sessionID: session.id)
     }

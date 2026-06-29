@@ -38,7 +38,9 @@ struct PreferencesView: View {
                         showPermissionAlert = true
                     }
 
-                    if permissions.status == .denied {
+                    // Only Shatter needs Screen Recording permission; Fogged and
+                    // Dimmed work without it, so the warning is scoped to Shatter.
+                    if effectType == .shatter && permissions.status == .denied {
                         PermissionWarningView(onOpenSystemSettings: openSystemSettings)
                     }
 

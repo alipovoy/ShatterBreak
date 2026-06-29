@@ -14,13 +14,22 @@ struct OverlayManagerConfigurationTests {
         #expect(manager.selectedEffectType == .shatter)
     }
 
-    @Test("effect type reflects the stored overlay preference")
-    func effectTypeReadsStoredOverlay() {
+    @Test("effect type reflects the stored dimmed preference")
+    func effectTypeReadsStoredDimmed() {
         let environment = TestEnvironment()
-        environment.defaults.set(EffectType.overlay.rawValue, forKey: PreferenceKeys.effectType)
+        environment.defaults.set(EffectType.dimmed.rawValue, forKey: PreferenceKeys.effectType)
         let manager = environment.makeOverlayManager()
 
-        #expect(manager.selectedEffectType == .overlay)
+        #expect(manager.selectedEffectType == .dimmed)
+    }
+
+    @Test("effect type reflects the stored fogged preference")
+    func effectTypeReadsStoredFogged() {
+        let environment = TestEnvironment()
+        environment.defaults.set(EffectType.fogged.rawValue, forKey: PreferenceKeys.effectType)
+        let manager = environment.makeOverlayManager()
+
+        #expect(manager.selectedEffectType == .fogged)
     }
 
     @Test("effect type falls back to shatter for an unrecognized preference")
@@ -30,6 +39,33 @@ struct OverlayManagerConfigurationTests {
         let manager = environment.makeOverlayManager()
 
         #expect(manager.selectedEffectType == .shatter)
+    }
+
+    @Test("shatter without Screen Recording permission resolves to fogged")
+    func shatterWithoutPermissionResolvesToFogged() {
+        #expect(
+            OverlayManager.resolveEffectType(selected: .shatter, hasScreenRecordingPermission: false) == .fogged,
+            "Shatter must fall back to fogged glass when it cannot capture the screen."
+        )
+    }
+
+    @Test("shatter with Screen Recording permission stays shatter")
+    func shatterWithPermissionStaysShatter() {
+        #expect(
+            OverlayManager.resolveEffectType(selected: .shatter, hasScreenRecordingPermission: true) == .shatter
+        )
+    }
+
+    @Test(
+        "fogged and dimmed never depend on Screen Recording permission",
+        arguments: [EffectType.fogged, .dimmed], [true, false]
+    )
+    func permissionlessEffectsAreUnaffected(selected: EffectType, hasPermission: Bool) {
+        let resolved = OverlayManager.resolveEffectType(
+            selected: selected,
+            hasScreenRecordingPermission: hasPermission
+        )
+        #expect(resolved == selected, "\(selected) needs no permission, so it should be presented as chosen.")
     }
 
     @Test("soft overlay is preferred when no preference is stored")

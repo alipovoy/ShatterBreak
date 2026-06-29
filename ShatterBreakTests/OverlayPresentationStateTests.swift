@@ -31,18 +31,32 @@ struct OverlayPresentationStateTests {
         #expect(state.phase == .shattered, "Finishing the intro should advance to the shattered phase.")
     }
 
-    @Test("plain overlay ignores captured screenshots")
+    @Test("dimmed overlay ignores captured screenshots", arguments: [EffectType.dimmed, .fogged])
     @MainActor
-    func plainOverlayIgnoresCapture() throws {
+    func nonShatterOverlayIgnoresCapture(effectType: EffectType) throws {
         let state = OverlayPresentationState(
-            effectType: .overlay
+            effectType: effectType
         )
         let image = try #require(makeTestImage(width: 1))
 
         state.startShatter(with: image)
 
-        #expect(state.phase == .plain, "Plain overlays should stay in the plain phase.")
-        #expect(state.backgroundImage == nil, "Plain overlays should ignore captured screenshots.")
+        #expect(state.phase == .plain, "Non-shatter overlays should stay in the plain phase.")
+        #expect(state.backgroundImage == nil, "Non-shatter overlays should ignore captured screenshots.")
+        #expect(state.isShatterEffect == false, "Only the shatter effect captures and fractures the screen.")
+    }
+
+    @Test("the fogged effect always shows cracks; the dimmed effect never does")
+    @MainActor
+    func cracksDependOnEffect() {
+        #expect(
+            OverlayPresentationState(effectType: .fogged).showsCracks,
+            "Fogged glass is cracked from the moment it appears."
+        )
+        #expect(
+            OverlayPresentationState(effectType: .dimmed).showsCracks == false,
+            "The dimmed effect is a plain overlay with no cracks."
+        )
     }
 
     @Test("shatter effect still transitions without a screenshot")
