@@ -28,6 +28,10 @@ struct PreferencesView: View {
 
     private let buildHash = AppInfo.current.commitHash
 
+    /// Break windows top out at 10 minutes, so their MM:SS field needs far less room
+    /// than the menu's hour-scale Work/Rest fields.
+    private let breakInputWidth: CGFloat = 64
+
     var body: some View {
         VStack {
             Form {
@@ -36,38 +40,42 @@ struct PreferencesView: View {
                     Toggle(.softOverlayToggle, isOn: $softOverlay)
                     Toggle(.allowPostponeToggle, isOn: $allowPostpone)
 
-                    DurationSliderView(
-                        title: .postponeWindowLabel,
-                        systemImage: "hourglass",
-                        value: $postponeWindowSecs,
-                        min: DurationBounds.minimumSecs,
-                        max: DurationBounds.postponeWindowMaximumSecs,
-                        disabled: !allowPostpone
-                    )
-                    .help(Text(.postponeWindowHelp))
+                    if allowPostpone {
+                        DurationSliderView(
+                            title: .postponeWindowLabel,
+                            systemImage: nil,
+                            value: $postponeWindowSecs,
+                            min: DurationBounds.minimumSecs,
+                            max: DurationBounds.postponeWindowMaximumSecs,
+                            inputWidth: breakInputWidth
+                        )
+                        .help(Text(.postponeWindowHelp))
 
-                    DurationSliderView(
-                        title: .postponeDurationLabel,
-                        systemImage: "pause.circle",
-                        value: $postponeDurationSecs,
-                        min: DurationBounds.minimumSecs,
-                        max: DurationBounds.postponeDurationMaximumSecs,
-                        disabled: !allowPostpone
-                    )
-                    .help(Text(.postponeDurationHelp))
+                        DurationSliderView(
+                            title: .postponeDurationLabel,
+                            systemImage: nil,
+                            value: $postponeDurationSecs,
+                            min: DurationBounds.minimumSecs,
+                            max: DurationBounds.postponeDurationMaximumSecs,
+                            inputWidth: breakInputWidth
+                        )
+                        .help(Text(.postponeDurationHelp))
+                    }
 
                     Toggle(.allowEarlyReturnToggle, isOn: $allowEarlyReturn)
                         .help(Text(.allowEarlyReturnHelp))
 
-                    DurationSliderView(
-                        title: .earlyReturnLeadLabel,
-                        systemImage: "arrow.uturn.backward",
-                        value: $earlyReturnLeadSecs,
-                        min: DurationBounds.minimumSecs,
-                        max: DurationBounds.earlyReturnLeadMaximumSecs,
-                        disabled: !allowEarlyReturn
-                    )
-                    .help(Text(.earlyReturnLeadHelp))
+                    if allowEarlyReturn {
+                        DurationSliderView(
+                            title: .earlyReturnLeadLabel,
+                            systemImage: nil,
+                            value: $earlyReturnLeadSecs,
+                            min: DurationBounds.minimumSecs,
+                            max: DurationBounds.earlyReturnLeadMaximumSecs,
+                            inputWidth: breakInputWidth
+                        )
+                        .help(Text(.earlyReturnLeadHelp))
+                    }
 
                     BreakTimingWarningsView(warnings: breakTimingWarnings)
 
@@ -77,6 +85,7 @@ struct PreferencesView: View {
                         }
                     }
                     .pickerStyle(.radioGroup)
+                    .padding(.leading)
                     .onChange(of: effectType) { _, newValue in
                         guard newValue == .shatter else { return }
                         guard permissions.status != .granted else { return }
@@ -109,7 +118,6 @@ struct PreferencesView: View {
             .formStyle(.grouped)
             .scrollDisabled(true)
             .fixedSize(horizontal: false, vertical: true)
-            .frame(width: 380)
 
             HStack {
                 Text(buildHash)

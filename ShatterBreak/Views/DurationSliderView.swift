@@ -2,11 +2,16 @@ import SwiftUI
 
 struct DurationSliderView: View {
     let title: LocalizedStringResource
-    let systemImage: String
+    /// Leading glyph for the row; pass `nil` to omit it (e.g. in Preferences, where the
+    /// titles already read as a settings list and an icon would only add clutter).
+    let systemImage: String?
     @Binding var value: Double
     let min: Double
     let max: Double
-    let disabled: Bool
+    var disabled: Bool = false
+    /// Width of the trailing MM:SS field. The default fits the menu's hour-scale
+    /// durations ("1h 5m"); short break windows can pass a narrower value.
+    var inputWidth: CGFloat = 85
 
     @State private var manualInput = ""
     @State private var isEditing = false
@@ -19,8 +24,10 @@ struct DurationSliderView: View {
                 .bold()
 
             HStack {
-                Image(systemName: systemImage)
-                    .foregroundStyle(.secondary)
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .foregroundStyle(.secondary)
+                }
 
                 Slider(
                     value: sliderBinding,
@@ -34,7 +41,7 @@ struct DurationSliderView: View {
                 TextField("00:00", text: $manualInput)
                     .textFieldStyle(.roundedBorder)
                     .font(.body.monospacedDigit())
-                    .frame(width: 85, alignment: .trailing)
+                    .frame(width: inputWidth, alignment: .trailing)
                     .multilineTextAlignment(.trailing)
                     .focused($isInputFocused)
                     .disabled(disabled)
