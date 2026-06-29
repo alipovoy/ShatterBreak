@@ -85,7 +85,6 @@ struct PreferencesView: View {
                         }
                     }
                     .pickerStyle(.radioGroup)
-                    .padding(.leading)
                     .onChange(of: effectType) { _, newValue in
                         guard newValue == .shatter else { return }
                         guard permissions.status != .granted else { return }
