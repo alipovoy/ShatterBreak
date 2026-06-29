@@ -36,6 +36,9 @@ struct DurationSliderView: View {
                         isEditing = editing
                     }
                 )
+                // A grouped Form reserves a leading label gutter for each control; the
+                // slider has no label, so hide it to reclaim that space and span the row.
+                .labelsHidden()
                 .disabled(disabled)
 
                 // The label is the field's accessibility name only; a Form would
