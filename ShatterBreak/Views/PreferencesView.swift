@@ -118,6 +118,7 @@ struct PreferencesView: View {
             .formStyle(.grouped)
             .scrollDisabled(true)
             .fixedSize(horizontal: false, vertical: true)
+            .frame(width: 340)
 
             HStack {
                 Text(buildHash)

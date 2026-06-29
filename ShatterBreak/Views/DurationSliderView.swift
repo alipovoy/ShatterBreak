@@ -70,6 +70,9 @@ struct DurationSliderView: View {
             }
         }
         .padding(10)
+        // Claim the full row width so a grouped Form lays the title and slider out as
+        // one full-width cell instead of splitting them into a label/control column pair.
+        .frame(maxWidth: .infinity, alignment: .leading)
         .onAppear {
             manualInput = isInputFocused ? DurationFormat.clock(value) : DurationFormat.friendly(value)
         }
