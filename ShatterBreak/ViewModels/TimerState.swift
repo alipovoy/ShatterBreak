@@ -32,9 +32,7 @@ final class TimerState {
         didSet { defaults.set(restDurationSecs, forKey: PreferenceKeys.restDurationSecs) }
     }
 
-    var postponeDurationSecs: Double = 60
-
-    /// Whether postpone is available: only when resting and not yet used this cycle.
+    /// Whether postpone is available this cycle: only when resting and not yet used.
     var canPostpone: Bool {
         mode == .resting && !hasPostponeBeenUsedThisCycle
     }
@@ -74,6 +72,11 @@ final class TimerState {
     private var savedRestRemaining: TimeInterval?
     private var isSystemAsleep = false
 
+    /// A test-supplied postpone delay that takes precedence over the live preference;
+    /// `nil` in the app so the value is read from preferences. Read by the break-button
+    /// extension in `TimerState+BreakButtons.swift`.
+    let postponeDurationOverride: Double?
+
     /// The mode to restore when a user pause resumes; `nil` when not paused.
     private var modeBeforePause: Mode?
 
@@ -81,10 +84,12 @@ final class TimerState {
     /// away on wake. `nil` while awake.
     private var sleptAt: Date?
 
-    private let countdown: Countdown
+    /// Internal (not `private`) so the break-button extension can read the clock.
+    let countdown: Countdown
     private let sleepWakeObserver: SleepWakeObserver
     private let overlays: OverlayPresenter
-    private let defaults: any KeyValueStore
+    /// Internal (not `private`) so the break-button extension can read live preferences.
+    let defaults: any KeyValueStore
 
     private var autoStartWorkTimer: Bool {
         (defaults.string(forKey: PreferenceKeys.workStartMode)
@@ -95,13 +100,13 @@ final class TimerState {
 
     init(
         overlays: OverlayPresenter,
-        postponeDurationSecs: Double = 60,
+        postponeDurationSecs: Double? = nil,
         defaults: any KeyValueStore = UserDefaults.standard,
         scheduler: (any CountdownScheduler)? = nil,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         self.overlays = overlays
-        self.postponeDurationSecs = postponeDurationSecs
+        self.postponeDurationOverride = postponeDurationSecs
         self.defaults = defaults
         self.countdown = Countdown(scheduler: scheduler ?? SystemCountdownScheduler())
         self.sleepWakeObserver = SleepWakeObserver(notificationCenter: workspaceNotificationCenter)
@@ -116,7 +121,7 @@ final class TimerState {
     }
 
     convenience init(
-        postponeDurationSecs: Double = 60,
+        postponeDurationSecs: Double? = nil,
         defaults: any KeyValueStore = UserDefaults.standard,
         scheduler: (any CountdownScheduler)? = nil,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter

@@ -9,9 +9,12 @@ struct OverlayView: View {
     @State private var hasPlayedSound = false
     @State private var hasAppeared = false
 
+    /// Ticks once per second while resting so the time-windowed action buttons
+    /// re-evaluate their visibility as the break elapses.
+    @State private var referenceDate = Date.now
+
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
-    @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone = PreferenceDefaults.allowPostpone
 
     private enum Shake {
         static let distance: CGFloat = 10
@@ -49,7 +52,7 @@ struct OverlayView: View {
                         .foregroundStyle(.white)
                         .shadow(color: .black, radius: 5)
 
-                    if state.canPostpone && allowPostpone {
+                    if state.showsPostponeButton(at: referenceDate) {
                         Button {
                             state.postpone()
                         } label: {
@@ -58,7 +61,7 @@ struct OverlayView: View {
                         .buttonStyle(OverlayActionButtonStyle())
                     }
 
-                    if state.awaitingReturn {
+                    if state.showsReturnButton(at: referenceDate) {
                         Button {
                             state.start()
                         } label: {
@@ -74,7 +77,40 @@ struct OverlayView: View {
         .task(id: presentation.phase) {
             await handlePhase()
         }
+        .task(id: state.mode) {
+            await driveActionClock()
+        }
         .onAppear { hasAppeared = true }
+    }
+
+    /// Refreshes `referenceDate` on each second boundary while the break counts down,
+    /// so the Postpone and "I'm back" windows re-evaluate. Mirrors
+    /// ``CountdownTextView/driveVisibleClockIfNeeded``. Awaiting-return is static, so it
+    /// sets the date once and returns without looping.
+    @MainActor
+    private func driveActionClock() async {
+        referenceDate = Date.now
+
+        guard state.isResting else { return }
+
+        while Task.isCancelled == false {
+            let remaining = state.timeRemaining(at: referenceDate)
+            guard remaining > 0 else { return }
+
+            do {
+                try await Task.sleep(for: nextRefreshDelay(for: remaining), tolerance: .milliseconds(100))
+            } catch {
+                return
+            }
+
+            referenceDate = Date.now
+        }
+    }
+
+    private func nextRefreshDelay(for remaining: TimeInterval) -> Duration {
+        let fractionalSecond = remaining - floor(remaining)
+        let secondsUntilRefresh = fractionalSecond > 0 ? fractionalSecond : 1
+        return .seconds(secondsUntilRefresh)
     }
 
     private var showsForegroundContent: Bool {
@@ -164,9 +200,12 @@ struct OverlayView: View {
     awaitingPresentation.backgroundImage = backgroundImage
     awaitingPresentation.phase = .shattered
 
-    // resting → Postpone button
+    // resting → Postpone button. Enable postpone and keep the break short so its
+    // opening window is still active even without a running countdown.
+    UserDefaults.standard.set(true, forKey: PreferenceKeys.allowPostpone)
     let restingState = TimerState()
     restingState.mode = .resting
+    restingState.restDurationSecs = 30
 
     // awaiting return → I'm back button
     let awaitingState = TimerState()

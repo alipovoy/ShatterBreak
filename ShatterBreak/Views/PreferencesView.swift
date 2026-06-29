@@ -13,6 +13,16 @@ struct PreferencesView: View {
     @AppStorage(PreferenceKeys.workStartMode) private var workStartMode = PreferenceDefaults.workStartMode
     @AppStorage(PreferenceKeys.autoStartOnLaunch)
     private var autoStartOnLaunch = PreferenceDefaults.autoStartOnLaunch
+    @AppStorage(PreferenceKeys.postponeWindowSecs)
+    private var postponeWindowSecs = PreferenceDefaults.postponeWindowSecs
+    @AppStorage(PreferenceKeys.postponeDurationSecs)
+    private var postponeDurationSecs = PreferenceDefaults.postponeDurationSecs
+    @AppStorage(PreferenceKeys.allowEarlyReturn)
+    private var allowEarlyReturn = PreferenceDefaults.allowEarlyReturn
+    @AppStorage(PreferenceKeys.earlyReturnLeadSecs)
+    private var earlyReturnLeadSecs = PreferenceDefaults.earlyReturnLeadSecs
+    @AppStorage(PreferenceKeys.restDurationSecs)
+    private var restDurationSecs = PreferenceDefaults.restDurationSecs
 
     @State private var showPermissionAlert = false
 
@@ -25,6 +35,41 @@ struct PreferencesView: View {
                     Toggle(.playSoundToggle, isOn: $playSound)
                     Toggle(.softOverlayToggle, isOn: $softOverlay)
                     Toggle(.allowPostponeToggle, isOn: $allowPostpone)
+
+                    DurationSliderView(
+                        title: .postponeWindowLabel,
+                        systemImage: "hourglass",
+                        value: $postponeWindowSecs,
+                        min: DurationBounds.minimumSecs,
+                        max: DurationBounds.postponeWindowMaximumSecs,
+                        disabled: !allowPostpone
+                    )
+                    .help(Text(.postponeWindowHelp))
+
+                    DurationSliderView(
+                        title: .postponeDurationLabel,
+                        systemImage: "pause.circle",
+                        value: $postponeDurationSecs,
+                        min: DurationBounds.minimumSecs,
+                        max: DurationBounds.postponeDurationMaximumSecs,
+                        disabled: !allowPostpone
+                    )
+                    .help(Text(.postponeDurationHelp))
+
+                    Toggle(.allowEarlyReturnToggle, isOn: $allowEarlyReturn)
+                        .help(Text(.allowEarlyReturnHelp))
+
+                    DurationSliderView(
+                        title: .earlyReturnLeadLabel,
+                        systemImage: "arrow.uturn.backward",
+                        value: $earlyReturnLeadSecs,
+                        min: DurationBounds.minimumSecs,
+                        max: DurationBounds.earlyReturnLeadMaximumSecs,
+                        disabled: !allowEarlyReturn
+                    )
+                    .help(Text(.earlyReturnLeadHelp))
+
+                    BreakTimingWarningsView(warnings: breakTimingWarnings)
 
                     Picker(.effectTypePicker, selection: $effectType) {
                         ForEach(EffectType.allCases) { effect in
@@ -64,6 +109,7 @@ struct PreferencesView: View {
             .formStyle(.grouped)
             .scrollDisabled(true)
             .fixedSize(horizontal: false, vertical: true)
+            .frame(width: 380)
 
             HStack {
                 Text(buildHash)
@@ -83,6 +129,18 @@ struct PreferencesView: View {
         } message: {
             Text(.permissionAlertMessage)
         }
+    }
+
+    /// The break-timing contradiction warnings for the current settings. Recomputes as
+    /// any of the inputs change, including Rest edited from the menu (shared key).
+    private var breakTimingWarnings: [BreakTimingWarning] {
+        BreakTimingValidator.warnings(
+            restDurationSecs: restDurationSecs,
+            allowPostpone: allowPostpone,
+            postponeWindowSecs: postponeWindowSecs,
+            allowEarlyReturn: allowEarlyReturn,
+            earlyReturnLeadSecs: earlyReturnLeadSecs
+        )
     }
 
     private func openSystemSettings() {

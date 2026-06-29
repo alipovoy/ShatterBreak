@@ -61,6 +61,30 @@
         }
       }
     },
+    "allowEarlyReturnHelp": {
+      "comment": "Help text for the Allow Early Return toggle.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show the “I’m back” button before a break ends so you can return early."
+          }
+        }
+      }
+    },
+    "allowEarlyReturnToggle": {
+      "comment": "Toggle that enables the early “I’m back” button during a break.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow Early Return"
+          }
+        }
+      }
+    },
     "allowPostponeToggle": {
       "comment": "Preferences toggle to allow the user to postpone a break.",
       "extractionState": "manual",
@@ -105,6 +129,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Close"
+          }
+        }
+      }
+    },
+    "earlyReturnLeadExceedsRestWarning": {
+      "comment": "Warning when the early-return lead is longer than the break.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Early-return lead is longer than the break; “I’m back” shows for the whole break."
+          }
+        }
+      }
+    },
+    "earlyReturnLeadHelp": {
+      "comment": "Help text for the early-return lead slider.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How early the “I’m back” button appears before a break ends."
+          }
+        }
+      }
+    },
+    "earlyReturnLeadLabel": {
+      "comment": "Label for the slider setting how early the “I’m back” button appears.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show “I’m back” before end"
           }
         }
       }
@@ -289,6 +349,66 @@
         }
       }
     },
+    "postponeDurationHelp": {
+      "comment": "Help text for the Postpone duration slider.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How long a break is pushed back when you tap Postpone."
+          }
+        }
+      }
+    },
+    "postponeDurationLabel": {
+      "comment": "Label for the slider setting how long a postpone pushes the break back.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Postpone duration"
+          }
+        }
+      }
+    },
+    "postponeWindowExceedsRestWarning": {
+      "comment": "Warning when the Postpone window is longer than the break.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Postpone window is longer than the break; Postpone stays for the whole break."
+          }
+        }
+      }
+    },
+    "postponeWindowHelp": {
+      "comment": "Help text for the Postpone window slider.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How long the Postpone button stays on screen after a break begins."
+          }
+        }
+      }
+    },
+    "postponeWindowLabel": {
+      "comment": "Label for the slider setting how long the Postpone button stays visible.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Postpone available for"
+          }
+        }
+      }
+    },
     "preferences": {
       "comment": "Title of the Preferences window and the menu button that opens it.",
       "extractionState": "manual",
@@ -441,6 +561,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Time to rest"
+          }
+        }
+      }
+    },
+    "windowsOverlapWarning": {
+      "comment": "Warning when the Postpone and “I’m back” windows overlap.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Postpone and “I’m back” windows overlap — both buttons can appear at once."
           }
         }
       }
