@@ -69,8 +69,13 @@ final class TimerState {
 
     // MARK: - Private State
 
-    private var savedRestRemaining: TimeInterval?
-    private var isSystemAsleep = false
+    /// The saved break remainder while a postpone is in flight. Internal (not `private`)
+    /// so the sleep/wake extension in `TimerState+SleepWake.swift` can reconcile it.
+    var savedRestRemaining: TimeInterval?
+
+    /// Whether the system or display is currently asleep. Internal for the sleep/wake
+    /// extension.
+    var isSystemAsleep = false
 
     /// A test-supplied postpone delay that takes precedence over the live preference;
     /// `nil` in the app so the value is read from preferences. Read by the break-button
@@ -80,9 +85,9 @@ final class TimerState {
     /// The mode to restore when a user pause resumes; `nil` when not paused.
     private var modeBeforePause: Mode?
 
-    /// The moment sleep/display-off began, used to measure how long the user was
-    /// away on wake. `nil` while awake.
-    private var sleptAt: Date?
+    /// The moment sleep/display-off began, used to measure how long the user was away on
+    /// wake. `nil` while awake. Internal for the sleep/wake extension.
+    var sleptAt: Date?
 
     /// Internal (not `private`) so the break-button extension can read the clock.
     let countdown: Countdown
@@ -91,7 +96,8 @@ final class TimerState {
     /// Internal (not `private`) so the break-button extension can read live preferences.
     let defaults: any KeyValueStore
 
-    private var autoStartWorkTimer: Bool {
+    /// Whether work auto-starts after a break. Internal for the sleep/wake extension.
+    var autoStartWorkTimer: Bool {
         (defaults.string(forKey: PreferenceKeys.workStartMode)
             .flatMap { WorkStartMode(rawValue: $0) } ?? PreferenceDefaults.workStartMode) == .automatic
     }
@@ -231,11 +237,14 @@ final class TimerState {
         handleCountdownExpiryIfNeeded()
     }
 
-    private func resumeCountdown() {
+    /// Internal so the sleep/wake extension can re-arm the countdown after waking.
+    func resumeCountdown() {
         beginCountdown(for: timeRemaining)
     }
 
-    private func handleCountdownExpiryIfNeeded() {
+    /// Internal so the sleep/wake extension can fire a transition the countdown elapsed
+    /// into while the machine was asleep.
+    func handleCountdownExpiryIfNeeded() {
         guard countdown.remaining(at: countdown.now) <= 0 else { return }
 
         // While the system or display is asleep we defer every transition until wake,
@@ -280,73 +289,43 @@ final class TimerState {
     }
 
     private func enterRestPhase() {
-        mode = .resting
-        modeBeforePause = nil
-        hasPostponeBeenUsedThisCycle = false
-        savedRestRemaining = nil
-        overlays.show(self)
-        beginCountdown(for: restDurationSecs)
+        beginRest(for: restDurationSecs, refreshingPostpone: true)
     }
 
     private func resumeRest() {
         guard let saved = savedRestRemaining else { return }
 
+        beginRest(for: saved, refreshingPostpone: false)
+    }
+
+    /// Enters the rest phase with `duration` on the clock and shows the break overlay.
+    ///
+    /// `refreshingPostpone` restores postpone availability for a brand-new cycle's break
+    /// (entered from work); a resumed postpone remainder keeps its already-spent state.
+    /// Internal so the sleep/wake extension can resume a prorated break on wake.
+    func beginRest(for duration: TimeInterval, refreshingPostpone: Bool) {
         mode = .resting
         modeBeforePause = nil
+        if refreshingPostpone {
+            hasPostponeBeenUsedThisCycle = false
+        }
         savedRestRemaining = nil
         overlays.show(self)
-        beginCountdown(for: saved)
+        beginCountdown(for: duration)
     }
 
-    // MARK: - Sleep/Wake Handling
-
-    /// Records that the system or display went to sleep.
-    ///
-    /// The countdown is deliberately *not* frozen: per issue #4 the timer never stops
-    /// on sleep or screen lock. We only note the moment so `handleWake` can measure
-    /// how long the user was away. A duplicate notification (system *and* display
-    /// sleep can both fire) keeps the original timestamp.
-    private func handleSleep() {
-        guard isSystemAsleep == false else { return }
-
-        isSystemAsleep = true
-        sleptAt = countdown.now
-    }
-
-    /// Reconciles the timer with the wall-clock time that elapsed while asleep.
-    ///
-    /// Work and postponed work follow the hybrid rule from issues #4 and #69: an
-    /// absence at least as long as a full break counts as the break itself and starts
-    /// a fresh work session, while a shorter absence simply continues the wall-clock
-    /// countdown. A break that elapsed while away resolves on wake (auto-resuming into
-    /// work when enabled). A user pause is left untouched.
-    private func handleWake() {
-        guard isSystemAsleep else { return }
-
-        isSystemAsleep = false
-        let awayDuration = sleptAt.map { countdown.now.timeIntervalSince($0) } ?? 0
-        sleptAt = nil
-
-        let workMode = mode == .running || mode == .postponedWork
-        if workMode, awayDuration >= restDurationSecs {
-            // A long absence counts as the break itself: discard the cycle and begin a
-            // fresh work session. `enterRestPhase` later restores postpone availability
-            // and clears any saved rest for the new cycle.
-            start()
-        } else if isRunning {
-            // Otherwise resolve the wall-clock time that elapsed while away.
-            resolveCountdownAfterWake()
-        }
-    }
-
-    /// After waking, fires a transition the countdown elapsed into while away, or
-    /// re-arms the expiry for the time that still remains.
-    private func resolveCountdownAfterWake() {
-        if timeRemaining <= 0 {
-            handleCountdownExpiryIfNeeded()
-        } else {
-            resumeCountdown()
-        }
+    /// Parks in `.awaitingReturn` and presents the break-end window after an absence
+    /// served as the break while manual work-start is active. Unlike the rest-expiry
+    /// path, no overlay is on screen yet (the user was working), so this presents one.
+    /// Internal so the sleep/wake extension can drive it.
+    func awaitReturnAfterAbsence() {
+        countdown.clear()
+        mode = .awaitingReturn
+        modeBeforePause = nil
+        savedRestRemaining = nil
+        hasPostponeBeenUsedThisCycle = false
+        overlays.show(self)
+        sleepWakeObserver.stopObserving()
     }
 
     // MARK: - Formatting
