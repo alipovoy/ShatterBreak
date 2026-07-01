@@ -299,7 +299,7 @@ final class TimerState {
             hasPostponeBeenUsedThisCycle = false
         }
         savedRestRemaining = nil
-        overlays.show(self)
+        overlays.show(self, false)
         beginCountdown(for: duration)
     }
 
@@ -308,8 +308,9 @@ final class TimerState {
     ///
     /// `presentingOverlay` shows the window for the wake path where an absence served as
     /// the break and no overlay is on screen yet (the user was working); the rest-expiry
-    /// path already has one up. Internal so the sleep/wake extension can drive it after an
-    /// absence that replaced the break.
+    /// path already has one up. That window is presented already settled (issue #76): no
+    /// shake intro or entrance sound, since the break already elapsed silently. Internal so
+    /// the sleep/wake extension can drive it after an absence that replaced the break.
     func finishBreak(presentingOverlay: Bool) {
         if autoStartWorkTimer {
             // `start()` dismisses any break overlay because `mode` is still `.resting`.
@@ -326,7 +327,7 @@ final class TimerState {
         mode = .awaitingReturn
         savedRestRemaining = nil
         if presentingOverlay {
-            overlays.show(self)
+            overlays.show(self, true)
         }
         sleepWakeObserver.stopObserving()
     }

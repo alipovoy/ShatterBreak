@@ -34,6 +34,7 @@ struct TimerStateWakeReconcileTests {
         #expect(recorder.showCount == 1, "Crossing into the break should present the break overlay.")
         #expect(recorder.dismissCount == 0, "Crossing into the break should not dismiss an overlay.")
         #expect(state.canPostpone, "A brand-new cycle's break re-grants postpone (refreshingPostpone: true).")
+        #expect(recorder.lastSettled == false, "A break that just started keeps its full intro and sound.")
     }
 
     @Test("long absence during work awaits the user in manual mode")
@@ -59,6 +60,10 @@ struct TimerStateWakeReconcileTests {
         #expect(state.awaitingReturn, "Manual mode should wait for the user after a long absence during work.")
         #expect(state.isRunning == false, "Work must not silently restart in manual mode.")
         #expect(recorder.showCount == 1, "The break-end window should be presented for the user to start work.")
+        #expect(
+            recorder.lastSettled == true,
+            "An absence that served as the break should present the break-end window already settled (issue #76)."
+        )
 
         state.start()
         #expect(state.isRunning, "Starting from the break-end window should begin a fresh work session.")
@@ -139,6 +144,7 @@ struct TimerStateWakeReconcileTests {
         #expect(state.isResting, "The absence crossed the sleep-time work remainder into the break.")
         #expect(state.timeRemaining == 3, "The break resumes crediting the whole away time (8 - 5).")
         #expect(recorder.showCount == 1, "Crossing into the break should present the break overlay.")
+        #expect(recorder.lastSettled == false, "A break that just started keeps its full intro and sound.")
     }
 
     @Test("long absence during postponed work awaits the user in manual mode")
@@ -168,6 +174,10 @@ struct TimerStateWakeReconcileTests {
         #expect(state.isRunning == false, "Work must not silently restart in manual mode.")
         #expect(state.savedRestRemaining == nil, "The in-flight saved break must be discarded, not leaked.")
         #expect(recorder.showCount == 2, "The break-end window is presented after the earlier postpone overlay.")
+        #expect(
+            recorder.lastSettled == true,
+            "An absence that served as the break should present the break-end window already settled (issue #76)."
+        )
 
         state.start()
         #expect(state.isRunning, "Starting from the break-end window should begin a fresh work session.")

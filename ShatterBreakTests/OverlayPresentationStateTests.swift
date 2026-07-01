@@ -82,8 +82,7 @@ struct OverlayPresentationStateTests {
             phase: .shatterIntro,
             isShatterEffect: true,
             reduceMotion: true,
-            playSoundEnabled: true,
-            hasPlayedSound: false
+            shouldPlaySound: true
         )
 
         #expect(
@@ -98,8 +97,7 @@ struct OverlayPresentationStateTests {
             phase: .shatterIntro,
             isShatterEffect: true,
             reduceMotion: true,
-            playSoundEnabled: true,
-            hasPlayedSound: true
+            shouldPlaySound: false
         )
 
         #expect(
@@ -114,11 +112,48 @@ struct OverlayPresentationStateTests {
             phase: .shatterIntro,
             isShatterEffect: true,
             reduceMotion: false,
-            playSoundEnabled: true,
-            hasPlayedSound: false
+            shouldPlaySound: true
         )
 
         #expect(action == .animateShatterIntro, "Without Reduce Motion, shatter intro should animate.")
+    }
+
+    @Test("a settled overlay starts shattered without an intro or sound")
+    @MainActor
+    func settledOverlayStartsShatteredWithoutIntro() throws {
+        let state = OverlayPresentationState(effectType: .shatter, settled: true)
+        let image = try #require(makeTestImage(width: 1))
+
+        state.startShatter(with: image)
+
+        #expect(state.phase == .shattered, "A settled overlay should skip the intro and start shattered.")
+        #expect(state.showsCracks, "The shattered phase should display cracks immediately.")
+    }
+
+    @Test("a plain non-shatter overlay stays idle when it should not play its sound")
+    func nonShatterOverlaySuppressesSoundWhenNotShouldPlay() {
+        // Callers suppress `shouldPlaySound` for a settled overlay (issue #76), so the
+        // resulting `.idle` action is what keeps the fogged/dimmed entrance silent.
+        let action = OverlayPhaseAction.resolve(
+            phase: .plain,
+            isShatterEffect: false,
+            reduceMotion: false,
+            shouldPlaySound: false
+        )
+
+        #expect(action == .idle, "A settled fogged/dimmed overlay should appear without its entrance sound.")
+    }
+
+    @Test("a plain non-shatter overlay plays its entrance sound when it should")
+    func nonShatterOverlayPlaysSoundWhenShouldPlay() {
+        let action = OverlayPhaseAction.resolve(
+            phase: .plain,
+            isShatterEffect: false,
+            reduceMotion: false,
+            shouldPlaySound: true
+        )
+
+        #expect(action == .playSound, "A normal fogged/dimmed break start should play its entrance sound.")
     }
 
     private func makeTestImage(width: Int) -> CGImage? {

@@ -9,10 +9,16 @@ import Foundation
 final class OverlayRecorder {
     private(set) var showCount = 0
     private(set) var dismissCount = 0
+    /// The `settled` argument from the most recent `show` call, so tests can assert
+    /// whether the break-end window was presented already settled (issue #76).
+    private(set) var lastSettled: Bool?
 
     var presenter: OverlayPresenter {
         OverlayPresenter(
-            show: { [unowned self] _ in showCount += 1 },
+            show: { [unowned self] _, settled in
+                showCount += 1
+                lastSettled = settled
+            },
             dismiss: { [unowned self] in dismissCount += 1 }
         )
     }

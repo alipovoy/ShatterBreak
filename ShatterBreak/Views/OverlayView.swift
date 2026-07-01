@@ -137,8 +137,7 @@ struct OverlayView: View {
             phase: presentation.phase,
             isShatterEffect: presentation.isShatterEffect,
             reduceMotion: accessibilityReduceMotion,
-            playSoundEnabled: playSound,
-            hasPlayedSound: hasPlayedSound
+            shouldPlaySound: playSound && hasPlayedSound == false && presentation.settled == false
         ) {
         case .idle:
             shakeOffset = 0
