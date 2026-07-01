@@ -10,14 +10,7 @@ struct BreakTimingWarningsView: View {
         if warnings.isEmpty == false {
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(warnings, id: \.self) { warning in
-                    Label {
-                        Text(message(for: warning))
-                    } icon: {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                    }
-                    .font(.callout)
-                    .foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
+                    WarningLabel(message: message(for: warning))
                 }
             }
             // A preferred reading width keeps these long warnings from dictating the
