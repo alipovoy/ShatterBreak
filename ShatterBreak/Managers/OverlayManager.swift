@@ -9,6 +9,7 @@ final class OverlayManager {
         let id: UUID
         let state: TimerState
         let effectType: EffectType
+        let settled: Bool
     }
 
     private var windows: [CGDirectDisplayID: NSWindow] = [:]
@@ -72,7 +73,7 @@ final class OverlayManager {
         return .fogged
     }
 
-    func showOverlays(state: TimerState) {
+    func showOverlays(state: TimerState, settled: Bool) {
         dismissOverlays()
 
         let hasScreenRecordingPermission = captureClient.hasPermission()
@@ -85,11 +86,12 @@ final class OverlayManager {
         session = ActiveSession(
             id: sessionID,
             state: state,
-            effectType: effectType
+            effectType: effectType,
+            settled: settled
         )
 
         for screen in captureClient.availableScreens() {
-            presentOverlay(for: screen, state: state, effectType: effectType)
+            presentOverlay(for: screen, state: state, effectType: effectType, settled: settled)
         }
 
         // Only the shatter effect captures the screen. A resolved `.shatter` always
@@ -144,7 +146,12 @@ final class OverlayManager {
 
         var addedDisplayIDs: Set<CGDirectDisplayID> = []
         for screen in plan.added {
-            presentOverlay(for: screen, state: session.state, effectType: session.effectType)
+            presentOverlay(
+                for: screen,
+                state: session.state,
+                effectType: session.effectType,
+                settled: session.settled
+            )
             addedDisplayIDs.insert(screen.displayID)
         }
 
@@ -175,7 +182,7 @@ final class OverlayManager {
     /// capture whose session no longer matches the active one.
     ///
     /// The session guard protects against a capture that finishes after
-    /// ``dismissOverlays()`` (or a newer ``showOverlays(state:)``) rotated
+    /// ``dismissOverlays()`` (or a newer ``showOverlays(state:settled:)``) rotated
     /// ``activeSessionID``: a stale image must never be painted onto the windows
     /// of a later session. Displays missing from `images` fall back to a plain
     /// overlay because ``OverlayPresentationState/startShatter(with:)`` accepts a
@@ -195,8 +202,13 @@ final class OverlayManager {
 
     /// Builds an overlay window for `screen`, hosts an ``OverlayView`` on it, shows it,
     /// and registers both the window and its presentation state by display ID.
-    private func presentOverlay(for screen: ScreenInfo, state: TimerState, effectType: EffectType) {
-        let overlayState = OverlayPresentationState(effectType: effectType)
+    private func presentOverlay(
+        for screen: ScreenInfo,
+        state: TimerState,
+        effectType: EffectType,
+        settled: Bool
+    ) {
+        let overlayState = OverlayPresentationState(effectType: effectType, settled: settled)
         let window = makeWindow(frame: screen.frame)
         let hostingView = NSHostingView(
             rootView: OverlayView(state: state, presentation: overlayState)

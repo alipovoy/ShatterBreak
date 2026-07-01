@@ -8,17 +8,17 @@ enum OverlayPhaseAction: Equatable {
         phase: OverlayPresentationState.Phase,
         isShatterEffect: Bool,
         reduceMotion: Bool,
-        playSoundEnabled: Bool,
-        hasPlayedSound: Bool
+        shouldPlaySound: Bool,
+        isSettled: Bool
     ) -> Self {
-        let shouldPlaySound = playSoundEnabled && hasPlayedSound == false
+        let playsSound = shouldPlaySound && isSettled == false
 
         switch phase {
         case .plain:
-            return isShatterEffect ? .idle : (shouldPlaySound ? .playSound : .idle)
+            return isShatterEffect ? .idle : (playsSound ? .playSound : .idle)
         case .shatterIntro:
             if reduceMotion {
-                return .finishShatterIntro(playSound: shouldPlaySound)
+                return .finishShatterIntro(playSound: playsSound)
             }
 
             return .animateShatterIntro
