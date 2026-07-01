@@ -15,9 +15,9 @@ final class OverlayRecorder {
 
     var presenter: OverlayPresenter {
         OverlayPresenter(
-            show: { [unowned self] _, settled in
+            show: { [unowned self] _, style in
                 showCount += 1
-                lastSettled = settled
+                lastSettled = style == .settled
             },
             dismiss: { [unowned self] in dismissCount += 1 }
         )

@@ -299,7 +299,7 @@ final class TimerState {
             hasPostponeBeenUsedThisCycle = false
         }
         savedRestRemaining = nil
-        overlays.show(self, false)
+        overlays.show(self, .animated)
         beginCountdown(for: duration)
     }
 
@@ -327,7 +327,7 @@ final class TimerState {
         mode = .awaitingReturn
         savedRestRemaining = nil
         if presentingOverlay {
-            overlays.show(self, true)
+            overlays.show(self, .settled)
         }
         sleepWakeObserver.stopObserving()
     }
