@@ -5,17 +5,10 @@ struct PermissionWarningView: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            HStack(alignment: .top) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.yellow)
-                Text(.permissionWarningText)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            WarningLabel(message: .permissionWarningText)
             Button(.openSystemSettingsToGrant, action: onOpenSystemSettings)
                 .buttonStyle(.link)
-                .font(.footnote)
+                .font(.callout)
         }
         // A preferred reading width keeps this note from dictating the Form's width;
         // maxWidth lets it fill and wrap to whatever the surrounding controls set.
