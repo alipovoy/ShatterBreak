@@ -73,10 +73,6 @@ final class TimerState {
     /// so the sleep/wake extension in `TimerState+SleepWake.swift` can reconcile it.
     var savedRestRemaining: TimeInterval?
 
-    /// Whether the system or display is currently asleep. Internal for the sleep/wake
-    /// extension.
-    var isSystemAsleep = false
-
     /// A test-supplied postpone delay that takes precedence over the live preference;
     /// `nil` in the app so the value is read from preferences. Read by the break-button
     /// extension in `TimerState+BreakButtons.swift`.
@@ -85,8 +81,9 @@ final class TimerState {
     /// The mode to restore when a user pause resumes; `nil` when not paused.
     private var modeBeforePause: Mode?
 
-    /// The moment sleep/display-off began, used to measure how long the user was away on
-    /// wake. `nil` while awake. Internal for the sleep/wake extension.
+    /// The moment sleep/display-off began. Doubles as the "asleep" flag — non-`nil` while
+    /// asleep — and measures how long the user was away on wake. Internal for the
+    /// sleep/wake extension.
     var sleptAt: Date?
 
     /// Internal (not `private`) so the break-button extension can read the clock.
@@ -249,23 +246,15 @@ final class TimerState {
 
         // While the system or display is asleep we defer every transition until wake,
         // where `handleWake` decides what to do with the time the user spent away.
-        guard isSystemAsleep == false else { return }
+        guard sleptAt == nil else { return }
 
         switch mode {
         case .postponedWork:
             countdown.clear()
             resumeRest()
         case .resting:
-            countdown.clear()
-
-            if autoStartWorkTimer {
-                // `start()` dismisses the overlays because `mode` is still `.resting`.
-                start()
-            } else {
-                mode = .awaitingReturn
-                sleepWakeObserver.stopObserving()
-                // Overlay remains visible for user to click "I'm back"
-            }
+            // The break overlay is already on screen, so keep it up rather than re-present.
+            finishBreak(presentingOverlay: false)
         case .running:
             countdown.clear()
             enterRestPhase()
@@ -314,17 +303,31 @@ final class TimerState {
         beginCountdown(for: duration)
     }
 
-    /// Parks in `.awaitingReturn` and presents the break-end window after an absence
-    /// served as the break while manual work-start is active. Unlike the rest-expiry
-    /// path, no overlay is on screen yet (the user was working), so this presents one.
-    /// Internal so the sleep/wake extension can drive it.
-    func awaitReturnAfterAbsence() {
+    /// Completes a break: auto-starts the next work session when enabled, otherwise parks
+    /// in the break-end window and waits for the user.
+    ///
+    /// `presentingOverlay` shows the window for the wake path where an absence served as
+    /// the break and no overlay is on screen yet (the user was working); the rest-expiry
+    /// path already has one up. Internal so the sleep/wake extension can drive it after an
+    /// absence that replaced the break.
+    func finishBreak(presentingOverlay: Bool) {
+        if autoStartWorkTimer {
+            // `start()` dismisses any break overlay because `mode` is still `.resting`.
+            start()
+        } else {
+            awaitReturn(presentingOverlay: presentingOverlay)
+        }
+    }
+
+    /// Parks in `.awaitingReturn`, discarding any in-flight saved break, and optionally
+    /// presents the break-end window.
+    private func awaitReturn(presentingOverlay: Bool) {
         countdown.clear()
         mode = .awaitingReturn
-        modeBeforePause = nil
         savedRestRemaining = nil
-        hasPostponeBeenUsedThisCycle = false
-        overlays.show(self)
+        if presentingOverlay {
+            overlays.show(self)
+        }
         sleepWakeObserver.stopObserving()
     }
 

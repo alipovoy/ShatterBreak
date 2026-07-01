@@ -13,9 +13,8 @@ extension TimerState {
     /// long the user was away. A duplicate notification (system *and* display sleep can
     /// both fire) keeps the original timestamp.
     func handleSleep() {
-        guard isSystemAsleep == false else { return }
+        guard sleptAt == nil else { return }
 
-        isSystemAsleep = true
         sleptAt = countdown.now
     }
 
@@ -25,12 +24,11 @@ extension TimerState {
     /// the break completes if it elapsed. Work and postponed work defer to
     /// ``WakeOutcome``. A user pause is left untouched.
     func handleWake() {
-        guard isSystemAsleep else { return }
+        guard let sleptAt else { return }
 
-        isSystemAsleep = false
-        let away = sleptAt.map { countdown.now.timeIntervalSince($0) } ?? 0
-        let workRemaining = sleptAt.map { countdown.remaining(at: $0) } ?? timeRemaining
-        sleptAt = nil
+        let away = countdown.now.timeIntervalSince(sleptAt)
+        let workRemaining = countdown.remaining(at: sleptAt)
+        self.sleptAt = nil
 
         switch mode {
         case .running, .postponedWork:
@@ -58,15 +56,10 @@ extension TimerState {
         case .resumeWork:
             resumeCountdown()
         case .startFreshSession:
-            // Honor the work-start mode: automatic starts work immediately, while manual
-            // shows the break-end window and waits for the user.
-            if autoStartWorkTimer {
-                start()
-            } else {
-                awaitReturnAfterAbsence()
-            }
+            // The absence served as the break, so honor the work-start mode and present the
+            // break-end window — none is on screen yet, since the user was working.
+            finishBreak(presentingOverlay: true)
         case .resumeBreak(let remaining, let refreshingPostpone):
-            countdown.clear()
             beginRest(for: remaining, refreshingPostpone: refreshingPostpone)
         }
     }

@@ -70,5 +70,21 @@ struct WakeOutcomeTests {
             resolve(away: 3, workRemaining: 1, restDuration: 10, isPostponedWork: true, savedRestRemaining: 2)
                 == .startFreshSession
         )
+        // Boundary: away exactly equal to the saved remainder leaves zero break, which the
+        // `breakRemaining > 0` guard must still treat as a fresh session (not a 0s break).
+        #expect(
+            resolve(away: 2, workRemaining: 1, restDuration: 10, isPostponedWork: true, savedRestRemaining: 2)
+                == .startFreshSession
+        )
+    }
+
+    @Test("a postponed wake with no saved remainder falls back to the full rest duration")
+    func postponedBreakWithoutSavedRemainderUsesRestDuration() {
+        // Defensive: postponed work but no saved remainder → breakDuration = restDuration.
+        // 10 - 6 = 4 left; the resumed break keeps postpone spent (refreshingPostpone false).
+        #expect(
+            resolve(away: 6, workRemaining: 5, restDuration: 10, isPostponedWork: true, savedRestRemaining: nil)
+                == .resumeBreak(remaining: 4, refreshingPostpone: false)
+        )
     }
 }

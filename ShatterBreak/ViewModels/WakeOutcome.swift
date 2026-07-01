@@ -47,6 +47,9 @@ enum WakeOutcome: Equatable {
         let breakDuration = isPostponedWork ? (savedRestRemaining ?? restDuration) : restDuration
         let breakRemaining = breakDuration - away
 
+        // Only reachable as `false` for postponed work whose saved remainder the absence
+        // fully covered. For regular work `breakDuration == restDuration`, and `away <
+        // restDuration` (checked above) already guarantees a positive remainder.
         guard breakRemaining > 0 else {
             return .startFreshSession
         }
