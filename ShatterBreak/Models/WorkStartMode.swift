@@ -6,18 +6,7 @@ import Foundation
 /// The lowercase `rawValue` of each case is the string persisted in user defaults;
 /// an unrecognized stored value decodes to `nil`, letting the read site fall back
 /// to a default rather than trusting a corrupt preference.
-enum WorkStartMode: String, CaseIterable, Identifiable {
+enum WorkStartMode: String {
     case automatic
     case manual
-
-    var id: String { rawValue }
-
-    var displayName: LocalizedStringResource {
-        switch self {
-        case .automatic:
-            .workStartModeAutomatic
-        case .manual:
-            .workStartModeManual
-        }
-    }
 }
