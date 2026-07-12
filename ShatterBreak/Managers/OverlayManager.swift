@@ -247,15 +247,21 @@ final class OverlayManager {
     }
 
     private func makeWindow(frame: CGRect) -> NSWindow {
-        let window = NSWindow(
+        // A non-activating panel so overlay button clicks never activate this app
+        // and steal keyboard focus from the app the user was working in (issue #79).
+        let window = OverlayPanel(
             contentRect: frame,
-            styleMask: .borderless,
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
 
         // Prevent AppKit from auto-releasing the window on close, as we manage its lifecycle.
         window.isReleasedWhenClosed = false
+
+        // Panels hide when their app deactivates by default; the overlay must stay
+        // up while another app remains active for the whole break.
+        window.hidesOnDeactivate = false
 
         // Allow overlaying native fullscreen spaces.
         window.collectionBehavior = [
