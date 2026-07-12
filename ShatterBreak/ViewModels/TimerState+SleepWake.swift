@@ -60,6 +60,12 @@ extension TimerState {
             // break-end window — none is on screen yet, since the user was working.
             finishBreak(presentingOverlay: true)
         case .resumeBreak(let remaining, let refreshingPostpone):
+            // A fresh cycle's break (`refreshingPostpone`) means the *work* countdown ran
+            // out during the absence: that session completed, just off-screen. A resumed
+            // postponed break's work session was already counted when it entered rest.
+            if refreshingPostpone {
+                statistics.record(.workSessionCompleted)
+            }
             beginRest(for: remaining, refreshingPostpone: refreshingPostpone)
         }
     }

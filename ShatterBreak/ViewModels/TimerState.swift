@@ -86,6 +86,10 @@ final class TimerState {
     /// sleep/wake extension.
     var sleptAt: Date?
 
+    /// Tallies completed sessions, breaks, postpones, and early returns (issue #10).
+    /// Exposed so the menu's statistics section can read and reset the counters.
+    let statistics: StatisticsStore
+
     /// Internal (not `private`) so the break-button extension can read the clock.
     let countdown: Countdown
     private let sleepWakeObserver: SleepWakeObserver
@@ -106,11 +110,13 @@ final class TimerState {
         postponeDurationSecs: Double? = nil,
         defaults: any KeyValueStore = UserDefaults.standard,
         scheduler: (any CountdownScheduler)? = nil,
-        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
+        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
+        statistics: StatisticsStore? = nil
     ) {
         self.overlays = overlays
         self.postponeDurationOverride = postponeDurationSecs
         self.defaults = defaults
+        self.statistics = statistics ?? StatisticsStore(defaults: defaults)
         self.countdown = Countdown(scheduler: scheduler ?? SystemCountdownScheduler())
         self.sleepWakeObserver = SleepWakeObserver(notificationCenter: workspaceNotificationCenter)
         self.workDurationSecs = Self.loadDuration(
@@ -155,6 +161,12 @@ final class TimerState {
     // MARK: - User Actions
 
     func start() {
+        // A start from idle is the stop→start boundary where the opt-in automatic
+        // statistics reset begins a fresh tally.
+        if mode == .idle {
+            statistics.resetForNewSessionIfEnabled()
+        }
+
         if mode == .resting || mode == .awaitingReturn {
             overlays.dismiss()
         }
@@ -209,8 +221,24 @@ final class TimerState {
         savedRestRemaining = remainingRest
         mode = .postponedWork
         hasPostponeBeenUsedThisCycle = true
+        statistics.record(.postponed)
         overlays.dismiss()
         beginCountdown(for: postponeDurationSecs)
+    }
+
+    /// The overlay's "I'm back" action.
+    ///
+    /// Tapped while still resting — inside the closing early-return window — the break
+    /// counts as taken (the rest happened; the user just declines to stare at the screen
+    /// for its final seconds) and the early return is tallied so a pattern of cutting
+    /// breaks short stays visible. From `.awaitingReturn` it is the routine manual-mode
+    /// resume and counts nothing.
+    func returnToWork() {
+        if mode == .resting {
+            statistics.record(.breakCompleted)
+            statistics.record(.earlyReturn)
+        }
+        start()
     }
 
     // MARK: - Timer Control
@@ -253,9 +281,11 @@ final class TimerState {
             countdown.clear()
             resumeRest()
         case .resting:
+            statistics.record(.breakCompleted)
             // The break overlay is already on screen, so keep it up rather than re-present.
             finishBreak(presentingOverlay: false)
         case .running:
+            statistics.record(.workSessionCompleted)
             countdown.clear()
             enterRestPhase()
         case .idle, .paused, .awaitingReturn:

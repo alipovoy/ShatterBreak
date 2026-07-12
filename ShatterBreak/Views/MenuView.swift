@@ -6,6 +6,9 @@ struct MenuView: View {
     @Environment(\.openWindow) private var openWindow
     @State private var isWindowVisible = false
 
+    @AppStorage(PreferenceKeys.trackStatistics)
+    private var trackStatistics = PreferenceDefaults.trackStatistics
+
     var onQuit: () -> Void = { NSApp.terminate(nil) }
 
     var body: some View {
@@ -65,6 +68,12 @@ struct MenuView: View {
                     max: DurationBounds.restMaximumSecs,
                     disabled: !state.canEditDurations
                 )
+            }
+
+            if trackStatistics {
+                Divider()
+
+                StatisticsSectionView(statistics: state.statistics)
             }
 
             Divider()

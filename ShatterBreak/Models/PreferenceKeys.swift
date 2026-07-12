@@ -10,8 +10,12 @@ enum PreferenceKeys {
     static let playSound = "playSound"
     static let postponeDurationSecs = "postponeDurationSecs"
     static let postponeWindowSecs = "postponeWindowSecs"
+    static let resetStatisticsOnStart = "resetStatisticsOnStart"
     static let restDurationSecs = "restDurationSecs"
+    static let sessionStatistics = "sessionStatistics"
     static let softOverlay = "softOverlay"
+    static let statisticsExpanded = "statisticsExpanded"
+    static let trackStatistics = "trackStatistics"
     static let workDurationSecs = "workDurationSecs"
     static let workStartMode = "workStartMode"
 }

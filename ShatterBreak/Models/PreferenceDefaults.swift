@@ -16,8 +16,11 @@ enum PreferenceDefaults {
     static let playSound = true
     static let postponeDurationSecs: Double = 60
     static let postponeWindowSecs: Double = 60
+    static let resetStatisticsOnStart = false
     static let restDurationSecs: Double = 300
     static let softOverlay = true
+    static let statisticsExpanded = true
+    static let trackStatistics = false
     static let workDurationSecs: Double = 1500
     static let workStartMode: WorkStartMode = .automatic
 }
