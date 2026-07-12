@@ -3,12 +3,13 @@ import SwiftUI
 struct CountdownTextView: View {
     let state: TimerState
     var isActive = true
+    var displayStyle: CountdownDisplayStyle = .seconds
 
     @State private var referenceDate = Date.now
 
     var body: some View {
-        Text(state.formattedTimeRemaining(at: referenceDate))
-            .task(id: CountdownTaskKey(mode: state.mode, isActive: isActive)) {
+        Text(displayStyle.text(forRemaining: state.timeRemaining(at: referenceDate)))
+            .task(id: CountdownTaskKey(mode: state.mode, isActive: isActive, displayStyle: displayStyle)) {
                 await driveVisibleClockIfNeeded()
             }
     }
@@ -25,8 +26,8 @@ struct CountdownTextView: View {
 
             do {
                 try await Task.sleep(
-                    for: nextRefreshDelay(for: remaining),
-                    tolerance: .milliseconds(100)
+                    for: displayStyle.nextRefreshDelay(forRemaining: remaining),
+                    tolerance: displayStyle.refreshTolerance(forRemaining: remaining)
                 )
             } catch {
                 return
@@ -35,15 +36,10 @@ struct CountdownTextView: View {
             referenceDate = Date.now
         }
     }
-
-    private func nextRefreshDelay(for remaining: TimeInterval) -> Duration {
-        let fractionalSecond = remaining - floor(remaining)
-        let secondsUntilRefresh = fractionalSecond > 0 ? fractionalSecond : 1
-        return .seconds(secondsUntilRefresh)
-    }
 }
 
 private struct CountdownTaskKey: Equatable {
     let mode: TimerState.Mode
     let isActive: Bool
+    let displayStyle: CountdownDisplayStyle
 }

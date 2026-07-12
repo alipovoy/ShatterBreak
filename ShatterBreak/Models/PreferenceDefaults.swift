@@ -12,11 +12,11 @@ enum PreferenceDefaults {
     static let autoStartOnLaunch = false
     static let earlyReturnLeadSecs: Double = 30
     static let effectType: EffectType = .shatter
+    static let menuBarTimerStyle: MenuBarTimerStyle = .off
     static let playSound = true
     static let postponeDurationSecs: Double = 60
     static let postponeWindowSecs: Double = 60
     static let restDurationSecs: Double = 300
-    static let showTimerInMenuBar = false
     static let softOverlay = true
     static let workDurationSecs: Double = 1500
     static let workStartMode: WorkStartMode = .automatic

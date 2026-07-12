@@ -6,8 +6,8 @@ struct ShatterBreakApp: App {
     // State is initialized on MainActor since App is @MainActor
     @State private var timerState = TimerState()
     @State private var permissions = ScreenCapturePermissionManager.shared
-    @AppStorage(PreferenceKeys.showTimerInMenuBar)
-    private var showTimerInMenuBar = PreferenceDefaults.showTimerInMenuBar
+    @AppStorage(PreferenceKeys.menuBarTimerStyle)
+    private var menuBarTimerStyle = PreferenceDefaults.menuBarTimerStyle
 
     var body: some Scene {
         MenuBarExtra {
@@ -17,8 +17,9 @@ struct ShatterBreakApp: App {
             HStack(spacing: 4) {
                 Image(systemName: "app.badge.clock")
 
-                if showTimerInMenuBar && timerState.shouldShowTimeInMenuBar {
-                    CountdownTextView(state: timerState)
+                if timerState.shouldShowTimeInMenuBar,
+                   let displayStyle = menuBarTimerStyle.countdownDisplayStyle {
+                    CountdownTextView(state: timerState, displayStyle: displayStyle)
                         .font(.system(.body, design: .monospaced))
                 }
             }

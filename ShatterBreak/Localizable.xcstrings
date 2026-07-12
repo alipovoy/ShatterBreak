@@ -253,6 +253,42 @@
         }
       }
     },
+    "menuBarTimerStyleMinutes": {
+      "comment": "Menu bar timer option that shows only whole minutes, updating once a minute.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minutes"
+          }
+        }
+      }
+    },
+    "menuBarTimerStyleOff": {
+      "comment": "Menu bar timer option that hides the remaining time.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        }
+      }
+    },
+    "menuBarTimerStyleSeconds": {
+      "comment": "Menu bar timer option that shows minutes and seconds, updating every second.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minutes and seconds"
+          }
+        }
+      }
+    },
     "openSystemSettings": {
       "comment": "Alert button that opens System Settings to grant permission.",
       "extractionState": "manual",
@@ -470,19 +506,19 @@
       }
     },
     "showTimerInMenuBarHelp": {
-      "comment": "Help text describing the show-timer-in-menu-bar toggle.",
+      "comment": "Help text describing the show-timer-in-menu-bar picker.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When enabled, the remaining time will be shown next to the app icon in the menu bar."
+            "value": "Choose how the remaining time appears next to the app icon in the menu bar. Minutes updates once a minute to save energy and switches to seconds for the final minute."
           }
         }
       }
     },
     "showTimerInMenuBarToggle": {
-      "comment": "Preferences toggle that shows the remaining time in the menu bar.",
+      "comment": "Preferences picker that controls the remaining-time display in the menu bar.",
       "extractionState": "manual",
       "localizations": {
         "en": {
