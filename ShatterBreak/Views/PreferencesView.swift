@@ -14,32 +14,38 @@ struct PreferencesView: View {
     @State private var selectedTab: SettingsTab = .general
 
     var body: some View {
+        // Each tab's content renders only while selected: TabView measures every
+        // tab to size itself, so populated hidden tabs would fix the window at
+        // the tallest tab's height with shorter tabs floating centered in it.
         TabView(selection: $selectedTab) {
             Tab(value: SettingsTab.general) {
-                GeneralSettingsTab()
+                if selectedTab == .general {
+                    GeneralSettingsTab()
+                }
             } label: {
                 Label { Text(.settingsTabGeneral) } icon: { Image(systemName: "gearshape") }
             }
 
             Tab(value: SettingsTab.schedule) {
-                ScheduleSettingsTab(state: state)
+                if selectedTab == .schedule {
+                    ScheduleSettingsTab(state: state)
+                }
             } label: {
                 Label { Text(.settingsTabSchedule) } icon: { Image(systemName: "clock") }
             }
 
             Tab(value: SettingsTab.breakScreen) {
-                BreakScreenSettingsTab()
+                if selectedTab == .breakScreen {
+                    BreakScreenSettingsTab()
+                }
             } label: {
                 Label { Text(.settingsTabBreakScreen) } icon: { Image(systemName: "sparkles.rectangle.stack") }
             }
         }
         .frame(width: 480)
         // Hug the selected tab's height so the window opens content-sized and
-        // auto-resizes on tab switch. TabView keeps visited tabs alive, which
-        // would ratchet its ideal height up to the tallest tab seen; recreating
-        // it per selection re-measures from just the visible tab.
+        // resizes — both ways — when the selection or the tab's content changes.
         .fixedSize(horizontal: false, vertical: true)
-        .id(selectedTab)
         .onAppear { permissions.refresh() }
     }
 }
