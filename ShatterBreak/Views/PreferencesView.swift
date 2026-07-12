@@ -8,8 +8,8 @@ struct PreferencesView: View {
     @AppStorage(PreferenceKeys.effectType) private var effectType = PreferenceDefaults.effectType
     @AppStorage(PreferenceKeys.softOverlay) private var softOverlay = PreferenceDefaults.softOverlay
     @AppStorage(PreferenceKeys.allowPostpone) private var allowPostpone = PreferenceDefaults.allowPostpone
-    @AppStorage(PreferenceKeys.showTimerInMenuBar)
-    private var showTimerInMenuBar = PreferenceDefaults.showTimerInMenuBar
+    @AppStorage(PreferenceKeys.menuBarTimerStyle)
+    private var menuBarTimerStyle = PreferenceDefaults.menuBarTimerStyle
     @AppStorage(PreferenceKeys.workStartMode) private var workStartMode = PreferenceDefaults.workStartMode
     @AppStorage(PreferenceKeys.autoStartOnLaunch)
     private var autoStartOnLaunch = PreferenceDefaults.autoStartOnLaunch
@@ -106,8 +106,13 @@ struct PreferencesView: View {
                     .pickerStyle(.radioGroup)
                     .help(Text(.workStartModeHelp))
 
-                    Toggle(.showTimerInMenuBarToggle, isOn: $showTimerInMenuBar)
-                        .help(Text(.showTimerInMenuBarHelp))
+                    Picker(.showTimerInMenuBarToggle, selection: $menuBarTimerStyle) {
+                        ForEach(MenuBarTimerStyle.allCases) { style in
+                            Text(style.displayName).tag(style)
+                        }
+                    }
+                    .pickerStyle(.radioGroup)
+                    .help(Text(.showTimerInMenuBarHelp))
 
                     Toggle(.autoStartOnLaunchToggle, isOn: $autoStartOnLaunch)
                         .help(Text(.autoStartOnLaunchHelp))

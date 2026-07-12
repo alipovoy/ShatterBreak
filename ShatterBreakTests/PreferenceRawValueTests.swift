@@ -13,8 +13,14 @@ private let workStartModeRawValues: [(value: WorkStartMode, rawValue: String)] =
     (.manual, "manual")
 ]
 
-/// `EffectType` and `WorkStartMode` persist their lowercase `rawValue` in user
-/// defaults. These tests pin those strings so a case rename can't silently change a
+private let menuBarTimerStyleRawValues: [(value: MenuBarTimerStyle, rawValue: String)] = [
+    (.off, "off"),
+    (.minutes, "minutes"),
+    (.seconds, "seconds")
+]
+
+/// `EffectType`, `WorkStartMode`, and `MenuBarTimerStyle` persist their lowercase
+/// `rawValue` in user defaults. These tests pin those strings so a case rename can't silently change a
 /// stored key, and confirm that any unrecognized value (now including the formerly
 /// accepted capitalized aliases) decodes to `nil`, so the read sites fall back to a
 /// default instead of trusting a corrupt preference.
@@ -49,5 +55,22 @@ struct PreferenceRawValueTests {
     )
     func workStartModeRejectsUnknownRawValues(rawValue: String) {
         #expect(WorkStartMode(rawValue: rawValue) == nil, "WorkStartMode should reject \"\(rawValue)\".")
+    }
+
+    @Test("MenuBarTimerStyle round-trips its persisted raw value", arguments: menuBarTimerStyleRawValues)
+    func menuBarTimerStyleRoundTripsRawValue(_ testCase: (value: MenuBarTimerStyle, rawValue: String)) {
+        #expect(testCase.value.rawValue == testCase.rawValue, "MenuBarTimerStyle raw values must stay stable.")
+        #expect(
+            MenuBarTimerStyle(rawValue: testCase.rawValue) == testCase.value,
+            "MenuBarTimerStyle should decode its raw value."
+        )
+    }
+
+    @Test(
+        "MenuBarTimerStyle rejects unrecognized raw values",
+        arguments: ["", "Off", "Minutes", "Seconds", "hidden", "true", "false"]
+    )
+    func menuBarTimerStyleRejectsUnknownRawValues(rawValue: String) {
+        #expect(MenuBarTimerStyle(rawValue: rawValue) == nil, "MenuBarTimerStyle should reject \"\(rawValue)\".")
     }
 }

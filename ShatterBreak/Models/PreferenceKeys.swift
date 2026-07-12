@@ -6,10 +6,12 @@ enum PreferenceKeys {
     static let autoStartOnLaunch = "autoStartOnLaunch"
     static let earlyReturnLeadSecs = "earlyReturnLeadSecs"
     static let effectType = "effectType"
+    static let menuBarTimerStyle = "menuBarTimerStyle"
     static let playSound = "playSound"
     static let postponeDurationSecs = "postponeDurationSecs"
     static let postponeWindowSecs = "postponeWindowSecs"
     static let restDurationSecs = "restDurationSecs"
+    /// Legacy boolean superseded by ``menuBarTimerStyle``; read only to migrate.
     static let showTimerInMenuBar = "showTimerInMenuBar"
     static let softOverlay = "softOverlay"
     static let workDurationSecs = "workDurationSecs"
