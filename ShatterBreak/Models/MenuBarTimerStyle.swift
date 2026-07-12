@@ -39,15 +39,4 @@ enum MenuBarTimerStyle: String, CaseIterable, Identifiable {
             .seconds
         }
     }
-
-    /// Carries the retired `showTimerInMenuBar` boolean into this preference.
-    ///
-    /// Users who had the timer enabled keep the per-second display they were
-    /// seeing; anyone else stays on the default. Runs only while the new key is
-    /// unset, so it never overrides a choice made through the new picker.
-    static func migrateLegacyShowTimerPreference(in defaults: any KeyValueStore) {
-        guard defaults.object(forKey: PreferenceKeys.menuBarTimerStyle) == nil else { return }
-        guard defaults.object(forKey: PreferenceKeys.showTimerInMenuBar) as? Bool == true else { return }
-        defaults.set(MenuBarTimerStyle.seconds.rawValue, forKey: PreferenceKeys.menuBarTimerStyle)
-    }
 }

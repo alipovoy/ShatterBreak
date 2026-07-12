@@ -11,8 +11,6 @@ enum PreferenceKeys {
     static let postponeDurationSecs = "postponeDurationSecs"
     static let postponeWindowSecs = "postponeWindowSecs"
     static let restDurationSecs = "restDurationSecs"
-    /// Legacy boolean superseded by ``menuBarTimerStyle``; read only to migrate.
-    static let showTimerInMenuBar = "showTimerInMenuBar"
     static let softOverlay = "softOverlay"
     static let workDurationSecs = "workDurationSecs"
     static let workStartMode = "workStartMode"

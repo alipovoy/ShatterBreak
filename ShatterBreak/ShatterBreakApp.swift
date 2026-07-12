@@ -9,10 +9,6 @@ struct ShatterBreakApp: App {
     @AppStorage(PreferenceKeys.menuBarTimerStyle)
     private var menuBarTimerStyle = PreferenceDefaults.menuBarTimerStyle
 
-    init() {
-        MenuBarTimerStyle.migrateLegacyShowTimerPreference(in: UserDefaults.standard)
-    }
-
     var body: some Scene {
         MenuBarExtra {
             MenuView(state: timerState)
