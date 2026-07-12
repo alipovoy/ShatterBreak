@@ -39,9 +39,9 @@ struct DurationFieldView: View {
                 Stepper {
                     Text(title)
                 } onIncrement: {
-                    adjust(by: incrementStep)
+                    adjust(by: DurationFormat.step(from: value, descending: false))
                 } onDecrement: {
-                    adjust(by: -decrementStep)
+                    adjust(by: -DurationFormat.step(from: value, descending: true))
                 }
                 .labelsHidden()
             }
@@ -73,25 +73,6 @@ struct DurationFieldView: View {
 
     private func adjust(by delta: Double) {
         value = Swift.max(min, Swift.min(value + delta, max))
-    }
-
-    // Step sizes mirror the slider's snap scale (5s / 1m / 5m). The decrement step
-    // is chosen from just below the current value so stepping down from a scale
-    // boundary (60s, 600s) descends through the finer scale instead of jumping.
-    private var incrementStep: Double {
-        switch value {
-        case ..<60: 5
-        case 60..<600: 60
-        default: 300
-        }
-    }
-
-    private var decrementStep: Double {
-        switch value {
-        case ...60: 5
-        case 60...600: 60
-        default: 300
-        }
     }
 }
 
