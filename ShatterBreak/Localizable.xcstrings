@@ -481,6 +481,54 @@
         }
       }
     },
+    "resetStatistics": {
+      "comment": "Icon button in the menu's statistics section that starts a fresh tally.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset statistics"
+          }
+        }
+      }
+    },
+    "resetStatisticsHelp": {
+      "comment": "Tooltip on the statistics reset button.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start a fresh tally from zero."
+          }
+        }
+      }
+    },
+    "resetStatisticsOnStartHelp": {
+      "comment": "Tooltip explaining the automatic statistics reset preference.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start a fresh tally whenever a session starts after a stop. Statistics always survive app relaunches."
+          }
+        }
+      }
+    },
+    "resetStatisticsOnStartToggle": {
+      "comment": "Preferences toggle for resetting statistics automatically at the stop→start boundary.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset statistics on a new session"
+          }
+        }
+      }
+    },
     "restDuration": {
       "comment": "Label for the rest duration slider.",
       "extractionState": "manual",
@@ -577,6 +625,78 @@
         }
       }
     },
+    "statistics": {
+      "comment": "Header of the collapsible statistics section in the menu.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Statistics"
+          }
+        }
+      }
+    },
+    "statisticsBreaks": {
+      "comment": "Statistics row: number of completed breaks.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Breaks"
+          }
+        }
+      }
+    },
+    "statisticsEarlyReturns": {
+      "comment": "Statistics row: number of breaks cut short via the early \"I'm back\" button.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Early returns"
+          }
+        }
+      }
+    },
+    "statisticsPostponed": {
+      "comment": "Statistics row: number of times the break was postponed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Postponed"
+          }
+        }
+      }
+    },
+    "statisticsSince": {
+      "comment": "Caption showing when the current statistics tally began. %@ is a time (same day) or a date and time.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "since %@"
+          }
+        }
+      }
+    },
+    "statisticsWorkSessions": {
+      "comment": "Statistics row: number of completed work sessions.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Work sessions"
+          }
+        }
+      }
+    },
     "stop": {
       "comment": "Menu button that stops the running timer.",
       "extractionState": "manual",
@@ -597,6 +717,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "Time to rest"
+          }
+        }
+      }
+    },
+    "trackStatisticsHelp": {
+      "comment": "Tooltip explaining the statistics tracking preference.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Count completed work sessions, breaks, postpones, and early returns, shown in the menu."
+          }
+        }
+      }
+    },
+    "trackStatisticsToggle": {
+      "comment": "Preferences toggle that enables the session statistics.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track statistics"
           }
         }
       }

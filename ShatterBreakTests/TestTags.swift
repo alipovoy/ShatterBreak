@@ -6,4 +6,5 @@ extension Tag {
     @Tag static var permissions: Self
     @Tag static var sleepWake: Self
     @Tag static var parsing: Self
+    @Tag static var statistics: Self
 }

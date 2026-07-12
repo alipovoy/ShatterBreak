@@ -63,7 +63,7 @@ struct OverlayView: View {
 
                     if state.showsReturnButton(at: referenceDate) {
                         Button {
-                            state.start()
+                            state.returnToWork()
                         } label: {
                             Text(.imBack)
                         }

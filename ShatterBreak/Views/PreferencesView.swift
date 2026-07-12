@@ -23,6 +23,10 @@ struct PreferencesView: View {
     private var earlyReturnLeadSecs = PreferenceDefaults.earlyReturnLeadSecs
     @AppStorage(PreferenceKeys.restDurationSecs)
     private var restDurationSecs = PreferenceDefaults.restDurationSecs
+    @AppStorage(PreferenceKeys.trackStatistics)
+    private var trackStatistics = PreferenceDefaults.trackStatistics
+    @AppStorage(PreferenceKeys.resetStatisticsOnStart)
+    private var resetStatisticsOnStart = PreferenceDefaults.resetStatisticsOnStart
 
     @State private var showPermissionAlert = false
 
@@ -116,6 +120,14 @@ struct PreferencesView: View {
 
                     Toggle(.autoStartOnLaunchToggle, isOn: $autoStartOnLaunch)
                         .help(Text(.autoStartOnLaunchHelp))
+
+                    Toggle(.trackStatisticsToggle, isOn: $trackStatistics)
+                        .help(Text(.trackStatisticsHelp))
+
+                    if trackStatistics {
+                        Toggle(.resetStatisticsOnStartToggle, isOn: $resetStatisticsOnStart)
+                            .help(Text(.resetStatisticsOnStartHelp))
+                    }
                 }
                 .padding(.horizontal)
             }
