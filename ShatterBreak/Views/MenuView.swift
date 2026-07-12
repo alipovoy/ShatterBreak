@@ -4,7 +4,6 @@ import SwiftUI
 struct MenuView: View {
     @Bindable var state: TimerState
     @Environment(\.openWindow) private var openWindow
-    @Environment(\.openSettings) private var openSettings
     @State private var isWindowVisible = false
 
     @AppStorage(PreferenceKeys.trackStatistics)
@@ -105,7 +104,7 @@ struct MenuView: View {
 
     private func openPreferences() {
         NSApp.activate(ignoringOtherApps: true)
-        openSettings()
+        openWindow(id: "preferences")
     }
 
     private func openAbout() {
