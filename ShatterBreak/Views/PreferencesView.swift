@@ -11,29 +11,43 @@ struct PreferencesView: View {
     /// plain `@AppStorage` binding here would silently desync from the menu.
     @Bindable var state: TimerState
 
+    @State private var selectedTab: SettingsTab = .general
+
     var body: some View {
-        TabView {
-            Tab {
+        TabView(selection: $selectedTab) {
+            Tab(value: SettingsTab.general) {
                 GeneralSettingsTab()
             } label: {
                 Label { Text(.settingsTabGeneral) } icon: { Image(systemName: "gearshape") }
             }
 
-            Tab {
+            Tab(value: SettingsTab.schedule) {
                 ScheduleSettingsTab(state: state)
             } label: {
                 Label { Text(.settingsTabSchedule) } icon: { Image(systemName: "clock") }
             }
 
-            Tab {
+            Tab(value: SettingsTab.breakScreen) {
                 BreakScreenSettingsTab()
             } label: {
                 Label { Text(.settingsTabBreakScreen) } icon: { Image(systemName: "sparkles.rectangle.stack") }
             }
         }
         .frame(width: 480)
+        // Hug the selected tab's height so the window opens content-sized and
+        // auto-resizes on tab switch. TabView keeps visited tabs alive, which
+        // would ratchet its ideal height up to the tallest tab seen; recreating
+        // it per selection re-measures from just the visible tab.
+        .fixedSize(horizontal: false, vertical: true)
+        .id(selectedTab)
         .onAppear { permissions.refresh() }
     }
+}
+
+private enum SettingsTab: Hashable {
+    case general
+    case schedule
+    case breakScreen
 }
 
 // MARK: - General
