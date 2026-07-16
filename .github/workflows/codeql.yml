@@ -23,7 +23,8 @@ jobs:
   analyze:
     name: Analyze (Swift)
     runs-on: macos-26
-    timeout-minutes: 30
+    # A full scan takes ~25 minutes; leave headroom for runner variance.
+    timeout-minutes: 45
 
     env:
       PROJECT: ShatterBreak.xcodeproj
@@ -40,9 +41,7 @@ jobs:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref_name }}
 
       - name: Select Xcode
-        run: |
-          sudo xcode-select --switch /Applications/Xcode_26.5.app/Contents/Developer
-          xcodebuild -version
+        uses: ./.github/actions/select-xcode
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -58,7 +57,6 @@ jobs:
 
       - name: Build
         run: |
-          set -o pipefail
           xcodebuild build \
             -project "$PROJECT" \
             -scheme "$SCHEME" \

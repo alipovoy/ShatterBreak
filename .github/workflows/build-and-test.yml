@@ -51,10 +51,7 @@ jobs:
           echo "App version: $MARKETING_VERSION ($CURRENT_PROJECT_VERSION)"
 
       - name: Select Xcode
-        run: |
-          sudo xcode-select --switch /Applications/Xcode_26.5.app/Contents/Developer
-          xcodebuild -version
-          swift --version
+        uses: ./.github/actions/select-xcode
 
       - name: Install XcodeGen
         run: brew install xcodegen
