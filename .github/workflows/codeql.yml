@@ -1,14 +1,22 @@
 name: CodeQL
 
 on:
+  # Scan the exact code being shipped once a release is published.
+  release:
+    types: [published]
+  # Re-run hook: rescan an existing release tag on demand.
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag to scan
+        required: true
 
 permissions:
   contents: read
   security-events: write
 
 concurrency:
-  group: codeql-${{ github.ref }}
+  group: codeql-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -26,6 +34,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          # Scan the exact tagged commit, whether triggered by the release event
+          # (github.ref_name is the tag) or a manual re-run (inputs.release_tag).
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
 
       - name: Select Xcode
         run: |
