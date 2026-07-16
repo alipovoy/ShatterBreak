@@ -1,0 +1,13 @@
+name: Select Xcode
+description: Switch to the Xcode version pinned for all CI builds. Bump the
+  version here to move every workflow at once.
+
+runs:
+  using: composite
+  steps:
+    - name: Select Xcode
+      shell: bash
+      run: |
+        sudo xcode-select --switch /Applications/Xcode_26.5.app/Contents/Developer
+        xcodebuild -version
+        swift --version
