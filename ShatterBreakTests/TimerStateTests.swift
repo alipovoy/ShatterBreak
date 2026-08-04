@@ -395,4 +395,29 @@ struct TimerStateSleepWakeTests {
             "A manual pause should keep its frozen time across a sleep/wake cycle."
         )
     }
+
+    @Test("stopping mid-sleep does not strand the asleep flag into the next cycle")
+    @MainActor
+    func stopMidSleepDoesNotStrandAsleepFlag() async {
+        let environment = TestEnvironment()
+        let state = environment.makeTimerState()
+        state.workDurationSecs = 5
+        state.restDurationSecs = 5
+
+        state.start()
+
+        let notificationCenter = environment.workspaceNotificationCenter
+        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        // Stop lands before the matching wake notification arrives, so `sleptAt` is still set
+        // when the cycle resets. It must not survive into the next cycle (issue #87): a leaked
+        // flag would silently block every future transition since nothing else ever clears it.
+        environment.elapseTimeWithoutTick(by: 2)
+        state.stop()
+        #expect(state.mode == .idle, "Stop should return to idle even while a sleep is in flight.")
+
+        state.start()
+        await environment.advanceUntil(maxTicks: 6) { state.isResting }
+
+        #expect(state.isResting, "A fresh cycle must still transition to rest after a mid-sleep stop.")
+    }
 }

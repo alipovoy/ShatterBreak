@@ -303,6 +303,10 @@ final class TimerState {
         modeBeforePause = nil
         savedRestRemaining = nil
         hasPostponeBeenUsedThisCycle = false
+        // Stopping mid-sleep must not leave a stale asleep flag behind: a wake
+        // notification that never arrives before the next cycle starts would
+        // otherwise permanently block every future transition (issue #87).
+        sleptAt = nil
         overlays.dismiss()
         sleepWakeObserver.stopObserving()
     }
