@@ -32,14 +32,26 @@ enum DurationFormat {
 
     /// Snaps a raw slider duration to its step (5s / 60s / 300s) and clamps to `min...max`.
     static func snap(rawSeconds: Double, min: Double, max: Double) -> Double {
-        let step: Double = switch rawSeconds {
+        let step = scaleStep(for: rawSeconds)
+        let snapped = (rawSeconds / step).rounded() * step
+        return Swift.max(min, Swift.min(snapped, max))
+    }
+
+    /// The single-step adjustment for nudging a duration up or down; shares the
+    /// slider's snap scale. Descending steps pick the scale from just below the
+    /// current value, so stepping down from a boundary (60s, 600s) descends
+    /// through the finer scale instead of jumping past it.
+    static func step(from seconds: Double, descending: Bool) -> Double {
+        scaleStep(for: descending ? seconds - 1 : seconds)
+    }
+
+    /// The snap/step scale for a duration: finer near zero, coarser as it grows.
+    private static func scaleStep(for seconds: Double) -> Double {
+        switch seconds {
         case ..<60: 5
         case 60..<600: 60
         default: 300
         }
-
-        let snapped = (rawSeconds / step).rounded() * step
-        return Swift.max(min, Swift.min(snapped, max))
     }
 
     // MARK: - Display formatting

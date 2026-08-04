@@ -29,8 +29,11 @@ struct ShatterBreakApp: App {
         }
         .menuBarExtraStyle(.window)
 
+        // A plain Window rather than a Settings scene: TabView renders here with the
+        // capsule-toolbar tabs, and Xcode previews match the app exactly. The scene's
+        // usual perk (a standard ⌘, shortcut) has no menu bar to live in anyway.
         Window(.preferences, id: "preferences") {
-            PreferencesView()
+            PreferencesView(state: timerState)
                 .environment(\.permissions, permissions)
                 .task { permissions.requestIfFirstLaunch() }
                 .moveToActiveSpace()

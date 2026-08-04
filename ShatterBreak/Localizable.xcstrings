@@ -217,18 +217,6 @@
         }
       }
     },
-    "generalSettings": {
-      "comment": "Preferences section header for general settings.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "General Settings"
-          }
-        }
-      }
-    },
     "imBack": {
       "comment": "Overlay button the user taps to indicate they have returned from a break.",
       "extractionState": "manual",
@@ -553,6 +541,42 @@
         }
       }
     },
+    "settingsTabBreakScreen": {
+      "comment": "Settings tab for the break overlay appearance and sound.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Break Screen"
+          }
+        }
+      }
+    },
+    "settingsTabGeneral": {
+      "comment": "Settings tab for app-level behavior (launch, menu bar, statistics).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "General"
+          }
+        }
+      }
+    },
+    "settingsTabSchedule": {
+      "comment": "Settings tab for work/rest durations and break flexibility.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schedule"
+          }
+        }
+      }
+    },
     "showTimerInMenuBarHelp": {
       "comment": "Help text describing the show-timer-in-menu-bar picker.",
       "extractionState": "manual",
@@ -613,14 +637,14 @@
         }
       }
     },
-    "startWorkAfterBreakEnds": {
-      "comment": "Preferences picker label for choosing when work resumes after a break.",
+    "startWorkAutomaticallyToggle": {
+      "comment": "Settings toggle for WorkStartMode: on = automatic, off = manual.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Start work after break ends"
+            "value": "Start work automatically after a break"
           }
         }
       }
@@ -769,18 +793,6 @@
         }
       }
     },
-    "workStartModeAutomatic": {
-      "comment": "Display name for resuming work automatically after a break.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatic"
-          }
-        }
-      }
-    },
     "workStartModeHelp": {
       "comment": "Help text describing the start-work-after-break picker.",
       "extractionState": "manual",
@@ -789,18 +801,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Choose whether the work timer should automatically start when your rest finishes or wait until you press a button."
-          }
-        }
-      }
-    },
-    "workStartModeManual": {
-      "comment": "Display name for resuming work manually after a break.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Manual"
           }
         }
       }

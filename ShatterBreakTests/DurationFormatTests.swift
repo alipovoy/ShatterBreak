@@ -18,6 +18,12 @@ struct SliderSnapCase: Sendable {
     let expectedValue: Double
 }
 
+struct StepperStepCase: Sendable {
+    let seconds: Double
+    let descending: Bool
+    let expectedStep: Double
+}
+
 @Suite("DurationFormat", .tags(.parsing))
 struct DurationFormatTests {
     @Test(arguments: [
@@ -123,6 +129,22 @@ struct DurationFormatTests {
         )
 
         #expect(snapped == testCase.expectedValue, "Slider movement should snap to the expected duration step.")
+    }
+
+    @Test(arguments: [
+        StepperStepCase(seconds: 30, descending: false, expectedStep: 5),
+        StepperStepCase(seconds: 60, descending: false, expectedStep: 60),
+        StepperStepCase(seconds: 60, descending: true, expectedStep: 5),
+        StepperStepCase(seconds: 300, descending: false, expectedStep: 60),
+        StepperStepCase(seconds: 600, descending: false, expectedStep: 300),
+        StepperStepCase(seconds: 600, descending: true, expectedStep: 60),
+        StepperStepCase(seconds: 900, descending: true, expectedStep: 300)
+    ])
+    func stepFollowsSnapScaleForDirection(_ testCase: StepperStepCase) {
+        #expect(
+            DurationFormat.step(from: testCase.seconds, descending: testCase.descending) == testCase.expectedStep,
+            "Stepper adjustments should follow the snap scale for their direction."
+        )
     }
 
     @Test("clock formatting uses MM:SS without capping minutes")
