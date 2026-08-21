@@ -224,10 +224,15 @@ private struct BreakScreenSettingsTab: View {
                         showPermissionAlert = true
                     }
 
-                // Only Shatter needs Screen Recording permission; Fogged and
-                // Dimmed work without it, so the warning is scoped to Shatter.
-                if effectType == .shatter && permissions.status == .denied {
-                    PermissionWarningView(onOpenSystemSettings: openSystemSettings)
+                // Only Shatter captures the screen; Fogged and Dimmed work without
+                // any permission, so consent is only ever discussed under Shatter.
+                if effectType == .shatter {
+                    ScreenCaptureConsentView(
+                        status: permissions.status,
+                        directCaptureAccess: permissions.directCaptureAccess,
+                        onOpenSystemSettings: openSystemSettings,
+                        onConfirmDirectCapture: confirmDirectCapture
+                    )
                 }
             }
 
@@ -247,6 +252,12 @@ private struct BreakScreenSettingsTab: View {
 
     private func openSystemSettings() {
         permissions.openSystemSettings()
+    }
+
+    /// Re-opens macOS's direct-capture dialog after the user declined it, so recovery
+    /// does not depend on relaunching — System Settings has no switch for this consent.
+    private func confirmDirectCapture() {
+        Task { await permissions.confirmDirectCaptureAccess() }
     }
 }
 

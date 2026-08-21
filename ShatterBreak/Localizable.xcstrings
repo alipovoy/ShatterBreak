@@ -133,6 +133,39 @@
         }
       }
     },
+    "directCaptureConfirmAction": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask macOS for confirmation again"
+          }
+        }
+      }
+    },
+    "directCaptureNote": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS asks you to confirm direct screen capture when a work session starts, and again about once a month."
+          }
+        }
+      }
+    },
+    "directCaptureWarningText": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shatter also needs macOS’s confirmation to capture the screen directly. Until it is allowed, breaks use a frosted-glass effect instead."
+          }
+        }
+      }
+    },
     "earlyReturnLeadExceedsRestWarning": {
       "comment": "Warning when the early-return lead is longer than the break.",
       "extractionState": "manual",

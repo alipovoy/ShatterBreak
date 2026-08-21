@@ -21,15 +21,23 @@ final class OverlayManager {
     private let defaults: any KeyValueStore
     private let captureClient: ScreenCaptureClient
     private let screenObserver: ScreenParametersObserver
+    private let directCaptureAccess: @MainActor () -> DirectCaptureAccess
 
+    /// - Parameter directCaptureAccess: the app's latest reading of macOS's
+    ///   direct-capture consent, supplied by ``OverlayPresenter/live(defaults:)``.
+    ///   Defaults to ``DirectCaptureAccess/unknown``, the value that changes nothing:
+    ///   a caller that never wires it up keeps the pre-#90 behaviour rather than
+    ///   silently downgrading every shatter.
     init(
         defaults: any KeyValueStore = UserDefaults.standard,
         captureClient: ScreenCaptureClient = .live,
-        notificationCenter: NotificationCenter = .default
+        notificationCenter: NotificationCenter = .default,
+        directCaptureAccess: @escaping @MainActor () -> DirectCaptureAccess = { .unknown }
     ) {
         self.defaults = defaults
         self.captureClient = captureClient
         self.screenObserver = ScreenParametersObserver(notificationCenter: notificationCenter)
+        self.directCaptureAccess = directCaptureAccess
 
         screenObserver.startObserving { [weak self] in
             self?.reconcileOverlays()
@@ -63,23 +71,31 @@ final class OverlayManager {
     /// without it the break falls back to ``EffectType/fogged`` — fogged glass over
     /// the live desktop with cracks — instead of an empty shatter with nothing to
     /// fracture (issue #62). Every other selection is presented as chosen.
+    ///
+    /// A known-refused ``DirectCaptureAccess`` downgrades the same way, for a second
+    /// reason: attempting the capture anyway would re-raise the system's direct-capture
+    /// dialog on top of the break overlay, which is the ambush issue #90 is about. Only
+    /// an observed refusal downgrades — ``DirectCaptureAccess/unknown`` proceeds, so a
+    /// break that arrives before the app has ever probed still shatters.
     static func resolveEffectType(
         selected: EffectType,
-        hasScreenRecordingPermission: Bool
+        hasScreenRecordingPermission: Bool,
+        directCaptureAccess: DirectCaptureAccess = .unknown
     ) -> EffectType {
-        guard selected == .shatter, hasScreenRecordingPermission == false else {
-            return selected
+        guard selected == .shatter else { return selected }
+        guard hasScreenRecordingPermission, directCaptureAccess != .refused else {
+            return .fogged
         }
-        return .fogged
+        return selected
     }
 
     func showOverlays(state: TimerState, settled: Bool) {
         dismissOverlays()
 
-        let hasScreenRecordingPermission = captureClient.hasPermission()
         let effectType = Self.resolveEffectType(
             selected: selectedEffectType,
-            hasScreenRecordingPermission: hasScreenRecordingPermission
+            hasScreenRecordingPermission: captureClient.hasPermission(),
+            directCaptureAccess: directCaptureAccess()
         )
         let sessionID = UUID()
         activeSessionID = sessionID

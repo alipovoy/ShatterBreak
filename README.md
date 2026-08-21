@@ -88,6 +88,17 @@ with a stable, reused self-signed certificate keeps the grant across updates.
 See [RELEASING.md](./RELEASING.md#signing-so-permissions-survive-updates) for the
 one-time certificate setup and how releases are signed.
 
+### The second, separate confirmation
+On macOS 15 and later, Screen Recording is not the only consent `Shatter` needs.
+Capturing the screen without going through the system window picker raises a
+second dialog — *"ShatterBreak is requesting to bypass the system private window
+picker and directly access your screen and audio"* — which macOS re-asks roughly
+once a month. It cannot be preflighted or pre-approved in System Settings.
+
+ShatterBreak deliberately triggers it when a work session **starts**, so it never
+lands in the middle of a break. Decline it and breaks fall back to the frosted-glass
+effect; Preferences → Break Screen then offers to ask again.
+
 ## How to Use
 1. Launch the app and find the `ShatterBreak` icon in the macOS menu bar.
 2. Open the menu bar popover and set `Work Duration` and `Rest Duration`.

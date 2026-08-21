@@ -173,6 +173,9 @@ final class TimerState {
 
         mode = .running
         modeBeforePause = nil
+        // Settle the break overlay's screen-capture consent now, at the head of a work
+        // session, rather than letting macOS raise its dialog mid-break (issue #90).
+        overlays.prepare()
         beginCountdown(for: workDurationSecs)
     }
 
