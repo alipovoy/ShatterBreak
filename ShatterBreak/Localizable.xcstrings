@@ -262,18 +262,6 @@
         }
       }
     },
-    "later": {
-      "comment": "Alert button that dismisses the permission prompt without taking action.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Later"
-          }
-        }
-      }
-    },
     "menuBarTimerStyleMinutes": {
       "comment": "Menu bar timer option that shows only whole minutes, updating once a minute.",
       "extractionState": "manual",
@@ -310,18 +298,6 @@
         }
       }
     },
-    "openSystemSettings": {
-      "comment": "Alert button that opens System Settings to grant permission.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open System Settings"
-          }
-        }
-      }
-    },
     "openSystemSettingsToGrant": {
       "extractionState": "manual",
       "localizations": {
@@ -341,30 +317,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pause"
-          }
-        }
-      }
-    },
-    "permissionAlertMessage": {
-      "comment": "Body of the alert explaining how to grant Screen Recording permission.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shatter requires Screen Recording permission to capture your screen. Without it, breaks fall back to the Fogged effect. Enable it in System Settings → Privacy & Security → Screen & System Audio Recording."
-          }
-        }
-      }
-    },
-    "permissionAlertTitle": {
-      "comment": "Title of the alert prompting the user to grant Screen Recording permission.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Screen Recording Permission Required"
           }
         }
       }

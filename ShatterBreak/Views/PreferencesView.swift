@@ -212,8 +212,6 @@ private struct BreakScreenSettingsTab: View {
     @AppStorage(PreferenceKeys.softOverlay) private var softOverlay = PreferenceDefaults.softOverlay
     @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
 
-    @State private var showPermissionAlert = false
-
     var body: some View {
         Form {
             Section(.effectTypePicker) {
@@ -221,7 +219,11 @@ private struct BreakScreenSettingsTab: View {
                     .onChange(of: effectType) { _, newValue in
                         guard newValue.requiresScreenCapture else { return }
                         guard permissions.hasScreenRecordingAccess else {
-                            showPermissionAlert = true
+                            // Choosing Shatter is itself the request. macOS raises its
+                            // dialog only if it holds no answer yet, and the warning
+                            // below carries the state either way — so the app has no
+                            // reason to interrupt with a modal of its own.
+                            permissions.requestAccessIfNeeded()
                             return
                         }
 
@@ -237,7 +239,7 @@ private struct BreakScreenSettingsTab: View {
                     ScreenCaptureConsentView(
                         hasScreenRecordingAccess: permissions.hasScreenRecordingAccess,
                         directCaptureAccess: permissions.directCaptureAccess,
-                        onOpenSystemSettings: openSystemSettings,
+                        onGrantScreenRecording: grantScreenRecording,
                         onConfirmDirectCapture: confirmDirectCapture
                     )
                 }
@@ -249,15 +251,17 @@ private struct BreakScreenSettingsTab: View {
             }
         }
         .settingsTabLayout()
-        .alert(Text(.permissionAlertTitle), isPresented: $showPermissionAlert) {
-            Button(.openSystemSettings, action: openSystemSettings)
-            Button(.later, role: .cancel) { }
-        } message: {
-            Text(.permissionAlertMessage)
-        }
     }
 
-    private func openSystemSettings() {
+    /// Asks, and opens System Settings, because the app cannot tell which of the two the
+    /// user needs: macOS shows its dialog only when it holds no answer, and Settings is
+    /// the only place an answer it already holds can be changed.
+    ///
+    /// Doing both means the link is never a dead click. On a fresh install nothing has
+    /// requested access yet, so the app is not listed in Settings at all — a link that
+    /// only opened Settings would land the user on a pane with nothing to switch on.
+    private func grantScreenRecording() {
+        permissions.requestAccessIfNeeded()
         permissions.openSystemSettings()
     }
 
