@@ -16,7 +16,7 @@ struct ScreenCaptureDirectAccessTests {
 
         #expect(
             manager.directCaptureAccess == .unknown,
-            "Direct capture starts unknown so a break before the first probe still shatters."
+            "Direct capture starts unknown; only a successful probe unlocks the shatter effect."
         )
 
         await manager.prepareForCapture()

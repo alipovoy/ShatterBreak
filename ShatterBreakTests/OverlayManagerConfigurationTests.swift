@@ -67,40 +67,32 @@ struct OverlayManagerConfigurationTests {
         )
     }
 
-    @Test("shatter with Screen Recording permission stays shatter")
+    @Test("shatter with both consents settled stays shatter")
     func shatterWithPermissionStaysShatter() {
-        #expect(
-            OverlayManager.resolveEffectType(selected: .shatter, hasScreenRecordingPermission: true) == .shatter
-        )
-    }
-
-    @Test("shatter resolves to fogged when direct capture is known to be refused")
-    func shatterWithRefusedDirectCaptureResolvesToFogged() {
         #expect(
             OverlayManager.resolveEffectType(
                 selected: .shatter,
                 hasScreenRecordingPermission: true,
-                directCaptureAccess: .refused
-            ) == .fogged,
-            """
-            Capturing anyway would re-raise the system's direct-capture dialog on top of \
-            the break overlay, which is the ambush issue #90 is about.
-            """
+                directCaptureAccess: .allowed
+            ) == .shatter
         )
     }
 
     @Test(
-        "shatter proceeds while direct capture is allowed or untested",
-        arguments: [DirectCaptureAccess.allowed, .unknown]
+        "shatter resolves to fogged until direct capture is known to be allowed",
+        arguments: [DirectCaptureAccess.refused, .unknown]
     )
-    func shatterProceedsUnlessRefused(access: DirectCaptureAccess) {
+    func shatterWithoutAllowedDirectCaptureResolvesToFogged(access: DirectCaptureAccess) {
         #expect(
             OverlayManager.resolveEffectType(
                 selected: .shatter,
                 hasScreenRecordingPermission: true,
                 directCaptureAccess: access
-            ) == .shatter,
-            "Only an observed refusal downgrades; \(access) must leave the chosen effect alone."
+            ) == .fogged,
+            """
+            Capturing on \(access) would raise the system's direct-capture dialog on top \
+            of the break overlay, which is the ambush issue #90 is about.
+            """
         )
     }
 
