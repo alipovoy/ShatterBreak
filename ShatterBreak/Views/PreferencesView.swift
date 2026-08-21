@@ -250,8 +250,12 @@ private struct BreakScreenSettingsTab: View {
             }
         }
         .settingsTabLayout()
+        // Raised by picking Shatter without permission. Its message already says breaks
+        // will fall back to Fogged, so it offers that as an answer rather than leaving
+        // System Settings as the only way forward.
         .alert(Text(.permissionAlertTitle), isPresented: $showPermissionAlert) {
             Button(.openSystemSettings, action: openSystemSettings)
+            Button(.useFoggedEffectAction, action: useFoggedEffect)
             Button(.later, role: .cancel) { }
         } message: {
             Text(.permissionAlertMessage)

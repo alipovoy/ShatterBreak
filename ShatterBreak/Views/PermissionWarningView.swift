@@ -29,13 +29,14 @@ struct PermissionWarningView<Actions: View>: View {
 
 #Preview("Screen Recording") {
     PermissionWarningView(message: .permissionWarningText) {
-        Button(.openSystemSettingsToGrant) { }
+        Button(.openSystemSettings) { }
+        Button(.useFoggedEffectAction) { }
     }
 }
 
 #Preview("Direct Capture") {
     PermissionWarningView(message: .directCaptureWarningText) {
         Button(.directCaptureConfirmAction) { }
-        Button(.directCaptureUseFoggedAction) { }
+        Button(.useFoggedEffectAction) { }
     }
 }

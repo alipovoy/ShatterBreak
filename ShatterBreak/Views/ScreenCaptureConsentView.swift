@@ -13,9 +13,12 @@ import SwiftUI
 /// explains the confirmation the user will keep being asked for, so the system dialog
 /// arrives as something the app already mentioned.
 ///
-/// A declined confirmation is remembered across launches, so this warning is the state's
-/// only visible trace until the user acts on it — which is why it carries a way out
-/// rather than just an explanation.
+/// Both warnings offer the same two exits, because both describe the same dead end —
+/// Shatter selected, breaks quietly running as Fogged — and in both, settling for that
+/// fallback is a legitimate answer rather than a failure to comply. Choosing it also
+/// ends the asking for good: nothing requests capture consent unless the selected effect
+/// requires it. Only the "grant it" half differs, since the two consents are granted in
+/// different places — System Settings for one, a system dialog for the other.
 struct ScreenCaptureConsentView: View {
     let status: ScreenCapturePermissionManager.Status
     let directCaptureAccess: DirectCaptureAccess
@@ -26,15 +29,13 @@ struct ScreenCaptureConsentView: View {
     var body: some View {
         if status == .denied {
             PermissionWarningView(message: .permissionWarningText) {
-                Button(.openSystemSettingsToGrant, action: onOpenSystemSettings)
+                Button(.openSystemSettings, action: onOpenSystemSettings)
+                Button(.useFoggedEffectAction, action: onUseFoggedEffect)
             }
         } else if directCaptureAccess == .refused {
-            // Two exits, because both are legitimate answers: ask macOS again, or settle
-            // for the fallback the break is already using. Choosing Fogged also ends the
-            // asking for good — the probe only runs while Shatter is selected.
             PermissionWarningView(message: .directCaptureWarningText) {
                 Button(.directCaptureConfirmAction, action: onConfirmDirectCapture)
-                Button(.directCaptureUseFoggedAction, action: onUseFoggedEffect)
+                Button(.useFoggedEffectAction, action: onUseFoggedEffect)
             }
         } else {
             Text(.directCaptureNote)

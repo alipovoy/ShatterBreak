@@ -155,17 +155,6 @@
         }
       }
     },
-    "directCaptureUseFoggedAction": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use Fogged instead"
-          }
-        }
-      }
-    },
     "directCaptureWarningText": {
       "extractionState": "manual",
       "localizations": {
@@ -329,18 +318,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open System Settings"
-          }
-        }
-      }
-    },
-    "openSystemSettingsToGrant": {
-      "comment": "Link in the permission warning that opens System Settings to grant permission.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open System Settings to grant permission"
           }
         }
       }
@@ -809,6 +786,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Track statistics"
+          }
+        }
+      }
+    },
+    "useFoggedEffectAction": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use Fogged instead"
           }
         }
       }
