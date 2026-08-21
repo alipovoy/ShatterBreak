@@ -41,6 +41,24 @@ struct OverlayManagerConfigurationTests {
         #expect(manager.selectedEffectType == .shatter)
     }
 
+    @Test(
+        "only shatter requires screen capture",
+        arguments: [
+            (EffectType.shatter, true),
+            (EffectType.fogged, false),
+            (EffectType.dimmed, false)
+        ]
+    )
+    func onlyShatterRequiresScreenCapture(effect: EffectType, expected: Bool) {
+        #expect(
+            effect.requiresScreenCapture == expected,
+            """
+            This is the single gate on whether the app may raise a screen-capture \
+            dialog; a user on \(effect) must never be asked for permission (issue #90).
+            """
+        )
+    }
+
     @Test("shatter without Screen Recording permission resolves to fogged")
     func shatterWithoutPermissionResolvesToFogged() {
         #expect(
@@ -56,6 +74,36 @@ struct OverlayManagerConfigurationTests {
         )
     }
 
+    @Test("shatter resolves to fogged when direct capture is known to be refused")
+    func shatterWithRefusedDirectCaptureResolvesToFogged() {
+        #expect(
+            OverlayManager.resolveEffectType(
+                selected: .shatter,
+                hasScreenRecordingPermission: true,
+                directCaptureAccess: .refused
+            ) == .fogged,
+            """
+            Capturing anyway would re-raise the system's direct-capture dialog on top of \
+            the break overlay, which is the ambush issue #90 is about.
+            """
+        )
+    }
+
+    @Test(
+        "shatter proceeds while direct capture is allowed or untested",
+        arguments: [DirectCaptureAccess.allowed, .unknown]
+    )
+    func shatterProceedsUnlessRefused(access: DirectCaptureAccess) {
+        #expect(
+            OverlayManager.resolveEffectType(
+                selected: .shatter,
+                hasScreenRecordingPermission: true,
+                directCaptureAccess: access
+            ) == .shatter,
+            "Only an observed refusal downgrades; \(access) must leave the chosen effect alone."
+        )
+    }
+
     @Test(
         "fogged and dimmed never depend on Screen Recording permission",
         arguments: [EffectType.fogged, .dimmed], [true, false]
@@ -66,6 +114,19 @@ struct OverlayManagerConfigurationTests {
             hasScreenRecordingPermission: hasPermission
         )
         #expect(resolved == selected, "\(selected) needs no permission, so it should be presented as chosen.")
+    }
+
+    @Test(
+        "fogged and dimmed never depend on direct-capture consent",
+        arguments: [EffectType.fogged, .dimmed], [DirectCaptureAccess.refused, .allowed, .unknown]
+    )
+    func permissionlessEffectsIgnoreDirectCapture(selected: EffectType, access: DirectCaptureAccess) {
+        let resolved = OverlayManager.resolveEffectType(
+            selected: selected,
+            hasScreenRecordingPermission: true,
+            directCaptureAccess: access
+        )
+        #expect(resolved == selected, "\(selected) never captures the screen, so \(access) is irrelevant to it.")
     }
 
     @Test("soft overlay is preferred when no preference is stored")

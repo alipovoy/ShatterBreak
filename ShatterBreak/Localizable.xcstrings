@@ -133,6 +133,39 @@
         }
       }
     },
+    "directCaptureConfirmAction": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask macOS again"
+          }
+        }
+      }
+    },
+    "directCaptureNote": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS asks you to confirm direct screen capture when a work session starts, and again about once a month."
+          }
+        }
+      }
+    },
+    "directCaptureWarningText": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shatter also needs macOS’s confirmation to capture the screen directly. Until it is allowed, breaks use the Fogged effect instead."
+          }
+        }
+      }
+    },
     "earlyReturnLeadExceedsRestWarning": {
       "comment": "Warning when the early-return lead is longer than the break.",
       "extractionState": "manual",
@@ -229,18 +262,6 @@
         }
       }
     },
-    "later": {
-      "comment": "Alert button that dismisses the permission prompt without taking action.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Later"
-          }
-        }
-      }
-    },
     "menuBarTimerStyleMinutes": {
       "comment": "Menu bar timer option that shows only whole minutes, updating once a minute.",
       "extractionState": "manual",
@@ -277,20 +298,7 @@
         }
       }
     },
-    "openSystemSettings": {
-      "comment": "Alert button that opens System Settings to grant permission.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open System Settings"
-          }
-        }
-      }
-    },
     "openSystemSettingsToGrant": {
-      "comment": "Link in the permission warning that opens System Settings to grant permission.",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -313,30 +321,6 @@
         }
       }
     },
-    "permissionAlertMessage": {
-      "comment": "Body of the alert explaining how to grant Screen Recording permission.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shatter requires Screen Recording permission to capture your screen. Without it, breaks fall back to a frosted-glass effect. Enable it in System Settings → Privacy & Security → Screen & System Audio Recording."
-          }
-        }
-      }
-    },
-    "permissionAlertTitle": {
-      "comment": "Title of the alert prompting the user to grant Screen Recording permission.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Screen Recording Permission Required"
-          }
-        }
-      }
-    },
     "permissionWarningText": {
       "comment": "Inline warning shown when Screen Recording permission is missing.",
       "extractionState": "manual",
@@ -344,7 +328,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shatter requires Screen Recording permission. Without it, breaks use a frosted-glass effect instead."
+            "value": "Shatter requires Screen Recording permission. Without it, breaks use the Fogged effect instead."
           }
         }
       }

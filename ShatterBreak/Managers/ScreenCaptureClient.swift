@@ -56,10 +56,7 @@ extension ScreenCaptureClient {
         try Task.checkCancellation()
         let shareableContent: SCShareableContent
         do {
-            shareableContent = try await SCShareableContent.excludingDesktopWindows(
-                false,
-                onScreenWindowsOnly: false
-            )
+            shareableContent = try await loadShareableContent()
         } catch is CancellationError {
             throw CancellationError()
         } catch {
@@ -107,6 +104,34 @@ extension ScreenCaptureClient {
         }
 
         return capturedImages
+    }
+
+    /// The single request both the capture path and the ``DirectCaptureAccess`` probe go
+    /// through, so the two clear exactly the same consent gate.
+    ///
+    /// Enumerating shareable content is where macOS evaluates that consent: it raises the
+    /// dialog, and it throws when the user declines. Should a future macOS move the gate
+    /// to the screenshot itself, the probe must grow into a real throwaway capture — the
+    /// symptom would be the dialog reappearing mid-break despite a clean probe.
+    private static func loadShareableContent() async throws -> SCShareableContent {
+        try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+    }
+
+    /// Settles ``DirectCaptureAccess`` at a moment of the app's choosing. The content is
+    /// discarded; only whether the request succeeded matters.
+    static func confirmDirectCaptureAccess() async -> Bool {
+        do {
+            _ = try await loadShareableContent()
+            return true
+        } catch {
+            Logger.capture.error(
+                """
+                Direct screen capture is not currently allowed: \
+                \(error.localizedDescription, privacy: .public)
+                """
+            )
+            return false
+        }
     }
 
     private static func excludedApplications(

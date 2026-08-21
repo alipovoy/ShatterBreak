@@ -9,10 +9,13 @@ struct ShatterBreakApp: App {
     @AppStorage(PreferenceKeys.menuBarTimerStyle)
     private var menuBarTimerStyle = PreferenceDefaults.menuBarTimerStyle
 
+    // No scene requests screen-capture permission on appearance: opening the menu or
+    // Preferences says nothing about whether a capture is imminent, and asking there
+    // prompted users who had chosen Fogged or Dimmed. Every request now follows an action
+    // meaning "I want Shatter to work" — see `ScreenCaptureConsentView`.
     var body: some Scene {
         MenuBarExtra {
             MenuView(state: timerState)
-                .task { permissions.requestIfFirstLaunch() }
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "app.badge.clock")
@@ -35,7 +38,6 @@ struct ShatterBreakApp: App {
         Window(.preferences, id: "preferences") {
             PreferencesView(state: timerState)
                 .environment(\.permissions, permissions)
-                .task { permissions.requestIfFirstLaunch() }
                 .moveToActiveSpace()
         }
         .windowResizability(.contentSize)

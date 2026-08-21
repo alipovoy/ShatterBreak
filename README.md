@@ -23,7 +23,7 @@ ShatterBreak is built as a small macOS utility with a strong focus on system int
 * Xcode with the macOS 15 SDK
 * [XcodeGen](https://github.com/yonaskolb/XcodeGen) for generating the Xcode project
 
-Screen recording permission is required only for the `Shatter` visual effect. If permission is not granted, the app still works and falls back to the plain overlay experience.
+Screen recording permission is required only for the `Shatter` visual effect, and is requested only when a work session starts while `Shatter` is selected — choose `Fogged` or `Dimmed` and the app never asks for anything. Without the permission, breaks fall back to the `Fogged` effect.
 
 ## Build
 This repository uses `project.yml` as the source of truth. The Xcode project must be generated locally with XcodeGen.
@@ -87,6 +87,18 @@ with a stable, reused self-signed certificate keeps the grant across updates.
 
 See [RELEASING.md](./RELEASING.md#signing-so-permissions-survive-updates) for the
 one-time certificate setup and how releases are signed.
+
+### The second, separate confirmation
+On macOS 15 and later, Screen Recording is not the only consent `Shatter` needs.
+Capturing the screen without going through the system window picker raises a
+second dialog — *"ShatterBreak is requesting to bypass the system private window
+picker and directly access your screen and audio"* — which macOS re-asks roughly
+once a month. It cannot be preflighted or pre-approved in System Settings.
+
+ShatterBreak deliberately triggers it when a work session **starts**, so it never
+lands in the middle of a break. Decline it and the app remembers the answer: breaks fall
+back to the `Fogged` effect and nothing asks again. Preferences → Break Screen says why,
+and offers both ways out — ask macOS again, or select `Fogged` for good.
 
 ## How to Use
 1. Launch the app and find the `ShatterBreak` icon in the macOS menu bar.

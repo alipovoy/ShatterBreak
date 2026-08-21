@@ -18,6 +18,17 @@ enum EffectType: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// Whether presenting this effect captures the screen, and so needs the consents
+    /// behind capture.
+    ///
+    /// The single answer to "may this app raise a screen-capture dialog right now".
+    /// Only ``shatter`` freezes a screenshot; ``fogged`` and ``dimmed`` render over the
+    /// live desktop and need no permission at all, so a user on either must never be
+    /// asked for one (issue #90).
+    var requiresScreenCapture: Bool {
+        self == .shatter
+    }
+
     var displayName: LocalizedStringResource {
         switch self {
         case .shatter:

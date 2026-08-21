@@ -5,6 +5,50 @@ import Testing
 
 @Suite("TimerState overlay behaviors", .tags(.timerState, .overlays), .timeLimit(.minutes(1)))
 struct TimerStateOverlayTests {
+    @Test("starting work prepares the overlay before the break needs it")
+    @MainActor
+    func startPreparesOverlayPermissions() async {
+        let environment = TestEnvironment()
+        let recorder = OverlayRecorder()
+        let state = environment.makeTimerState(overlays: recorder.presenter)
+        state.workDurationSecs = 1
+        state.restDurationSecs = 1
+
+        state.start()
+
+        #expect(
+            recorder.prepareCount == 1,
+            """
+            Screen-capture consent has to be settled at the head of the work session; \
+            asking once the overlay is up is the ambush issue #90 is about.
+            """
+        )
+        #expect(recorder.showCount == 0, "Preparing must not present anything on its own.")
+    }
+
+    @Test("every work session prepares again, so a lapsed consent is caught before the break")
+    @MainActor
+    func eachWorkSessionPreparesAgain() async {
+        let environment = TestEnvironment()
+        let defaults = environment.defaults
+        defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
+
+        let recorder = OverlayRecorder()
+        let state = environment.makeTimerState(overlays: recorder.presenter)
+        state.workDurationSecs = 1
+        state.restDurationSecs = 1
+
+        state.start()
+        await environment.advanceTime()
+        await environment.advanceTime()
+
+        #expect(state.isRunning && state.isResting == false, "Automatic mode should begin a second work session.")
+        #expect(
+            recorder.prepareCount == 2,
+            "The consent expires roughly monthly, so each work session re-settles it rather than trusting a cache."
+        )
+    }
+
     @Test("overlays show when entering rest and dismiss when leaving")
     @MainActor
     func overlaysShowAndDismiss() async {

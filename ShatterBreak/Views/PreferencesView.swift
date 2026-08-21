@@ -212,22 +212,34 @@ private struct BreakScreenSettingsTab: View {
     @AppStorage(PreferenceKeys.softOverlay) private var softOverlay = PreferenceDefaults.softOverlay
     @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
 
-    @State private var showPermissionAlert = false
-
     var body: some View {
         Form {
             Section(.effectTypePicker) {
                 EffectCardPicker(selection: $effectType)
                     .onChange(of: effectType) { _, newValue in
-                        guard newValue == .shatter else { return }
-                        guard permissions.status != .granted else { return }
-                        showPermissionAlert = true
+                        guard newValue.requiresScreenCapture else { return }
+                        guard permissions.hasScreenRecordingAccess else {
+                            // Choosing Shatter is itself the request; the warning below
+                            // carries the state whether or not macOS raises a dialog.
+                            permissions.requestAccessIfNeeded()
+                            return
+                        }
+
+                        // Re-choosing Shatter is an explicit "I do want the frozen
+                        // screen", so a remembered decline stops standing in the way.
+                        guard permissions.directCaptureAccess == .refused else { return }
+                        confirmDirectCapture()
                     }
 
-                // Only Shatter needs Screen Recording permission; Fogged and
-                // Dimmed work without it, so the warning is scoped to Shatter.
-                if effectType == .shatter && permissions.status == .denied {
-                    PermissionWarningView(onOpenSystemSettings: openSystemSettings)
+                // Only Shatter captures the screen; Fogged and Dimmed work without
+                // any permission, so consent is only ever discussed under Shatter.
+                if effectType.requiresScreenCapture {
+                    ScreenCaptureConsentView(
+                        hasScreenRecordingAccess: permissions.hasScreenRecordingAccess,
+                        directCaptureAccess: permissions.directCaptureAccess,
+                        onGrantScreenRecording: grantScreenRecording,
+                        onConfirmDirectCapture: confirmDirectCapture
+                    )
                 }
             }
 
@@ -237,16 +249,22 @@ private struct BreakScreenSettingsTab: View {
             }
         }
         .settingsTabLayout()
-        .alert(Text(.permissionAlertTitle), isPresented: $showPermissionAlert) {
-            Button(.openSystemSettings, action: openSystemSettings)
-            Button(.later, role: .cancel) { }
-        } message: {
-            Text(.permissionAlertMessage)
-        }
     }
 
-    private func openSystemSettings() {
+    /// Asks *and* opens System Settings, because the app cannot tell which the user needs:
+    /// macOS shows its dialog only when it holds no answer, and Settings is the only place
+    /// an answer it already holds can be changed. Doing both keeps the link from being a
+    /// dead click on a fresh install, where nothing has requested access yet and the app
+    /// is therefore not listed in Settings at all.
+    private func grantScreenRecording() {
+        permissions.requestAccessIfNeeded()
         permissions.openSystemSettings()
+    }
+
+    /// Re-opens macOS's direct-capture dialog after the user declined it, so recovery
+    /// does not depend on relaunching — System Settings has no switch for this consent.
+    private func confirmDirectCapture() {
+        Task { await permissions.confirmDirectCaptureAccess() }
     }
 }
 

@@ -7,6 +7,7 @@ import Foundation
 /// one-method protocol, it vends a plain `OverlayPresenter` built from closures.
 @MainActor
 final class OverlayRecorder {
+    private(set) var prepareCount = 0
     private(set) var showCount = 0
     private(set) var dismissCount = 0
     /// The `settled` argument from the most recent `show` call, so tests can assert
@@ -15,6 +16,7 @@ final class OverlayRecorder {
 
     var presenter: OverlayPresenter {
         OverlayPresenter(
+            prepare: { [unowned self] in prepareCount += 1 },
             show: { [unowned self] _, style in
                 showCount += 1
                 lastSettled = style == .settled
