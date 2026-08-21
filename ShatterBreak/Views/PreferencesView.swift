@@ -220,8 +220,15 @@ private struct BreakScreenSettingsTab: View {
                 EffectCardPicker(selection: $effectType)
                     .onChange(of: effectType) { _, newValue in
                         guard newValue == .shatter else { return }
-                        guard permissions.status != .granted else { return }
-                        showPermissionAlert = true
+                        guard permissions.status == .granted else {
+                            showPermissionAlert = true
+                            return
+                        }
+
+                        // Re-choosing Shatter is an explicit "I do want the frozen
+                        // screen", so a remembered decline stops standing in the way.
+                        guard permissions.directCaptureAccess == .refused else { return }
+                        confirmDirectCapture()
                     }
 
                 // Only Shatter captures the screen; Fogged and Dimmed work without
@@ -231,7 +238,8 @@ private struct BreakScreenSettingsTab: View {
                         status: permissions.status,
                         directCaptureAccess: permissions.directCaptureAccess,
                         onOpenSystemSettings: openSystemSettings,
-                        onConfirmDirectCapture: confirmDirectCapture
+                        onConfirmDirectCapture: confirmDirectCapture,
+                        onUseFoggedEffect: useFoggedEffect
                     )
                 }
             }
@@ -258,6 +266,13 @@ private struct BreakScreenSettingsTab: View {
     /// does not depend on relaunching — System Settings has no switch for this consent.
     private func confirmDirectCapture() {
         Task { await permissions.confirmDirectCaptureAccess() }
+    }
+
+    /// Accepts the fallback the break is already using. The effect stays the user's own
+    /// choice — the app degrades Shatter at runtime but never rewrites the preference
+    /// behind their back, so making it permanent has to be an action they take.
+    private func useFoggedEffect() {
+        effectType = .fogged
     }
 }
 

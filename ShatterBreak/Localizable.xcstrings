@@ -139,7 +139,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ask macOS for confirmation again"
+            "value": "Ask macOS again"
           }
         }
       }
@@ -151,6 +151,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "macOS asks you to confirm direct screen capture when a work session starts, and again about once a month."
+          }
+        }
+      }
+    },
+    "directCaptureUseFoggedAction": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use Fogged instead"
           }
         }
       }

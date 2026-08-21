@@ -12,7 +12,7 @@ struct ShatterBreakApp: App {
     var body: some Scene {
         MenuBarExtra {
             MenuView(state: timerState)
-                .task { permissions.requestIfFirstLaunch() }
+                .task { permissions.requestAccessIfNeeded() }
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "app.badge.clock")
@@ -35,7 +35,7 @@ struct ShatterBreakApp: App {
         Window(.preferences, id: "preferences") {
             PreferencesView(state: timerState)
                 .environment(\.permissions, permissions)
-                .task { permissions.requestIfFirstLaunch() }
+                .task { permissions.requestAccessIfNeeded() }
                 .moveToActiveSpace()
         }
         .windowResizability(.contentSize)

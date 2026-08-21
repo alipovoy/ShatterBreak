@@ -12,25 +12,30 @@ import SwiftUI
 /// about the second while the first is missing. With both settled, the standing note
 /// explains the confirmation the user will keep being asked for, so the system dialog
 /// arrives as something the app already mentioned.
+///
+/// A declined confirmation is remembered across launches, so this warning is the state's
+/// only visible trace until the user acts on it — which is why it carries a way out
+/// rather than just an explanation.
 struct ScreenCaptureConsentView: View {
     let status: ScreenCapturePermissionManager.Status
     let directCaptureAccess: DirectCaptureAccess
     let onOpenSystemSettings: () -> Void
     let onConfirmDirectCapture: () -> Void
+    let onUseFoggedEffect: () -> Void
 
     var body: some View {
         if status == .denied {
-            PermissionWarningView(
-                message: .permissionWarningText,
-                actionTitle: .openSystemSettingsToGrant,
-                action: onOpenSystemSettings
-            )
+            PermissionWarningView(message: .permissionWarningText) {
+                Button(.openSystemSettingsToGrant, action: onOpenSystemSettings)
+            }
         } else if directCaptureAccess == .refused {
-            PermissionWarningView(
-                message: .directCaptureWarningText,
-                actionTitle: .directCaptureConfirmAction,
-                action: onConfirmDirectCapture
-            )
+            // Two exits, because both are legitimate answers: ask macOS again, or settle
+            // for the fallback the break is already using. Choosing Fogged also ends the
+            // asking for good — the probe only runs while Shatter is selected.
+            PermissionWarningView(message: .directCaptureWarningText) {
+                Button(.directCaptureConfirmAction, action: onConfirmDirectCapture)
+                Button(.directCaptureUseFoggedAction, action: onUseFoggedEffect)
+            }
         } else {
             Text(.directCaptureNote)
                 .font(.footnote)
@@ -46,19 +51,22 @@ struct ScreenCaptureConsentView: View {
             status: .granted,
             directCaptureAccess: .allowed,
             onOpenSystemSettings: { },
-            onConfirmDirectCapture: { }
+            onConfirmDirectCapture: { },
+            onUseFoggedEffect: { }
         )
         ScreenCaptureConsentView(
             status: .granted,
             directCaptureAccess: .refused,
             onOpenSystemSettings: { },
-            onConfirmDirectCapture: { }
+            onConfirmDirectCapture: { },
+            onUseFoggedEffect: { }
         )
         ScreenCaptureConsentView(
             status: .denied,
             directCaptureAccess: .unknown,
             onOpenSystemSettings: { },
-            onConfirmDirectCapture: { }
+            onConfirmDirectCapture: { },
+            onUseFoggedEffect: { }
         )
     }
     .formStyle(.grouped)
