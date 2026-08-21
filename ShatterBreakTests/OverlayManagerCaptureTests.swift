@@ -14,7 +14,7 @@ struct OverlayManagerCaptureTests {
     func matchingSessionAppliesImages() throws {
         let session = UUID()
         let states = makeOverlayStates()
-        let image = try makeCGImage()
+        let image = try TestImage.make()
 
         OverlayManager.applyCapturedImages(
             [primaryDisplay: image, secondaryDisplay: image],
@@ -33,7 +33,7 @@ struct OverlayManagerCaptureTests {
     func partialCaptureFallsBackPerDisplay() throws {
         let session = UUID()
         let states = makeOverlayStates()
-        let image = try makeCGImage()
+        let image = try TestImage.make()
 
         OverlayManager.applyCapturedImages(
             [primaryDisplay: image],
@@ -74,7 +74,7 @@ struct OverlayManagerCaptureTests {
         let captureSession = UUID()
         let activeSession = UUID()
         let states = makeOverlayStates()
-        let image = try makeCGImage()
+        let image = try TestImage.make()
 
         OverlayManager.applyCapturedImages(
             [primaryDisplay: image, secondaryDisplay: image],
@@ -96,22 +96,5 @@ struct OverlayManagerCaptureTests {
             primaryDisplay: OverlayPresentationState(effectType: .shatter),
             secondaryDisplay: OverlayPresentationState(effectType: .shatter)
         ]
-    }
-
-    private func makeCGImage() throws -> CGImage {
-        let context = try #require(
-            CGContext(
-                data: nil,
-                width: 1,
-                height: 1,
-                bitsPerComponent: 8,
-                bytesPerRow: 4,
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-            ),
-            "A 1x1 RGBA bitmap context should always be creatable."
-        )
-
-        return try #require(context.makeImage(), "The bitmap context should produce a CGImage.")
     }
 }

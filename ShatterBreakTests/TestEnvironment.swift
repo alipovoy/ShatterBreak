@@ -34,14 +34,20 @@ final class TestEnvironment {
     }
 
     @MainActor
+    /// - Parameter directCaptureAccess: left `.unknown` by default, matching the app
+    ///   before its probe answers. A test that needs the shatter effect to survive
+    ///   ``OverlayManager/resolveEffectType(selected:hasScreenRecordingPermission:directCaptureAccess:)``
+    ///   must pass `.allowed`.
     func makeOverlayManager(
         captureClient: ScreenCaptureClient = .live,
-        notificationCenter: NotificationCenter = NotificationCenter()
+        notificationCenter: NotificationCenter = NotificationCenter(),
+        directCaptureAccess: @escaping @MainActor () -> DirectCaptureAccess = { .unknown }
     ) -> OverlayManager {
         OverlayManager(
             defaults: defaults,
             captureClient: captureClient,
-            notificationCenter: notificationCenter
+            notificationCenter: notificationCenter,
+            directCaptureAccess: directCaptureAccess
         )
     }
 

@@ -11,12 +11,19 @@ final class OverlayManager {
         let id: UUID
         let state: TimerState
         let effectType: EffectType
+
+        /// The freeze-frame taken for each display as the break began, kept for the
+        /// break's duration so a display that leaves and returns is restored to the
+        /// desktop it left rather than re-captured (issue #67). Costs nothing extra
+        /// while a display is present: its overlay is showing this very image.
+        var captures: [CGDirectDisplayID: CGImage] = [:]
     }
 
     private var windows: [CGDirectDisplayID: NSWindow] = [:]
     /// Internal (not `private`) so tests can assert how each display is presented.
     private(set) var overlayStates: [CGDirectDisplayID: OverlayPresentationState] = [:]
-    private var captureTasks: [Task<Void, Never>] = []
+    /// Internal (not `private`) so tests can await the captures still in flight.
+    private(set) var captureTasks: [Task<Void, Never>] = []
     private var activeSessionID = UUID()
     private var session: ActiveSession?
 
@@ -134,6 +141,10 @@ final class OverlayManager {
     /// never moved — so a vanished display's window is torn down, a new display gains its
     /// own overlay (and freeze-frame), and a resized display's window is reframed so its
     /// "I'm back" button stays reachable.
+    ///
+    /// Both branches draw on the session's retained captures rather than the screen as
+    /// it looks now, so the freeze-frame keeps showing the desktop the break began over
+    /// (issue #67).
     func reconcileOverlays() {
         guard let session else { return }
 
@@ -152,11 +163,22 @@ final class OverlayManager {
 
         for screen in plan.reframed {
             windows[screen.displayID]?.setFrame(screen.frame, display: true)
+
+            // The overlay stretches its freeze-frame to fill the window, so a display
+            // that changed shape would distort its own desktop. Re-fit the session's
+            // pristine capture — never the cropped image already on screen — to the
+            // new proportions (issue #67).
+            if let retained = session.captures[screen.displayID] {
+                overlayStates[screen.displayID]?.backgroundImage = FreezeFrame.fitted(
+                    retained,
+                    to: screen.frame.size
+                )
+            }
         }
 
         guard plan.added.isEmpty == false else { return }
 
-        var addedDisplayIDs: Set<CGDirectDisplayID> = []
+        var displaysNeedingCapture: Set<CGDirectDisplayID> = []
         for screen in plan.added {
             // Settled: the shake and glass sound belong to the moment the break began.
             // A display joining later catches up silently — including one that dropped
@@ -167,24 +189,44 @@ final class OverlayManager {
                 effectType: session.effectType,
                 settled: true
             )
-            addedDisplayIDs.insert(screen.displayID)
+
+            // Holding a capture for a display is what marks it as one that left and came
+            // back, so it is restored from that capture. Capturing now would freeze
+            // whatever it returned through, typically the lock screen (issue #67). A
+            // display genuinely connected mid-break has nothing retained, and captures.
+            guard let retained = session.captures[screen.displayID] else {
+                displaysNeedingCapture.insert(screen.displayID)
+                continue
+            }
+
+            overlayStates[screen.displayID]?.startShatter(
+                with: FreezeFrame.fitted(retained, to: screen.frame.size)
+            )
         }
 
-        // Newly added overlays start in the `.plain` phase; the shatter effect must
-        // catch them up. `startCapture` paints only the still-`.plain` displays —
-        // already-shattered overlays are left untouched by `startShatter`'s phase
-        // guard — so existing displays never re-shatter. The fogged and dimmed
-        // effects need no catch-up: their overlays render fully from the `.plain`
-        // phase, so a freshly added display matches the rest on its own.
+        // Overlays no retained capture covered start in the `.plain` phase; the
+        // shatter effect must catch them up. `startCapture` paints only the
+        // still-`.plain` displays — already-shattered overlays are left untouched by
+        // `startShatter`'s phase guard — so existing displays never re-shatter. The
+        // fogged and dimmed effects need no catch-up: their overlays render fully from
+        // the `.plain` phase, so a freshly added display matches the rest on its own.
         guard session.effectType == .shatter else { return }
 
-        startCapture(for: addedDisplayIDs, sessionID: session.id)
+        startCapture(for: displaysNeedingCapture, sessionID: session.id)
     }
 
     private func beginShatter(
         with images: [CGDirectDisplayID: CGImage],
         sessionID: UUID
     ) {
+        // A capture that outlived its session must neither paint a later break's
+        // overlays nor be retained as that break's freeze-frame.
+        guard sessionID == activeSessionID else { return }
+
+        // Keep the first capture each display produced: it is the one taken as the break
+        // began, and the one a returning display must be restored to (issue #67).
+        session?.captures.merge(images) { retained, _ in retained }
+
         Self.applyCapturedImages(
             images,
             sessionID: sessionID,
