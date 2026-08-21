@@ -23,11 +23,10 @@ final class OverlayManager {
     private let screenObserver: ScreenParametersObserver
     private let directCaptureAccess: @MainActor () -> DirectCaptureAccess
 
-    /// - Parameter directCaptureAccess: the app's latest reading of macOS's
-    ///   direct-capture consent, supplied by ``OverlayPresenter/live(defaults:)``.
-    ///   Defaults to ``DirectCaptureAccess/unknown``, the value that changes nothing:
-    ///   a caller that never wires it up keeps the pre-#90 behaviour rather than
-    ///   silently downgrading every shatter.
+    /// - Parameter directCaptureAccess: the app's latest reading of macOS's direct-capture
+    ///   consent, supplied by ``OverlayPresenter/live(defaults:)``. Defaults to
+    ///   ``DirectCaptureAccess/unknown``, the value that changes nothing, so a caller that
+    ///   never wires it up cannot silently downgrade every shatter.
     init(
         defaults: any KeyValueStore = UserDefaults.standard,
         captureClient: ScreenCaptureClient = .live,
@@ -72,11 +71,10 @@ final class OverlayManager {
     /// the live desktop with cracks — instead of an empty shatter with nothing to
     /// fracture (issue #62). Every other selection is presented as chosen.
     ///
-    /// A known-refused ``DirectCaptureAccess`` downgrades the same way, for a second
-    /// reason: attempting the capture anyway would re-raise the system's direct-capture
-    /// dialog on top of the break overlay, which is the ambush issue #90 is about. Only
-    /// an observed refusal downgrades — ``DirectCaptureAccess/unknown`` proceeds, so a
-    /// break that arrives before the app has ever probed still shatters.
+    /// A known-refused ``DirectCaptureAccess`` downgrades for a second reason: capturing
+    /// anyway would raise the system's dialog on top of the overlay, which is the ambush
+    /// issue #90 is about. Only an observed refusal downgrades — ``DirectCaptureAccess/unknown``
+    /// proceeds, so a break arriving before the first probe still shatters.
     static func resolveEffectType(
         selected: EffectType,
         hasScreenRecordingPermission: Bool,

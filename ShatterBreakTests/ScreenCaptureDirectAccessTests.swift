@@ -91,9 +91,9 @@ struct ScreenCaptureDirectAccessTests {
         #expect(manager.directCaptureAccess == .unknown, "An unattempted probe must leave the consent unknown.")
     }
 
-    @Test("preparing for capture makes the first-launch request")
+    @Test("preparing for capture requests Screen Recording when it is missing")
     @MainActor
-    func prepareForCaptureRequestsOnFirstLaunch() async {
+    func prepareForCaptureRequestsScreenRecording() async {
         let environment = TestEnvironment()
 
         let spy = ScreenCapturePermissionClientSpy()
@@ -103,10 +103,7 @@ struct ScreenCaptureDirectAccessTests {
 
         #expect(
             spy.requestCallCount == 1,
-            """
-            Starting work must be able to raise the first-launch prompt: the menu content \
-            that used to own it is built lazily and may never appear (issue #90).
-            """
+            "Starting work is where the app asks; no scene requests on appearance (#90)."
         )
     }
 

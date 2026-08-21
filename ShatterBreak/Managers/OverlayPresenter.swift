@@ -13,11 +13,8 @@ import Foundation
 /// of `TimerState.mode` (visible iff `.resting`/`.awaitingReturn`) in the app layer.
 struct OverlayPresenter {
     /// Settles the permissions the next break's overlay will need, called when a work
-    /// session begins.
-    ///
-    /// Presentation has to be instantaneous, so anything that might put a system dialog
-    /// on screen must happen well before the break — see ``DirectCaptureAccess`` and
-    /// issue #90.
+    /// session begins. Presentation has to be instantaneous, so anything that might put a
+    /// system dialog on screen must happen well before the break (issue #90).
     var prepare: @MainActor () -> Void
     var show: @MainActor (TimerState, OverlayPresentationStyle) -> Void
     var dismiss: @MainActor () -> Void

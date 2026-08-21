@@ -85,9 +85,9 @@ struct ScreenCapturePermissionManagerTests {
         #expect(spy.openSettingsCallCount == 1, "Opening system settings should delegate to the permission client.")
     }
 
-    @Test("becoming active refreshes permission status while unresolved")
+    @Test("becoming active refreshes access while it is still missing")
     @MainActor
-    func appDidBecomeActiveRefreshesStatusWhileUnresolved() {
+    func appDidBecomeActiveRefreshesAccessWhileUnresolved() {
         let environment = TestEnvironment()
         let spy = ScreenCapturePermissionClientSpy()
         let manager = environment.makePermissionManager(permissionClient: spy.client)
@@ -104,7 +104,7 @@ struct ScreenCapturePermissionManagerTests {
 
     @Test("granted permission stops app-active observation")
     @MainActor
-    func grantedStatusStopsObservingAppActive() {
+    func grantedAccessStopsObservingAppActive() {
         let environment = TestEnvironment()
         let spy = ScreenCapturePermissionClientSpy()
         spy.preflightAccess = true

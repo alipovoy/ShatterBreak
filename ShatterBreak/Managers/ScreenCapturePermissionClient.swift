@@ -4,21 +4,17 @@ import Foundation
 
 /// A seam over the two independent consents the shatter effect needs: classic Screen
 /// Recording, which CoreGraphics can preflight and request, and macOS's separate
-/// ``DirectCaptureAccess`` confirmation, which can only be settled by attempting a
-/// capture.
+/// ``DirectCaptureAccess``, which can only be settled by attempting a capture.
 ///
-/// Every operation is main-actor isolated, matching its sole caller
-/// (``ScreenCapturePermissionManager``) and the AppKit and CoreGraphics APIs behind it.
+/// Every operation is main-actor isolated, matching its sole caller and the AppKit and
+/// CoreGraphics APIs behind it.
 struct ScreenCapturePermissionClient {
     var preflightAccess: @MainActor () -> Bool
     var requestAccess: @MainActor () -> Bool
 
-    /// Settles macOS's direct-capture consent by attempting one real ScreenCaptureKit
-    /// request, reporting whether direct capture is currently allowed. There is no
-    /// preflight for this one: see ``DirectCaptureAccess``.
-    ///
-    /// The suspension inside hops the request itself off the main thread, so isolating
-    /// the closure costs nothing.
+    /// Whether direct capture is currently allowed, learned by attempting one real
+    /// request — there is no preflight for this one. The suspension inside hops the
+    /// request off the main thread, so isolating the closure costs nothing.
     var confirmDirectCaptureAccess: @MainActor () async -> Bool
 
     var openSystemSettings: @MainActor () -> Void

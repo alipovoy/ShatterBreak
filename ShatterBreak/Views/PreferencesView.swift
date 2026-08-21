@@ -219,10 +219,8 @@ private struct BreakScreenSettingsTab: View {
                     .onChange(of: effectType) { _, newValue in
                         guard newValue.requiresScreenCapture else { return }
                         guard permissions.hasScreenRecordingAccess else {
-                            // Choosing Shatter is itself the request. macOS raises its
-                            // dialog only if it holds no answer yet, and the warning
-                            // below carries the state either way — so the app has no
-                            // reason to interrupt with a modal of its own.
+                            // Choosing Shatter is itself the request; the warning below
+                            // carries the state whether or not macOS raises a dialog.
                             permissions.requestAccessIfNeeded()
                             return
                         }
@@ -253,13 +251,11 @@ private struct BreakScreenSettingsTab: View {
         .settingsTabLayout()
     }
 
-    /// Asks, and opens System Settings, because the app cannot tell which of the two the
-    /// user needs: macOS shows its dialog only when it holds no answer, and Settings is
-    /// the only place an answer it already holds can be changed.
-    ///
-    /// Doing both means the link is never a dead click. On a fresh install nothing has
-    /// requested access yet, so the app is not listed in Settings at all — a link that
-    /// only opened Settings would land the user on a pane with nothing to switch on.
+    /// Asks *and* opens System Settings, because the app cannot tell which the user needs:
+    /// macOS shows its dialog only when it holds no answer, and Settings is the only place
+    /// an answer it already holds can be changed. Doing both keeps the link from being a
+    /// dead click on a fresh install, where nothing has requested access yet and the app
+    /// is therefore not listed in Settings at all.
     private func grantScreenRecording() {
         permissions.requestAccessIfNeeded()
         permissions.openSystemSettings()

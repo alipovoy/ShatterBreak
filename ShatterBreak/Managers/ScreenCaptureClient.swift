@@ -106,25 +106,19 @@ extension ScreenCaptureClient {
         return capturedImages
     }
 
-    /// The single ScreenCaptureKit request both the live capture path and the
-    /// direct-capture probe go through, so the two clear exactly the same consent gate.
+    /// The single request both the capture path and the ``DirectCaptureAccess`` probe go
+    /// through, so the two clear exactly the same consent gate.
     ///
-    /// Enumerating shareable content is where macOS evaluates ``DirectCaptureAccess``:
-    /// it is the call that raises the "bypass the system private window picker" dialog,
-    /// and the call that throws when the user declines — which is why a refusal surfaces
-    /// here rather than later at `SCScreenshotManager`. If a future macOS moves the gate
-    /// to the screenshot itself, the probe has to grow into a real throwaway capture;
-    /// the symptom would be the dialog reappearing mid-break despite a clean probe.
+    /// Enumerating shareable content is where macOS evaluates that consent: it raises the
+    /// dialog, and it throws when the user declines. Should a future macOS move the gate
+    /// to the screenshot itself, the probe must grow into a real throwaway capture — the
+    /// symptom would be the dialog reappearing mid-break despite a clean probe.
     private static func loadShareableContent() async throws -> SCShareableContent {
         try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
     }
 
-    /// Makes one throwaway shareable-content request purely to settle macOS's
-    /// direct-capture consent at a moment of the app's choosing, reporting whether
-    /// direct capture is currently allowed.
-    ///
-    /// The content itself is discarded; only whether the request succeeded matters. See
-    /// ``DirectCaptureAccess`` for why this cannot be answered by preflighting instead.
+    /// Settles ``DirectCaptureAccess`` at a moment of the app's choosing. The content is
+    /// discarded; only whether the request succeeded matters.
     static func confirmDirectCaptureAccess() async -> Bool {
         do {
             _ = try await loadShareableContent()
