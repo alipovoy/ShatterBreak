@@ -13,7 +13,9 @@ final class OverlayPresentationState {
     let effectType: EffectType
 
     /// Whether this overlay should present already settled — no shake intro or entrance
-    /// sound — because an absence already served as the break (issue #76).
+    /// sound — because the break's entrance is not this overlay's to play: an absence
+    /// already served as the break (issue #76), or the display joined a break that was
+    /// already running (issue #94).
     let settled: Bool
 
     var backgroundImage: CGImage?
@@ -43,8 +45,7 @@ final class OverlayPresentationState {
     }
 
     /// Applies a captured background and advances past `.plain`. A settled overlay
-    /// (issue #76: the break-end window for an absence that already served as the
-    /// break) skips straight to `.shattered` — no shake intro, no entrance sound.
+    /// skips straight to `.shattered` — no shake intro, no entrance sound.
     func startShatter(with image: CGImage?) {
         guard isShatterEffect, phase == .plain else { return }
 
