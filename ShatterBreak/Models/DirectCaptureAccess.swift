@@ -9,8 +9,9 @@ import Foundation
 /// why ``ScreenCapturePermissionManager`` attempts one when a work session begins rather
 /// than letting the break be the first to find out.
 enum DirectCaptureAccess: Equatable, Sendable {
-    /// Not yet attempted. Treated as permitted: the app must not downgrade the shatter
-    /// effect over a refusal it has never observed.
+    /// Not yet attempted, or attempted and still in flight. Treated as not permitted:
+    /// capturing on an unsettled answer is exactly what puts the system dialog over a
+    /// break, so the overlay waits for a real ``allowed`` before it shatters.
     case unknown
 
     case allowed

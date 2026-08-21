@@ -25,8 +25,8 @@ final class OverlayManager {
 
     /// - Parameter directCaptureAccess: the app's latest reading of macOS's direct-capture
     ///   consent, supplied by ``OverlayPresenter/live(defaults:)``. Defaults to
-    ///   ``DirectCaptureAccess/unknown``, the value that changes nothing, so a caller that
-    ///   never wires it up cannot silently downgrade every shatter.
+    ///   ``DirectCaptureAccess/unknown``, so a caller that never wires it up falls back to
+    ///   fogged rather than putting a system dialog over the break.
     init(
         defaults: any KeyValueStore = UserDefaults.standard,
         captureClient: ScreenCaptureClient = .live,
@@ -71,17 +71,18 @@ final class OverlayManager {
     /// the live desktop with cracks — instead of an empty shatter with nothing to
     /// fracture (issue #62). Every other selection is presented as chosen.
     ///
-    /// A known-refused ``DirectCaptureAccess`` downgrades for a second reason: capturing
-    /// anyway would raise the system's dialog on top of the overlay, which is the ambush
-    /// issue #90 is about. Only an observed refusal downgrades — ``DirectCaptureAccess/unknown``
-    /// proceeds, so a break arriving before the first probe still shatters.
+    /// ``DirectCaptureAccess`` downgrades for a second reason: capturing without a settled
+    /// answer would raise the system's dialog on top of the overlay, which is the ambush
+    /// issue #90 is about. Only ``DirectCaptureAccess/allowed`` proceeds, so a break that
+    /// arrives before the probe has answered renders fogged — the cheaper of the two
+    /// wrong outcomes.
     static func resolveEffectType(
         selected: EffectType,
         hasScreenRecordingPermission: Bool,
         directCaptureAccess: DirectCaptureAccess = .unknown
     ) -> EffectType {
         guard selected.requiresScreenCapture else { return selected }
-        guard hasScreenRecordingPermission, directCaptureAccess != .refused else {
+        guard hasScreenRecordingPermission, directCaptureAccess == .allowed else {
             return .fogged
         }
         return selected
