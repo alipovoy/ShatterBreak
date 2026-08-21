@@ -172,7 +172,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shatter also needs macOS’s confirmation to capture the screen directly. Until it is allowed, breaks use a frosted-glass effect instead."
+            "value": "Shatter also needs macOS’s confirmation to capture the screen directly. Until it is allowed, breaks use the Fogged effect instead."
           }
         }
       }
@@ -364,7 +364,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shatter requires Screen Recording permission to capture your screen. Without it, breaks fall back to a frosted-glass effect. Enable it in System Settings → Privacy & Security → Screen & System Audio Recording."
+            "value": "Shatter requires Screen Recording permission to capture your screen. Without it, breaks fall back to the Fogged effect. Enable it in System Settings → Privacy & Security → Screen & System Audio Recording."
           }
         }
       }
@@ -388,7 +388,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shatter requires Screen Recording permission. Without it, breaks use a frosted-glass effect instead."
+            "value": "Shatter requires Screen Recording permission. Without it, breaks use the Fogged effect instead."
           }
         }
       }

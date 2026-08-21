@@ -97,8 +97,8 @@ once a month. It cannot be preflighted or pre-approved in System Settings.
 
 ShatterBreak deliberately triggers it when a work session **starts**, so it never
 lands in the middle of a break. Decline it and the app remembers the answer: breaks fall
-back to the frosted-glass effect and nothing asks again. Preferences → Break Screen says
-why, and offers both ways out — ask macOS again, or switch to `Fogged` for good.
+back to the `Fogged` effect and nothing asks again. Preferences → Break Screen says why,
+and offers both ways out — ask macOS again, or select `Fogged` for good.
 
 ## How to Use
 1. Launch the app and find the `ShatterBreak` icon in the macOS menu bar.

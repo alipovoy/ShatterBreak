@@ -6,7 +6,7 @@ import SwiftUI
 /// macOS's separate ``DirectCaptureAccess`` — so every consent note reads identically.
 /// The actions are a builder rather than a fixed pair because the two cases differ: a
 /// missing Screen Recording grant has exactly one remedy (System Settings), while a
-/// declined direct-capture confirmation has two, since accepting the frosted-glass
+/// declined direct-capture confirmation has two, since accepting the ``EffectType/fogged``
 /// fallback for good is a legitimate answer.
 struct PermissionWarningView<Actions: View>: View {
     let message: LocalizedStringResource
