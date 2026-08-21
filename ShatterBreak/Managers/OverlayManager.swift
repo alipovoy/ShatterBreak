@@ -5,15 +5,17 @@ import SwiftUI
 final class OverlayManager {
     /// The decisions made when a break began, retained so that overlays added for a
     /// display that appears mid-break (e.g. a clamshell lid opening) match the rest.
+    /// The entrance style is deliberately absent: a session exists only after the
+    /// entrance has played, so every later overlay is presented settled.
     private struct ActiveSession {
         let id: UUID
         let state: TimerState
         let effectType: EffectType
-        let settled: Bool
     }
 
     private var windows: [CGDirectDisplayID: NSWindow] = [:]
-    private var overlayStates: [CGDirectDisplayID: OverlayPresentationState] = [:]
+    /// Internal (not `private`) so tests can assert how each display is presented.
+    private(set) var overlayStates: [CGDirectDisplayID: OverlayPresentationState] = [:]
     private var captureTasks: [Task<Void, Never>] = []
     private var activeSessionID = UUID()
     private var session: ActiveSession?
@@ -98,12 +100,7 @@ final class OverlayManager {
         )
         let sessionID = UUID()
         activeSessionID = sessionID
-        session = ActiveSession(
-            id: sessionID,
-            state: state,
-            effectType: effectType,
-            settled: settled
-        )
+        session = ActiveSession(id: sessionID, state: state, effectType: effectType)
 
         for screen in captureClient.availableScreens() {
             presentOverlay(for: screen, state: state, effectType: effectType, settled: settled)
@@ -161,11 +158,14 @@ final class OverlayManager {
 
         var addedDisplayIDs: Set<CGDirectDisplayID> = []
         for screen in plan.added {
+            // Settled: the shake and glass sound belong to the moment the break began.
+            // A display joining later catches up silently — including one that dropped
+            // off while the screen slept and came back on wake (issue #94).
             presentOverlay(
                 for: screen,
                 state: session.state,
                 effectType: session.effectType,
-                settled: session.settled
+                settled: true
             )
             addedDisplayIDs.insert(screen.displayID)
         }
