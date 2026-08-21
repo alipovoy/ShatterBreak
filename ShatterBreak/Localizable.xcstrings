@@ -322,6 +322,17 @@
         }
       }
     },
+    "openSystemSettingsToGrant": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings to grant permission"
+          }
+        }
+      }
+    },
     "pause": {
       "comment": "Menu button that pauses the running work timer.",
       "extractionState": "manual",
@@ -786,17 +797,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Track statistics"
-          }
-        }
-      }
-    },
-    "useFoggedEffectAction": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use Fogged instead"
           }
         }
       }

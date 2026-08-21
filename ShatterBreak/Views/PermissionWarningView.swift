@@ -1,25 +1,24 @@
 import SwiftUI
 
-/// An inline caution about a missing screen-capture consent, above the ways out of it.
+/// An inline caution about a missing screen-capture consent, above the one action that
+/// grants it.
 ///
 /// Shared by both consents the Shatter effect depends on — classic Screen Recording and
-/// macOS's separate ``DirectCaptureAccess`` — so every consent note reads identically.
-/// The actions are a builder rather than a fixed pair because the two cases differ: a
-/// missing Screen Recording grant has exactly one remedy (System Settings), while a
-/// declined direct-capture confirmation has two, since accepting the ``EffectType/fogged``
-/// fallback for good is a legitimate answer.
-struct PermissionWarningView<Actions: View>: View {
+/// macOS's separate ``DirectCaptureAccess`` — so every consent warning reads identically
+/// and differs only in what it says and where it sends the user. Neither offers to switch
+/// to the ``EffectType/fogged`` fallback: the effect picker sits directly above, so that
+/// would duplicate a visible control while restating the message's own text.
+struct PermissionWarningView: View {
     let message: LocalizedStringResource
-    @ViewBuilder let actions: Actions
+    let actionTitle: LocalizedStringResource
+    let action: () -> Void
 
     var body: some View {
         VStack(alignment: .leading) {
             WarningLabel(message: message)
-            HStack {
-                actions
-            }
-            .buttonStyle(.link)
-            .font(.callout)
+            Button(actionTitle, action: action)
+                .buttonStyle(.link)
+                .font(.callout)
         }
         // A preferred reading width keeps this note from dictating the Form's width;
         // maxWidth lets it fill and wrap to whatever the surrounding controls set.
@@ -28,15 +27,17 @@ struct PermissionWarningView<Actions: View>: View {
 }
 
 #Preview("Screen Recording") {
-    PermissionWarningView(message: .permissionWarningText) {
-        Button(.openSystemSettings) { }
-        Button(.useFoggedEffectAction) { }
-    }
+    PermissionWarningView(
+        message: .permissionWarningText,
+        actionTitle: .openSystemSettingsToGrant,
+        action: { }
+    )
 }
 
 #Preview("Direct Capture") {
-    PermissionWarningView(message: .directCaptureWarningText) {
-        Button(.directCaptureConfirmAction) { }
-        Button(.useFoggedEffectAction) { }
-    }
+    PermissionWarningView(
+        message: .directCaptureWarningText,
+        actionTitle: .directCaptureConfirmAction,
+        action: { }
+    )
 }

@@ -5,24 +5,21 @@ import Foundation
 final class ScreenCapturePermissionManager {
     static let shared = ScreenCapturePermissionManager()
 
-    enum Status: Equatable {
-        case granted
-        case denied
-        case notDetermined
-    }
-    private(set) var status: Status = .notDetermined
+    /// Whether classic Screen Recording permission is currently granted.
+    ///
+    /// A plain answer rather than a granted/denied/undetermined status, because nothing
+    /// left in the app distinguishes "denied" from "never asked": both mean Shatter
+    /// cannot capture, both show the same warning, and both are fixed in the same place.
+    /// Tracking the difference only made the warning invisible until the app happened to
+    /// have asked once — which read as the warning being broken.
+    private(set) var hasScreenRecordingAccess = false
 
     /// Whether macOS is currently letting the app capture the screen directly, without
     /// the system window picker.
     ///
-    /// Independent of ``status``: Screen Recording can be granted while this is refused,
-    /// which is exactly the case that used to ambush the user mid-break (issue #90).
+    /// Independent of ``hasScreenRecordingAccess``: Screen Recording can be granted while
+    /// this is refused, which is exactly the case that ambushed the user mid-break (#90).
     private(set) var directCaptureAccess: DirectCaptureAccess = .unknown
-
-    /// Whether Screen Recording has ever been requested. Named for the old "has launched
-    /// before" behaviour it replaces — the two were always set at the same moment, so the
-    /// stored value already means what it now says and needs no migration.
-    private static let hasRequestedAccessKey = "com.shatterbreak.hasLaunchedBefore"
 
     /// A remembered decline of macOS's direct-capture confirmation. Persisted so the
     /// monthly ask does not reappear on every launch of a login-item menu bar app; the
@@ -51,12 +48,7 @@ final class ScreenCapturePermissionManager {
     }
 
     func refresh() {
-        if permissionClient.preflightAccess() {
-            status = .granted
-        } else {
-            status = hasRequestedAccess ? .denied : .notDetermined
-        }
-
+        hasScreenRecordingAccess = permissionClient.preflightAccess()
         updateAppActiveObservation()
     }
 
@@ -82,7 +74,7 @@ final class ScreenCapturePermissionManager {
         refresh()
         requestAccessIfNeeded()
 
-        guard status == .granted,
+        guard hasScreenRecordingAccess,
               directCaptureAccess != .refused,
               isConfirmingDirectCapture == false
         else {
@@ -117,23 +109,18 @@ final class ScreenCapturePermissionManager {
     /// this on a persisted "has launched before" flag meant it never did.
     ///
     /// The per-launch cap is belt-and-braces against a macOS that re-prompts after a
-    /// denial; the persisted flag now only separates ``Status/notDetermined`` from
-    /// ``Status/denied`` for the UI.
+    /// denial. Nothing about the request is persisted: macOS is the record.
     func requestAccessIfNeeded() {
-        guard status != .granted, hasRequestedAccessThisLaunch == false else { return }
+        guard hasScreenRecordingAccess == false, hasRequestedAccessThisLaunch == false else {
+            return
+        }
 
         hasRequestedAccessThisLaunch = true
-        defaults.set(true, forKey: Self.hasRequestedAccessKey)
-        updateAppActiveObservation()
         _ = permissionClient.requestAccess()
     }
 
-    private var hasRequestedAccess: Bool {
-        defaults.bool(forKey: Self.hasRequestedAccessKey)
-    }
-
     private func updateAppActiveObservation() {
-        guard status != .granted else {
+        guard hasScreenRecordingAccess == false else {
             // Screen recording permission changes typically require relaunch before
             // the running process sees a new effective access state.
             appActiveObserver = nil

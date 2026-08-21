@@ -9,34 +9,35 @@ import SwiftUI
 ///
 /// The three states are mutually exclusive and ordered by what the user must fix first:
 /// Screen Recording gates the direct-capture confirmation, so there is no point asking
-/// about the second while the first is missing. With both settled, the standing note
+/// about the second while the first is missing. Missing means missing, whether or not the
+/// app has ever asked — a warning that stays hidden until the first request reads as a
+/// broken warning. With both settled, the standing note
 /// explains the confirmation the user will keep being asked for, so the system dialog
 /// arrives as something the app already mentioned.
 ///
-/// Both warnings offer the same two exits, because both describe the same dead end —
-/// Shatter selected, breaks quietly running as Fogged — and in both, settling for that
-/// fallback is a legitimate answer rather than a failure to comply. Choosing it also
-/// ends the asking for good: nothing requests capture consent unless the selected effect
-/// requires it. Only the "grant it" half differs, since the two consents are granted in
-/// different places — System Settings for one, a system dialog for the other.
+/// Each warning carries exactly one action: the thing that grants the consent it is
+/// about. Neither offers to switch to Fogged, even though that is what the break is
+/// already doing — the effect picker sits directly above, so the offer would duplicate a
+/// control the user is looking at while restating what the warning's own text says.
 struct ScreenCaptureConsentView: View {
-    let status: ScreenCapturePermissionManager.Status
+    let hasScreenRecordingAccess: Bool
     let directCaptureAccess: DirectCaptureAccess
     let onOpenSystemSettings: () -> Void
     let onConfirmDirectCapture: () -> Void
-    let onUseFoggedEffect: () -> Void
 
     var body: some View {
-        if status == .denied {
-            PermissionWarningView(message: .permissionWarningText) {
-                Button(.openSystemSettings, action: onOpenSystemSettings)
-                Button(.useFoggedEffectAction, action: onUseFoggedEffect)
-            }
+        if hasScreenRecordingAccess == false {
+            PermissionWarningView(
+                message: .permissionWarningText,
+                actionTitle: .openSystemSettingsToGrant,
+                action: onOpenSystemSettings
+            )
         } else if directCaptureAccess == .refused {
-            PermissionWarningView(message: .directCaptureWarningText) {
-                Button(.directCaptureConfirmAction, action: onConfirmDirectCapture)
-                Button(.useFoggedEffectAction, action: onUseFoggedEffect)
-            }
+            PermissionWarningView(
+                message: .directCaptureWarningText,
+                actionTitle: .directCaptureConfirmAction,
+                action: onConfirmDirectCapture
+            )
         } else {
             Text(.directCaptureNote)
                 .font(.footnote)
@@ -49,25 +50,22 @@ struct ScreenCaptureConsentView: View {
 #Preview("Consent states") {
     Form {
         ScreenCaptureConsentView(
-            status: .granted,
+            hasScreenRecordingAccess: true,
             directCaptureAccess: .allowed,
             onOpenSystemSettings: { },
-            onConfirmDirectCapture: { },
-            onUseFoggedEffect: { }
+            onConfirmDirectCapture: { }
         )
         ScreenCaptureConsentView(
-            status: .granted,
+            hasScreenRecordingAccess: true,
             directCaptureAccess: .refused,
             onOpenSystemSettings: { },
-            onConfirmDirectCapture: { },
-            onUseFoggedEffect: { }
+            onConfirmDirectCapture: { }
         )
         ScreenCaptureConsentView(
-            status: .denied,
+            hasScreenRecordingAccess: false,
             directCaptureAccess: .unknown,
             onOpenSystemSettings: { },
-            onConfirmDirectCapture: { },
-            onUseFoggedEffect: { }
+            onConfirmDirectCapture: { }
         )
     }
     .formStyle(.grouped)

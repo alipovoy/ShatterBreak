@@ -6,14 +6,10 @@ import Testing
 /// Screen Recording and used to be discovered mid-break (issue #90).
 @Suite("ScreenCapturePermissionManager direct capture", .tags(.permissions))
 struct ScreenCaptureDirectAccessTests {
-    private let launchKey = "com.shatterbreak.hasLaunchedBefore"
-
     @Test("preparing for capture confirms direct capture when Screen Recording is granted")
     @MainActor
     func prepareForCaptureConfirmsDirectCapture() async {
         let environment = TestEnvironment()
-        environment.defaults.set(true, forKey: launchKey)
-
         let spy = ScreenCapturePermissionClientSpy()
         spy.preflightAccess = true
         let manager = environment.makePermissionManager(permissionClient: spy.client)
@@ -33,8 +29,6 @@ struct ScreenCaptureDirectAccessTests {
     @MainActor
     func refusedDirectCaptureIsRecorded() async {
         let environment = TestEnvironment()
-        environment.defaults.set(true, forKey: launchKey)
-
         let spy = ScreenCapturePermissionClientSpy()
         spy.preflightAccess = true
         spy.directCaptureAllowed = false
@@ -49,8 +43,6 @@ struct ScreenCaptureDirectAccessTests {
     @MainActor
     func refusalIsNotReprobed() async {
         let environment = TestEnvironment()
-        environment.defaults.set(true, forKey: launchKey)
-
         let spy = ScreenCapturePermissionClientSpy()
         spy.preflightAccess = true
         spy.directCaptureAllowed = false
@@ -69,8 +61,6 @@ struct ScreenCaptureDirectAccessTests {
     @MainActor
     func userCanRetryAfterRefusal() async {
         let environment = TestEnvironment()
-        environment.defaults.set(true, forKey: launchKey)
-
         let spy = ScreenCapturePermissionClientSpy()
         spy.preflightAccess = true
         spy.directCaptureAllowed = false
@@ -88,8 +78,6 @@ struct ScreenCaptureDirectAccessTests {
     @MainActor
     func directCaptureIsNotProbedWithoutScreenRecording() async {
         let environment = TestEnvironment()
-        environment.defaults.set(true, forKey: launchKey)
-
         let spy = ScreenCapturePermissionClientSpy()
         spy.preflightAccess = false
         let manager = environment.makePermissionManager(permissionClient: spy.client)
@@ -107,7 +95,6 @@ struct ScreenCaptureDirectAccessTests {
     @MainActor
     func prepareForCaptureRequestsOnFirstLaunch() async {
         let environment = TestEnvironment()
-        environment.defaults.removeObject(forKey: launchKey)
 
         let spy = ScreenCapturePermissionClientSpy()
         let manager = environment.makePermissionManager(permissionClient: spy.client)
@@ -127,8 +114,6 @@ struct ScreenCaptureDirectAccessTests {
     @MainActor
     func refusalIsRemembered() async {
         let environment = TestEnvironment()
-        environment.defaults.set(true, forKey: launchKey)
-
         let spy = ScreenCapturePermissionClientSpy()
         spy.preflightAccess = true
         spy.directCaptureAllowed = false
@@ -156,8 +141,6 @@ struct ScreenCaptureDirectAccessTests {
     @MainActor
     func allowingClearsTheRememberedDecline() async {
         let environment = TestEnvironment()
-        environment.defaults.set(true, forKey: launchKey)
-
         let spy = ScreenCapturePermissionClientSpy()
         spy.preflightAccess = true
         spy.directCaptureAllowed = false

@@ -220,7 +220,7 @@ private struct BreakScreenSettingsTab: View {
                 EffectCardPicker(selection: $effectType)
                     .onChange(of: effectType) { _, newValue in
                         guard newValue.requiresScreenCapture else { return }
-                        guard permissions.status == .granted else {
+                        guard permissions.hasScreenRecordingAccess else {
                             showPermissionAlert = true
                             return
                         }
@@ -235,11 +235,10 @@ private struct BreakScreenSettingsTab: View {
                 // any permission, so consent is only ever discussed under Shatter.
                 if effectType.requiresScreenCapture {
                     ScreenCaptureConsentView(
-                        status: permissions.status,
+                        hasScreenRecordingAccess: permissions.hasScreenRecordingAccess,
                         directCaptureAccess: permissions.directCaptureAccess,
                         onOpenSystemSettings: openSystemSettings,
-                        onConfirmDirectCapture: confirmDirectCapture,
-                        onUseFoggedEffect: useFoggedEffect
+                        onConfirmDirectCapture: confirmDirectCapture
                     )
                 }
             }
@@ -250,12 +249,8 @@ private struct BreakScreenSettingsTab: View {
             }
         }
         .settingsTabLayout()
-        // Raised by picking Shatter without permission. Its message already says breaks
-        // will fall back to Fogged, so it offers that as an answer rather than leaving
-        // System Settings as the only way forward.
         .alert(Text(.permissionAlertTitle), isPresented: $showPermissionAlert) {
             Button(.openSystemSettings, action: openSystemSettings)
-            Button(.useFoggedEffectAction, action: useFoggedEffect)
             Button(.later, role: .cancel) { }
         } message: {
             Text(.permissionAlertMessage)
@@ -270,13 +265,6 @@ private struct BreakScreenSettingsTab: View {
     /// does not depend on relaunching — System Settings has no switch for this consent.
     private func confirmDirectCapture() {
         Task { await permissions.confirmDirectCaptureAccess() }
-    }
-
-    /// Accepts the fallback the break is already using. The effect stays the user's own
-    /// choice — the app degrades Shatter at runtime but never rewrites the preference
-    /// behind their back, so making it permanent has to be an action they take.
-    private func useFoggedEffect() {
-        effectType = .fogged
     }
 }
 

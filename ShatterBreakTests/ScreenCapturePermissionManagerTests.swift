@@ -3,89 +3,57 @@ import Testing
 
 @testable import ShatterBreak
 
-struct PermissionStatusCase: Sendable {
-    let preflightAccess: Bool
-    let hasLaunchedBefore: Bool
-    let expectedStatus: ScreenCapturePermissionManager.Status
-}
-
 @Suite("ScreenCapturePermissionManager", .tags(.permissions))
 struct ScreenCapturePermissionManagerTests {
-    private let launchKey = "com.shatterbreak.hasLaunchedBefore"
-
-    @Test(arguments: [
-        PermissionStatusCase(
-            preflightAccess: true,
-            hasLaunchedBefore: false,
-            expectedStatus: .granted
-        ),
-        PermissionStatusCase(
-            preflightAccess: false,
-            hasLaunchedBefore: false,
-            expectedStatus: .notDetermined
-        ),
-        PermissionStatusCase(
-            preflightAccess: false,
-            hasLaunchedBefore: true,
-            expectedStatus: .denied
-        )
-    ])
+    @Test("access reflects preflight, whether or not the app has ever asked")
     @MainActor
-    func refreshSetsExpectedStatus(_ testCase: PermissionStatusCase) {
+    func accessReflectsPreflight() {
         let environment = TestEnvironment()
-        let defaults = environment.defaults
 
-        if testCase.hasLaunchedBefore {
-            defaults.set(true, forKey: launchKey)
-        } else {
-            defaults.removeObject(forKey: launchKey)
-        }
-
-        let spy = ScreenCapturePermissionClientSpy()
-        spy.preflightAccess = testCase.preflightAccess
-
-        let manager = environment.makePermissionManager(permissionClient: spy.client)
-
+        let denied = ScreenCapturePermissionClientSpy()
         #expect(
-            manager.status == testCase.expectedStatus,
-            "Refresh should derive the expected permission status from preflight and launch state."
+            environment.makePermissionManager(permissionClient: denied.client)
+                .hasScreenRecordingAccess == false,
+            """
+            Never-asked and denied are the same answer to "can Shatter capture", and \
+            must look the same to the UI — a warning hidden until the first request \
+            reads as a broken warning (issue #90).
+            """
         )
-        #expect(spy.preflightCallCount == 1, "Permission refresh should preflight exactly once.")
+        #expect(denied.preflightCallCount == 1, "Permission refresh should preflight exactly once.")
+
+        let granted = ScreenCapturePermissionClientSpy()
+        granted.preflightAccess = true
+        #expect(environment.makePermissionManager(permissionClient: granted.client).hasScreenRecordingAccess)
     }
 
-    @Test("requesting access marks the store and asks once per launch")
+    @Test("access is requested at most once per launch")
     @MainActor
     func requestAccessAsksOncePerLaunch() {
         let environment = TestEnvironment()
-        let defaults = environment.defaults
-        defaults.removeObject(forKey: launchKey)
-
         let spy = ScreenCapturePermissionClientSpy()
         let manager = environment.makePermissionManager(permissionClient: spy.client)
 
         manager.requestAccessIfNeeded()
         manager.requestAccessIfNeeded()
 
-        #expect(defaults.bool(forKey: launchKey), "Requesting access should persist the marker the UI reads.")
         #expect(spy.requestCallCount == 1, "A launch should raise at most one request.")
     }
 
-    @Test("a previously requested but ungranted permission is requested again next launch")
+    @Test("a later launch asks again while permission is still missing")
     @MainActor
     func requestAccessRetriesOnALaterLaunch() {
         let environment = TestEnvironment()
-        environment.defaults.set(true, forKey: launchKey)
-
         let spy = ScreenCapturePermissionClientSpy()
-        let manager = environment.makePermissionManager(permissionClient: spy.client)
 
-        manager.requestAccessIfNeeded()
+        environment.makePermissionManager(permissionClient: spy.client).requestAccessIfNeeded()
+        environment.makePermissionManager(permissionClient: spy.client).requestAccessIfNeeded()
 
         #expect(
-            spy.requestCallCount == 1,
+            spy.requestCallCount == 2,
             """
             The grant is keyed to the code-signing identity, so an ad-hoc rebuild leaves \
-            TCC with no record; a permanent flag meant the app never asked again (#43). \
+            TCC with no record; a persisted flag meant the app never asked again (#43). \
             macOS suppresses the dialog when it already holds an answer.
             """
         )
@@ -121,16 +89,16 @@ struct ScreenCapturePermissionManagerTests {
     @MainActor
     func appDidBecomeActiveRefreshesStatusWhileUnresolved() {
         let environment = TestEnvironment()
-        let defaults = environment.defaults
-        defaults.set(true, forKey: launchKey)
-
         let spy = ScreenCapturePermissionClientSpy()
         let manager = environment.makePermissionManager(permissionClient: spy.client)
 
-        #expect(manager.status == .denied, "A previously launched app without permission should start denied.")
+        #expect(manager.hasScreenRecordingAccess == false, "An app without permission should start without access.")
         environment.appNotificationCenter.post(name: NSApplication.didBecomeActiveNotification, object: nil)
 
-        #expect(manager.status == .denied, "Becoming active should keep denied status when preflight still fails.")
+        #expect(
+            manager.hasScreenRecordingAccess == false,
+            "Becoming active should keep access off while preflight still fails."
+        )
         #expect(spy.preflightCallCount == 2, "Unresolved permission should refresh when the app becomes active.")
     }
 
@@ -143,13 +111,13 @@ struct ScreenCapturePermissionManagerTests {
 
         let manager = environment.makePermissionManager(permissionClient: spy.client)
 
-        #expect(manager.status == .granted, "Granted preflight should set granted status.")
+        #expect(manager.hasScreenRecordingAccess, "Granted preflight should report access.")
         #expect(spy.preflightCallCount == 1, "Initial permission setup should preflight once.")
 
         environment.appNotificationCenter.post(name: NSApplication.didBecomeActiveNotification, object: nil)
 
-        #expect(manager.status == .granted, "Granted status should remain granted after app activation.")
-        #expect(spy.preflightCallCount == 1, "Granted status should stop further app-active refreshes.")
+        #expect(manager.hasScreenRecordingAccess, "Access should remain granted after app activation.")
+        #expect(spy.preflightCallCount == 1, "Granted access should stop further app-active refreshes.")
     }
 
     @Test("manager deallocates while the app-active observer is registered")
