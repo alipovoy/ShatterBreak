@@ -219,7 +219,7 @@ private struct BreakScreenSettingsTab: View {
             Section(.effectTypePicker) {
                 EffectCardPicker(selection: $effectType)
                     .onChange(of: effectType) { _, newValue in
-                        guard newValue == .shatter else { return }
+                        guard newValue.requiresScreenCapture else { return }
                         guard permissions.status == .granted else {
                             showPermissionAlert = true
                             return
@@ -233,7 +233,7 @@ private struct BreakScreenSettingsTab: View {
 
                 // Only Shatter captures the screen; Fogged and Dimmed work without
                 // any permission, so consent is only ever discussed under Shatter.
-                if effectType == .shatter {
+                if effectType.requiresScreenCapture {
                     ScreenCaptureConsentView(
                         status: permissions.status,
                         directCaptureAccess: permissions.directCaptureAccess,

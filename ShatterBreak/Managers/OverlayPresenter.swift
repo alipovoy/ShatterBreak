@@ -35,9 +35,9 @@ extension OverlayPresenter {
         )
         return OverlayPresenter(
             prepare: {
-                // Only the shatter effect captures the screen, so only it can raise the
-                // system's capture dialogs. A user on Fogged or Dimmed is never asked.
-                guard manager.selectedEffectType == .shatter else { return }
+                // Only an effect that captures the screen may raise the system's
+                // capture dialogs; a user on Fogged or Dimmed is never asked.
+                guard manager.selectedEffectType.requiresScreenCapture else { return }
                 Task { await permissions.prepareForCapture() }
             },
             show: { manager.showOverlays(state: $0, settled: $1 == .settled) },

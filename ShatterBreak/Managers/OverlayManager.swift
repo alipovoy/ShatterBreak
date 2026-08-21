@@ -82,7 +82,7 @@ final class OverlayManager {
         hasScreenRecordingPermission: Bool,
         directCaptureAccess: DirectCaptureAccess = .unknown
     ) -> EffectType {
-        guard selected == .shatter else { return selected }
+        guard selected.requiresScreenCapture else { return selected }
         guard hasScreenRecordingPermission, directCaptureAccess != .refused else {
             return .fogged
         }

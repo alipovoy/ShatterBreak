@@ -41,6 +41,24 @@ struct OverlayManagerConfigurationTests {
         #expect(manager.selectedEffectType == .shatter)
     }
 
+    @Test(
+        "only shatter requires screen capture",
+        arguments: [
+            (EffectType.shatter, true),
+            (EffectType.fogged, false),
+            (EffectType.dimmed, false)
+        ]
+    )
+    func onlyShatterRequiresScreenCapture(effect: EffectType, expected: Bool) {
+        #expect(
+            effect.requiresScreenCapture == expected,
+            """
+            This is the single gate on whether the app may raise a screen-capture \
+            dialog; a user on \(effect) must never be asked for permission (issue #90).
+            """
+        )
+    }
+
     @Test("shatter without Screen Recording permission resolves to fogged")
     func shatterWithoutPermissionResolvesToFogged() {
         #expect(

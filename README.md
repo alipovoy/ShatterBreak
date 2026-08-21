@@ -23,7 +23,7 @@ ShatterBreak is built as a small macOS utility with a strong focus on system int
 * Xcode with the macOS 15 SDK
 * [XcodeGen](https://github.com/yonaskolb/XcodeGen) for generating the Xcode project
 
-Screen recording permission is required only for the `Shatter` visual effect. If permission is not granted, the app still works and falls back to the plain overlay experience.
+Screen recording permission is required only for the `Shatter` visual effect, and is requested only when a work session starts while `Shatter` is selected — choose `Fogged` or `Dimmed` and the app never asks for anything. Without the permission, breaks fall back to the `Fogged` effect.
 
 ## Build
 This repository uses `project.yml` as the source of truth. The Xcode project must be generated locally with XcodeGen.
