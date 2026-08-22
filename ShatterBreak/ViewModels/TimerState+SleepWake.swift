@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Sleep/wake reconciliation for the timer state machine.
 ///
@@ -16,6 +17,59 @@ extension TimerState {
         guard sleptAt == nil else { return }
 
         sleptAt = countdown.now
+    }
+
+    /// A transition that came due but cannot fire, or `nil` while the timer is healthy.
+    ///
+    /// Three things must hold at once, and together they mean "a transition is overdue and
+    /// blocked" rather than anything about sleep: the asleep flag is set, the countdown has
+    /// run out, and the mode is one that owes a transition. A deferral on its own is
+    /// routine — every sleep that outlasts the countdown produces one, and ``handleWake()``
+    /// resolves it — so the expiry is what separates the bug from normal operation.
+    ///
+    /// Read when the menu opens, which is both when the user has noticed something is wrong
+    /// and proof that the screens are on. A stall detected the instant a real wake lands,
+    /// just before its notification arrives, would be a false positive; the cost is one
+    /// dismissable warning, which is why this drives a report rather than an automatic
+    /// recovery (issue #89).
+    var stalledTransition: StalledTransitionReport? {
+        guard let sleptAt else { return nil }
+        guard countdown.remaining(at: countdown.now) <= 0 else { return nil }
+
+        switch mode {
+        case .running, .resting, .postponedWork:
+            return StalledTransitionReport(
+                mode: mode,
+                asleepSecs: countdown.now.timeIntervalSince(sleptAt)
+            )
+        case .idle, .paused, .awaitingReturn:
+            return nil
+        }
+    }
+
+    /// Clears the stuck flag and lets the overdue transition fire.
+    ///
+    /// Deliberately *not* ``handleWake()``: that reconciles against `now - sleptAt`, which
+    /// is only an absence while the flag is trustworthy. A stalled flag makes it a
+    /// fabricated one, and feeding it to ``WakeOutcome`` would discard the work session and
+    /// raise a break the user never took. Cancelling the deferral is the whole recovery —
+    /// the countdown already ran out, so the transition it owes is the correct one.
+    ///
+    /// Runs only from the user pressing reset. That consent is what makes it safe where an
+    /// automatic self-heal would not be (issue #89).
+    func recoverFromStalledTransition() {
+        guard let report = stalledTransition else { return }
+
+        Logger.timer.notice(
+            """
+            Timer stall reset by the user in mode \(String(describing: report.mode), privacy: .public) \
+            after \(report.asleepSecs.formatted(.number.precision(.fractionLength(0))), privacy: .public)s \
+            with the asleep flag stuck.
+            """
+        )
+
+        sleptAt = nil
+        handleCountdownExpiryIfNeeded()
     }
 
     /// Reconciles the timer with the wall-clock time that elapsed while asleep.

@@ -205,4 +205,48 @@ struct TimerStateSleepWakeTests {
 
         #expect(state.isResting, "A fresh cycle must still transition to rest after a mid-sleep stop.")
     }
+
+    @Test("an expiry landing while asleep defers instead of transitioning")
+    @MainActor
+    func expiryWhileAsleepDefersUntilWake() async {
+        let environment = TestEnvironment()
+        let state = environment.makeTimerState()
+        state.workDurationSecs = 2
+        state.restDurationSecs = 5
+
+        state.start()
+
+        let notificationCenter = environment.workspaceNotificationCenter
+        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+
+        // Work runs out while the machine is still asleep. The transition is deferred, not
+        // dropped: `handleWake()` owns the decision once the time away is known. Issue #87
+        // is precisely this deferral never receiving its matching wake.
+        await environment.advanceTime(by: 3)
+        #expect(state.mode == .running, "An expiry landing while asleep must defer, not transition.")
+
+        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        #expect(state.isResting, "The deferred transition must resolve once the wake arrives.")
+    }
+
+    @Test("parking in awaiting-return never strands the asleep flag")
+    @MainActor
+    func awaitingReturnDoesNotStrandAsleepFlag() async {
+        let environment = TestEnvironment()
+        environment.defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
+
+        let state = environment.makeTimerState()
+        state.workDurationSecs = 1
+        state.restDurationSecs = 1
+
+        state.start()
+        await environment.advanceUntil(maxTicks: 4) { state.awaitingReturn }
+        #expect(state.awaitingReturn, "Manual mode should park in awaiting-return after the break.")
+
+        // `awaitReturn()` stops sleep/wake observation, so a flag still set here would have
+        // no remaining route to being cleared — issue #87's stranding shape. No current path
+        // reaches this state with it set; the assertion pins that closed so a future caller
+        // cannot reopen it silently (issue #89).
+        #expect(state.sleptAt == nil, "Awaiting return must not hold an asleep timestamp.")
+    }
 }

@@ -51,6 +51,11 @@ final class TestEnvironment {
         )
     }
 
+    /// The scheduler's current moment, for tests that need to plant a timestamp the
+    /// timer will measure against.
+    @MainActor
+    var now: Date { scheduler.now }
+
     @MainActor
     func advanceTime(by interval: TimeInterval = 1, ticks: Int = 1) async {
         for _ in 0..<ticks {
