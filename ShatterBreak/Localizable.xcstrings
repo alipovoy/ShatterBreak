@@ -609,6 +609,54 @@
         }
       }
     },
+    "stalledTimerReportAction": {
+      "comment": "Button that opens a prefilled bug report about the stalled timer.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Report this"
+          }
+        }
+      }
+    },
+    "stalledTimerResetAction": {
+      "comment": "Button that clears the stuck state and lets the overdue timer transition fire.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume the timer"
+          }
+        }
+      }
+    },
+    "stalledTimerStuckDuration": {
+      "comment": "Detail line under the stalled-timer warning showing how long the timer has been stuck. The placeholder is a formatted duration such as '12 minutes'.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stuck for %@."
+          }
+        }
+      }
+    },
+    "stalledTimerWarning": {
+      "comment": "Inline warning shown in the menu when a timer transition came due but could not fire.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The timer stopped advancing. A sleep it never saw end is blocking the next break."
+          }
+        }
+      }
+    },
     "startFocus": {
       "comment": "Menu button that starts a focus session.",
       "extractionState": "manual",

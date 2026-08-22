@@ -363,6 +363,11 @@ final class TimerState {
         countdown.clear()
         mode = .awaitingReturn
         savedRestRemaining = nil
+        // Parking here stops sleep/wake observation, so a flag left set would have no
+        // remaining route to being cleared — issue #87's stranding shape exactly. Every
+        // caller currently arrives with it already `nil`; clearing anyway keeps that a
+        // local guarantee instead of a property of the call graph (issue #89).
+        sleptAt = nil
         if presentingOverlay {
             overlays.show(self, .settled)
         }
