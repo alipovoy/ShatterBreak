@@ -31,7 +31,8 @@ TASKS.md
 NOTES.md
 
 # ─── Environment configuration, secrets ────────────────────────────
-.env/
+.env/*
+!.env/signing.yml.example
 
 # ─── Claude Code local state (worktrees, settings — not for repo) ───
 .claude/

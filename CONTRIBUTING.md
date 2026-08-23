@@ -45,6 +45,11 @@ xcodebuild -project ShatterBreak.xcodeproj -scheme ShatterBreak build
 You can also open `ShatterBreak.xcodeproj` in Xcode, select the `ShatterBreak`
 scheme, and build and run from there.
 
+No code-signing setup is required: the `.env/signing.yml` include is gated behind
+`INCLUDE_SIGNING`, unset by default. To sign locally, copy
+[`.env/signing.yml.example`](./.env/signing.yml.example) — see
+[RELEASING.md](./RELEASING.md#which-identity-signs-a-build).
+
 ## Running tests
 
 ```bash
@@ -137,3 +142,7 @@ ShatterBreak is not distributed through Apple channels and is not signed with a
 Developer ID or notarized. Release builds are ad-hoc signed, and users remove the
 Gatekeeper quarantine attribute manually (see the README). Please do not add
 notarization, Developer ID signing, or App Store steps in contributions.
+
+Ad-hoc signing drops the Screen Recording grant on every update; that is expected
+for these builds, not an app bug — see the README and
+[#100](https://github.com/alipovoy/ShatterBreak/issues/100) before filing it.

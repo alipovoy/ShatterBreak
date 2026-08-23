@@ -83,7 +83,7 @@ single trigger — publishing a release — so a release produces exactly one bu
 5. Click **Publish release**.
 
 Publishing fires **Release Build** once: it checks out the tagged commit, runs
-the tests, archives, signs, and uploads `ShatterBreak-vX.Y.Z.zip` (plus the
+the tests, archives, ad-hoc signs, and uploads `ShatterBreak-vX.Y.Z.zip` (plus the
 dSYM) as assets on that release. When it finishes, the release in the Releases
 section has both your notes and the downloadable build.
 
@@ -136,49 +136,101 @@ unaffected — pre-releases only change the marketing string.
 
 ## Signing so permissions survive updates
 
-The `Shatter` effect needs Screen Recording permission. macOS ties that grant to
-the app's code-signing **Designated Requirement (DR)**. An ad-hoc signature
-(`codesign --sign -`, what CI produces) has a DR equal to the binary's `cdhash`,
-which changes on every build — so each new version looks like a different app and
-the user has to re-add it under *System Settings > Privacy & Security > Screen
-Recording* after every update.
+macOS binds the Screen Recording grant to the app's code-signing **Designated
+Requirement (DR)**. An ad-hoc signature has a DR equal to the binary's `cdhash`, so
+every build looks like a new app and the user must re-add it under *System Settings >
+Privacy & Security > Screen Recording*. A stable identity gives a constant DR and the
+grant carries over. Builds are un-notarized either way, so the quarantine step (README)
+is unchanged.
 
-Signing with a **stable self-signed certificate that you create once and reuse**
-gives a constant DR (`identifier "…" and certificate leaf = H"…"`), so the grant
-carries over across updates (at most a one-click "ShatterBreak was updated — keep
-allowing?" prompt). No paid Apple Developer account or Apple secrets are needed;
-the build is still un-notarized, so the quarantine step (see the README) is
-unchanged.
+### Which identity signs a build
 
-**One-time setup.** In *Keychain Access > Certificate Assistant > Create a
-Certificate…* create a certificate named `ShatterBreak Self-Signed`, with
-*Identity Type: Self Signed Root* and *Certificate Type: Code Signing*. Keep it in
-your login keychain and never delete or recreate it — that would change the DR and
-drop the grant. Back it up by exporting a password-protected `.p12`.
+| Mode | When it applies | Update-stable |
+|------|-----------------|---------------|
+| **Ad-hoc** | Default everywhere. No certificate, no setup. CI passes `SIGN_IDENTITY=-`. | No |
+| **Apple-issued** | Only with `INCLUDE_SIGNING=true` and a `.env/signing.yml` supplying your Team ID. Off by default. | Yes |
+| **Self-signed** | Whenever a certificate named `ShatterBreak Self-Signed` is in the keychain. Absent by default. | Yes |
 
-**Archiving in Xcode signs automatically.** The scheme's *Archive* action has a
-post-action that runs `Scripts/sign-release.sh` on the archived app, so *Product >
-Archive* re-signs it with the stable identity for you. If the cert isn't present
-(e.g. on CI, or before the one-time setup) the post-action is a no-op and the
-archive still succeeds. Two caveats:
+The Archive post-action re-signs with `SIGN_IDENTITY` (default `ShatterBreak
+Self-Signed`), so a self-signed certificate silently replaces an Apple-issued signature.
+Post-actions inherit no shell environment, so overriding it means editing `project.yml`
+and regenerating ([#103](https://github.com/alipovoy/ShatterBreak/issues/103)).
 
-* Xcode ignores a post-action's exit status, so it is best-effort — verify with the
-  command below.
-* The Organizer's *Distribute App* re-signs and would replace the stable
-  signature, so take the `.app` straight from the `.xcarchive`
+**Prefer an Apple-issued identity.** Its DR is anchored to Apple and the leaf's subject
+common name rather than a hash, the certificate is short-lived and revocable, and Xcode
+renews it. Renewal normally preserves the DR — re-check afterwards, as a changed common
+name is a changed DR.
+
+**Published builds stay ad-hoc, deliberately.** CI has no identity, and giving it one
+means a certificate in repository secrets. Trying the app should not require certificate
+setup; the cost lands on updates, where the README explains the re-add. Tracked in
+[#100](https://github.com/alipovoy/ShatterBreak/issues/100).
+
+### Self-signed fallback (no Apple account)
+
+*Keychain Access > Certificate Assistant > Create a Certificate…*, named
+`ShatterBreak Self-Signed`, *Identity Type: Self Signed Root*, *Certificate Type: Code
+Signing*.
+
+Keep the default 365-day validity. **Do not stretch it:** a self-signed key cannot be
+revoked, so a leaked long-lived one can sign software that inherits this app's Screen
+Recording grant. Renewal only matters for signing *new* builds, and the new leaf hash
+costs one re-add on your own machine. Protect the key instead: login keychain, `.p12`
+backups behind a strong password, never in the repository.
+
+### Signing a build
+
+The scheme's *Archive* post-action runs `Scripts/sign-release.sh`; a missing certificate
+makes it a no-op. Caveats:
+
+* Xcode ignores post-action exit status, so verify with the command below. A failed sign
+  — an unreachable timestamp server, say — is reported nowhere else.
+* Without the self-signed certificate the post-action is a no-op, so an Apple-signed
+  archive keeps Xcode's signature, which carries **no secure timestamp**. Run the script
+  manually with `SIGN_IDENTITY` set to add one.
+* Organizer's *Distribute App* re-signs — take the `.app` from the `.xcarchive`
   (*Products/Applications*) or use *Distribute App > Custom > Copy App*.
-
-**Or sign a build manually** (e.g. the CI release zip, which is only ad-hoc signed):
 
 ```bash
 Scripts/sign-release.sh path/to/ShatterBreak.app
 ```
 
-Override the identity with `SIGN_IDENTITY=…` if you named the cert differently;
-`SIGN_IDENTITY=-` falls back to ad-hoc signing (not update-stable). Confirm the
-result is leaf-anchored (not `cdhash`):
+The script embeds a secure timestamp, without which the signature stops validating the
+day the certificate expires — dropping the grant on an already-installed build. That
+needs the network and fails rather than degrades, so `SIGN_TIMESTAMP=none` signs offline
+and an `http://` RFC3161 URL picks another server.
+
+Confirm the DR is not a bare `cdhash`:
 
 ```bash
 codesign -d --requirements - path/to/ShatterBreak.app
 # designated => identifier "dev.lipovoy.shatterbreak" and certificate leaf = H"…"
 ```
+
+### Local signing configuration (`.env/signing.yml`)
+
+Signing settings stay out of the repository; `project.yml` pulls them from an optional,
+git-ignored include:
+
+```yaml
+include:
+  - path: .env/signing.yml
+    enable: ${INCLUDE_SIGNING}
+```
+
+```bash
+cp .env/signing.yml.example .env/signing.yml   # then fill in DEVELOPMENT_TEAM
+INCLUDE_SIGNING=true xcodegen generate
+```
+
+With `INCLUDE_SIGNING` unset or `false` the generated project has no signing settings —
+enough to build, run, and test, and what all three workflows do. `true` without the file
+fails with `Parsing project spec failed … signing.yml couldn't be opened`.
+
+Find the Team ID in the Apple Developer portal under *Membership* — not the
+parenthesized suffix from `security find-identity`, which identifies the certificate.
+`DEVELOPMENT_TEAM` sits at project level so the test target inherits it; no
+`PROVISIONING_PROFILE_SPECIFIER` is needed, as the entitlements are sandbox-only.
+
+Development-signed archives are valid on your own machine only. Builds for other people
+come from CI.
