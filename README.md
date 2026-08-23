@@ -79,14 +79,19 @@ macOS marks unsigned app as quarantined, remove the quarantine attribute before 
 xattr -dr com.apple.quarantine ShatterBreak.app
 ```
 
-## Permissions that survive updates
-The `Shatter` effect needs Screen Recording permission, which macOS ties to the
-app's code-signing identity. Ad-hoc-signed builds (including CI artifacts) look
-like a new app on every update, so the grant must be re-added each time. Signing
-with a stable, reused self-signed certificate keeps the grant across updates.
+## Screen Recording permission and app updates
+Release builds are ad-hoc signed, which ties the permission to the binary's own hash —
+so every update looks to macOS like a different app.
 
-See [RELEASING.md](./RELEASING.md#signing-so-permissions-survive-updates) for the
-one-time certificate setup and how releases are signed.
+**After replacing the app with a newer build:** ShatterBreak reports the permission as
+missing and breaks fall back to `Fogged`, while *System Settings > Privacy & Security >
+Screen Recording* still lists ShatterBreak with its switch on. That entry is stale, and
+**toggling it off and on does not repair it**. Remove the entry with **-**, add the new
+app back with **+**. Once per update.
+
+Downloadable builds stay ad-hoc so trying the app needs no certificate setup; a copy you
+sign locally with a stable identity keeps the grant
+([RELEASING.md](./RELEASING.md#signing-so-permissions-survive-updates)).
 
 ### The second, separate confirmation
 On macOS 15 and later, Screen Recording is not the only consent `Shatter` needs.
