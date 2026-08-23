@@ -1,45 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Sign a built ShatterBreak.app with a STABLE code-signing identity so the macOS
-# Screen Recording permission survives app updates.
-#
-# Why this exists
-# ---------------
-# macOS ties the Screen Recording (TCC) grant to the app's code-signing
-# Designated Requirement (DR). Ad-hoc signatures (`codesign --sign -`) have a DR
-# that is just the binary's cdhash, which changes on every build — so every
-# updated version looks like a brand-new app and the user must re-add it under
-# System Settings > Privacy & Security > Screen Recording.
-#
-# Signing with a self-signed certificate that you create once and REUSE gives a
-# stable DR (`identifier "<bundle id>" and certificate leaf = H"<cert hash>"`).
-# Because that requirement is identical across versions, TCC keeps the grant when
-# the app is replaced (at most a one-click "ShatterBreak was updated — keep
-# allowing?" prompt). No paid Apple Developer account and no Apple secrets are
-# required; the app is still un-notarized, so the existing
-# `xattr -dr com.apple.quarantine` step on first download is unchanged.
-#
-# One-time setup (create the reusable certificate)
-# ------------------------------------------------
-# Keychain Access > Certificate Assistant > Create a Certificate…
-#   Name:              ShatterBreak Self-Signed   (must match SIGN_IDENTITY)
-#   Identity Type:     Self Signed Root
-#   Certificate Type:  Code Signing
-# Leave it in the login keychain. Never delete or recreate it, or the DR (and the
-# permission grant) changes. Back it up by exporting a password-protected .p12.
+# Re-sign a built ShatterBreak.app with a stable identity, so the Screen Recording
+# grant survives updates. Certificate setup, the three signing modes and the reasoning
+# are in RELEASING.md — "Signing so permissions survive updates".
 #
 # Usage
 # -----
 #   Scripts/sign-release.sh path/to/ShatterBreak.app
 #
 # Environment:
-#   SIGN_IDENTITY   codesign identity to use (default: "ShatterBreak Self-Signed").
-#                   Set to "-" to fall back to ad-hoc signing (NOT update-stable).
+#   SIGN_IDENTITY   codesign identity (default: "ShatterBreak Self-Signed").
+#                   "-" is ad-hoc: not update-stable.
 #   ENTITLEMENTS    entitlements plist (default: ShatterBreak/ShatterBreak.entitlements)
-#   SIGN_OPTIONAL   when set (any value), a missing identity is a no-op (exit 0)
-#                   instead of an error. Used by the Xcode Archive post-action so a
-#                   machine without the cert (or CI) still archives cleanly.
+#   SIGN_OPTIONAL   when set, a missing identity is a no-op (exit 0) instead of an error.
+#                   Used by the Xcode Archive post-action.
+#   SIGN_TIMESTAMP  "none" to sign offline, or an http:// RFC3161 URL. Defaults to
+#                   Apple's, so signing needs the network. Ignored for ad-hoc.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRCROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -64,31 +41,47 @@ if [[ ! -f "$ENTITLEMENTS" ]]; then
   exit 2
 fi
 
-# Guard against the silent failure mode: signing ad-hoc here would build, upload,
-# and look fine — but reintroduce the exact bug this script exists to fix.
+# Fail before signing: an unnoticed ad-hoc fallback here ships a build that looks fine
+# and silently breaks the grant.
 if [[ "$SIGN_IDENTITY" != "-" ]]; then
-  if ! security find-identity -v -p codesigning | grep -qF "$SIGN_IDENTITY"; then
+  if ! security find-identity -v -p codesigning | grep -qF -- "$SIGN_IDENTITY"; then
     if [[ -n "${SIGN_OPTIONAL:-}" ]]; then
       echo "note: stable signing identity '$SIGN_IDENTITY' not found — skipping stable re-sign." >&2
-      echo "      The app keeps its existing signature; the Screen Recording grant will NOT" >&2
-      echo "      survive updates until it is signed with a stable identity (issue #43)." >&2
+      echo "      The app keeps its existing signature (issue #43)." >&2
       exit 0
     fi
     echo "error: code-signing identity not found in keychain: $SIGN_IDENTITY" >&2
-    echo "       create it once (see header of this script) or pass SIGN_IDENTITY=-" >&2
-    echo "       to ad-hoc sign (which does NOT survive updates)." >&2
+    echo "       create it once (see RELEASING.md) or pass SIGN_IDENTITY=- for ad-hoc." >&2
     exit 1
   fi
 else
   echo "warning: ad-hoc signing — the Screen Recording grant will NOT survive updates" >&2
 fi
 
+# Without a timestamp the signature expires with the certificate, dropping the grant
+# from an installed build. Ad-hoc has no chain to stamp.
+if [[ "$SIGN_IDENTITY" == "-" ]]; then
+  TIMESTAMP_ARG="--timestamp=none"
+elif [[ -n "${SIGN_TIMESTAMP:-}" ]]; then
+  # codesign reads any unknown value as a URL, so a typo fails as a network error.
+  if [[ "$SIGN_TIMESTAMP" != "none" && "$SIGN_TIMESTAMP" != http://* ]]; then
+    echo "error: SIGN_TIMESTAMP must be \"none\" or an http:// RFC3161 URL: $SIGN_TIMESTAMP" >&2
+    exit 2
+  fi
+  TIMESTAMP_ARG="--timestamp=$SIGN_TIMESTAMP"
+else
+  TIMESTAMP_ARG="--timestamp"
+fi
+
 echo "Signing $APP_PATH"
-echo "  identity: $SIGN_IDENTITY"
+echo "  identity:  $SIGN_IDENTITY"
+echo "  timestamp: $TIMESTAMP_ARG"
+# No --deep: nothing is nested in this bundle, and it is deprecated since macOS 13.
+# Nested code added later must be signed inside-out; --verify --strict catches it.
 codesign \
   --force \
-  --deep \
   --options runtime \
+  "$TIMESTAMP_ARG" \
   --sign "$SIGN_IDENTITY" \
   --entitlements "$ENTITLEMENTS" \
   "$APP_PATH"
@@ -97,11 +90,36 @@ echo
 echo "Verifying signature…"
 codesign --verify --strict --verbose=2 "$APP_PATH"
 
+if [[ "$SIGN_IDENTITY" != "-" && "$TIMESTAMP_ARG" != "--timestamp=none" ]]; then
+  echo
+  # codesign writes this to stderr; keep its status so a read failure is not reported
+  # as a missing timestamp.
+  if SIGNATURE_INFO="$(codesign --display --verbose=2 "$APP_PATH" 2>&1)"; then
+    if [[ "$SIGNATURE_INFO" == *$'\n'Timestamp=* ]]; then
+      echo "Secure timestamp: present (signature outlives the certificate)."
+    else
+      echo "warning: no secure timestamp — this signature stops validating when the" >&2
+      echo "         signing certificate expires, dropping the Screen Recording grant." >&2
+    fi
+  else
+    echo "warning: could not read the signature back:" >&2
+    echo "$SIGNATURE_INFO" >&2
+  fi
+fi
+
 echo
 echo "Designated Requirement (stable across versions if the identity is reused):"
-DR="$(codesign --display --requirements - "$APP_PATH" 2>&1 | sed -n 's/^designated => //p')"
+# Ad-hoc carries no requirements blob, so codesign comments the implicit rule out
+# ("# designated => cdhash H\"…\""); a real identity prints it uncommented.
+if ! REQUIREMENTS="$(codesign --display --requirements - "$APP_PATH" 2>&1)"; then
+  echo "error: could not read the designated requirement:" >&2
+  echo "$REQUIREMENTS" >&2
+  exit 1
+fi
+DR="$(sed -n 's/^designated => //p' <<<"$REQUIREMENTS")"
 if [[ -n "$DR" ]]; then
   echo "  $DR"
 else
-  echo "  (none — ad-hoc signature; DR is the cdhash and changes every build)"
+  echo "  (implicit — ad-hoc signature; the DR is the cdhash and changes every build)"
+  sed -n 's/^# designated => /  /p' <<<"$REQUIREMENTS"
 fi

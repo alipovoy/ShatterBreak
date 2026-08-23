@@ -1,0 +1,16 @@
+# Local code-signing settings for XcodeGen. Optional — see RELEASING.md.
+#
+#   cp .env/signing.yml.example .env/signing.yml
+#   INCLUDE_SIGNING=true xcodegen generate
+
+settings:
+  base:
+    # 10-character Team ID from the Apple Developer portal, under Membership.
+    DEVELOPMENT_TEAM: XXXXXXXXXX
+
+targets:
+  ShatterBreak:
+    settings:
+      base:
+        CODE_SIGN_STYLE: Automatic
+        "CODE_SIGN_IDENTITY[sdk=macosx*]": Apple Development

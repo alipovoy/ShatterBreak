@@ -111,10 +111,10 @@ schemes:
     archive:
       config: Release
       postActions:
-        # Re-sign the archived app with a stable, reusable identity so the macOS
-        # Screen Recording grant survives updates (issue #43). SIGN_OPTIONAL makes
-        # this a no-op when the cert is absent (e.g. CI, or before one-time setup),
-        # so archiving never fails. See Scripts/sign-release.sh and README.
+        # Re-sign with a stable identity so the Screen Recording grant survives
+        # updates (#43). SIGN_OPTIONAL makes a missing certificate a no-op; it does
+        # NOT cover a signing failure, and Xcode ignores post-action exit status, so
+        # check the log. See RELEASING.md.
         - name: Sign with stable identity
           script: |
             SIGN_OPTIONAL=1 "${SRCROOT}/Scripts/sign-release.sh" \
