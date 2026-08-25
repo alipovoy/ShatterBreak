@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// Owns the countdown mechanics for a single interval: the active deadline, the
 /// frozen remaining time when paused, and the expiry scheduling delegated to the
@@ -6,12 +7,21 @@ import Foundation
 ///
 /// `TimerState` decides *when* to start, freeze, or clear a countdown; this type
 /// only tracks elapsed time and asks the scheduler to fire `onExpiry`.
+///
+/// Observable because the deadline is what a countdown *is*: a view that renders
+/// `remaining(at:)` without a registered dependency on it cannot tell one interval from
+/// the next, and will happily keep showing a finished one (issue #108).
 @MainActor
+@Observable
 final class Countdown {
     private let scheduler: any CountdownScheduler
 
     /// The wall-clock moment the current interval ends, or `nil` when frozen or cleared.
-    private var deadline: Date?
+    ///
+    /// Readable because it identifies the interval. Two consecutive work sessions look
+    /// identical in every other observable value, so the deadline is the only thing a
+    /// view can key a per-interval task on.
+    private(set) var deadline: Date?
 
     /// The remaining time captured when the countdown is not actively running.
     private var frozenRemaining: TimeInterval = 0

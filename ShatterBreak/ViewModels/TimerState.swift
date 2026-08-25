@@ -54,6 +54,14 @@ final class TimerState {
         countdown.remaining(at: countdown.now)
     }
 
+    /// Identifies the countdown interval currently on the clock, changing on every
+    /// `start`, `resume`, break, and freeze.
+    ///
+    /// `mode` cannot stand in for it: a fresh work session started on wake leaves the mode
+    /// at `.running`, so a view that restarts its clock on mode changes alone never
+    /// notices the new interval and keeps rendering the finished one (issue #108).
+    var countdownDeadline: Date? { countdown.deadline }
+
     var shouldShowTimeInMenuBar: Bool {
         switch mode {
         case .running, .paused, .postponedWork:
