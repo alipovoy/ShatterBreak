@@ -2,7 +2,7 @@ import Foundation
 
 /// A countable moment in the work/rest cycle, recorded by ``TimerState`` at its
 /// transition points and tallied by ``StatisticsStore``.
-enum StatisticsEvent {
+enum StatisticsEvent: Equatable {
     case workSessionCompleted
     case breakCompleted
     case postponed
