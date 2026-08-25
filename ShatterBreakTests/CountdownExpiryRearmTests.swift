@@ -95,8 +95,8 @@ struct CountdownExpiryRearmTests {
 
         state.start()
 
-        // The shape of the live bug: the callback lands just short of the deadline, with
-        // no sleep involved, so `stalledTransition` would never see it either.
+        // The shape of the live bug: the callback lands just short of the deadline, with no
+        // sleep involved.
         environment.fireExpiryEarly()
         #expect(state.mode == .running, "An early callback must not transition the timer.")
 

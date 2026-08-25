@@ -609,6 +609,18 @@
         }
       }
     },
+    "stalledTimerOverdueDuration": {
+      "comment": "Detail line under the stalled-timer warning showing how long the transition has been overdue. The placeholder is a formatted duration such as '12 minutes'.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overdue by %@."
+          }
+        }
+      }
+    },
     "stalledTimerReportAction": {
       "comment": "Button that opens a prefilled bug report about the stalled timer.",
       "extractionState": "manual",
@@ -633,18 +645,6 @@
         }
       }
     },
-    "stalledTimerStuckDuration": {
-      "comment": "Detail line under the stalled-timer warning showing how long the timer has been stuck. The placeholder is a formatted duration such as '12 minutes'.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stuck for %@."
-          }
-        }
-      }
-    },
     "stalledTimerWarning": {
       "comment": "Inline warning shown in the menu when a timer transition came due but could not fire.",
       "extractionState": "manual",
@@ -652,7 +652,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The timer stopped advancing. A sleep it never saw end is blocking the next break."
+            "value": "The timer stopped advancing. It was due to move on and never did."
           }
         }
       }

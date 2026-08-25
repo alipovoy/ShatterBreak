@@ -1,42 +1,42 @@
 import Foundation
 
-/// A timer transition that came due but could not fire, and the diagnostics needed to
+/// A timer transition that came due but never fired, and the diagnostics needed to
 /// report it.
 ///
-/// Pulled out as a pure value (like ``WakeOutcome``) so both the detection rule and the
-/// prefilled issue URL can be unit-tested without driving ``TimerState`` or opening a
-/// browser.
+/// A pure value (like ``WakeOutcome``) so both the detection rule and the prefilled issue
+/// URL can be unit-tested without driving ``TimerState`` or opening a browser.
 ///
-/// The stall this describes is the issue #87 family: a `sleptAt` that no wake ever cleared
-/// keeps ``TimerState/handleCountdownExpiryIfNeeded()`` from firing, so the countdown sits
-/// at 00:00 and every later transition is dropped too. Issue #89 tracks whether the app
-/// should heal that on its own; until then, reporting it accurately is what turns a vague
-/// "it got stuck again" into something actionable.
+/// Detection is keyed to the symptom, so the cause is unknown by construction:
+/// ``wasAsleep`` is what lets a filed report be classified after the fact.
 struct StalledTransitionReport: Equatable {
     /// The mode the timer was stuck in — which transition was owed.
     let mode: TimerState.Mode
-    /// How long the asleep flag has been set. Stands in for how long the timer has been
-    /// stuck: the flag is set at or before the expiry it goes on to block.
-    let asleepSecs: TimeInterval
+    /// How far past its deadline the owed transition is.
+    let overdueSecs: TimeInterval
+    /// Whether the asleep flag was still set. Set means the issue #87 family — a sleep
+    /// whose wake never arrived; clear means the expiry was lost some other way.
+    let wasAsleep: Bool
     let appVersion: String
     let appBuild: String
     let commitHash: String
 
     init(
         mode: TimerState.Mode,
-        asleepSecs: TimeInterval,
+        overdueSecs: TimeInterval,
+        wasAsleep: Bool,
         appInfo: AppInfo = .current
     ) {
         self.mode = mode
-        self.asleepSecs = asleepSecs
+        self.overdueSecs = overdueSecs
+        self.wasAsleep = wasAsleep
         self.appVersion = appInfo.version
         self.appBuild = appInfo.build
         self.commitHash = appInfo.commitHash
     }
 
     /// The stuck duration, rounded for display and for the report body.
-    var formattedAsleepDuration: String {
-        Duration.seconds(Int(asleepSecs.rounded()))
+    var formattedOverdue: String {
+        Duration.seconds(Int(overdueSecs.rounded()))
             .formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide))
     }
 
@@ -54,27 +54,37 @@ struct StalledTransitionReport: Equatable {
         return components?.url
     }
 
+    /// What the asleep flag says about which failure this was.
+    private var causeNote: String {
+        wasAsleep
+            ? "The asleep flag was still set: a sleep notification arrived without a matching "
+                + "wake, which is the issue #87 family."
+            : "The asleep flag was clear, so this is not the issue #87 family — the expiry was "
+                + "lost some other way."
+    }
+
     /// The prefilled issue body. Everything here is machine-collected: the point of the
     /// report is that it does not depend on remembering what happened.
     private var issueBody: String {
         """
-        The app detected a timer transition that came due but could not fire, and offered \
-        a reset. This is the issue #87 family, tracked for hardening in #89.
+        The app detected a timer transition that came due but never fired, and offered a \
+        reset. Hardening for this is tracked in #89.
 
         ### Detected state
 
         | | |
         |---|---|
         | Mode | `\(String(describing: mode))` |
-        | Stuck for | \(formattedAsleepDuration) |
+        | Overdue by | \(formattedOverdue) |
+        | Asleep flag | \(wasAsleep ? "stuck" : "clear") |
         | Version | \(appVersion) (\(appBuild)) |
         | Commit | `\(commitHash)` |
 
         ### What this means
 
-        A sleep notification arrived without a matching wake, so `sleptAt` stayed set and \
-        blocked `handleCountdownExpiryIfNeeded()`. The countdown sat at 00:00 and every \
-        transition after it would have been dropped too.
+        The countdown passed its deadline and the transition it owed never ran, so the \
+        timer sat at 00:00 and every transition after it would have been dropped too. \
+        \(causeNote)
 
         ### What I was doing
 
