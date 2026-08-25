@@ -306,9 +306,8 @@ final class TimerState {
         modeBeforePause = nil
         savedRestRemaining = nil
         hasPostponeBeenUsedThisCycle = false
-        // Stopping mid-sleep must not leave a stale asleep flag behind: a wake
-        // notification that never arrives before the next cycle starts would
-        // otherwise permanently block every future transition (issue #87).
+        // Stopping mid-sleep must not leave a stale asleep flag behind: it would block
+        // every transition in the next cycle (issue #87).
         sleptAt = nil
         overlays.dismiss()
         sleepWakeObserver.stopObserving()
@@ -318,10 +317,13 @@ final class TimerState {
         beginRest(for: restDurationSecs, refreshingPostpone: true)
     }
 
+    /// Returns to the break a postpone interrupted.
+    ///
+    /// Falls back to a full break rather than returning early: the caller has already
+    /// cleared the countdown, so a silent return would park `.postponedWork` at 00:00 with
+    /// nothing armed — the same stall by another route.
     private func resumeRest() {
-        guard let saved = savedRestRemaining else { return }
-
-        beginRest(for: saved, refreshingPostpone: false)
+        beginRest(for: savedRestRemaining ?? restDurationSecs, refreshingPostpone: false)
     }
 
     /// Enters the rest phase with `duration` on the clock and shows the break overlay.
@@ -363,10 +365,9 @@ final class TimerState {
         countdown.clear()
         mode = .awaitingReturn
         savedRestRemaining = nil
-        // Parking here stops sleep/wake observation, so a flag left set would have no
-        // remaining route to being cleared — issue #87's stranding shape exactly. Every
-        // caller currently arrives with it already `nil`; clearing anyway keeps that a
-        // local guarantee instead of a property of the call graph (issue #89).
+        // Parking here stops sleep/wake observation, so a flag left set would have no route
+        // left to being cleared. Every caller arrives with it `nil` already; clearing anyway
+        // keeps that local rather than a property of the call graph (issue #89).
         sleptAt = nil
         if presentingOverlay {
             overlays.show(self, .settled)
