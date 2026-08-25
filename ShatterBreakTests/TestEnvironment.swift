@@ -68,6 +68,14 @@ final class TestEnvironment {
         scheduler.elapse(by: interval)
     }
 
+    /// Delivers the pending expiry callback without moving time, reproducing a
+    /// scheduler whose monotonic wait elapsed before the wall clock reached the
+    /// deadline.
+    @MainActor
+    func fireExpiryEarly() {
+        scheduler.fireExpiryEarly()
+    }
+
     @MainActor
     func advanceUntil(
         by interval: TimeInterval = 1,

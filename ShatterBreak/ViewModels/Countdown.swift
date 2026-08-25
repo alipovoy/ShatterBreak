@@ -36,7 +36,47 @@ final class Countdown {
         let clampedDuration = max(0, duration)
         frozenRemaining = clampedDuration
         deadline = scheduler.now.addingTimeInterval(clampedDuration)
-        scheduler.scheduleExpiry(after: clampedDuration, onExpiry)
+        armExpiry(after: clampedDuration, onExpiry)
+    }
+
+    /// Schedules the expiry callback, re-arming it if it arrives before the deadline.
+    ///
+    /// The scheduler owes exactly one callback per `scheduleExpiry`, but it does not
+    /// measure the same time `remaining(at:)` does: the deadline is a `Date` on the wall
+    /// clock, while `SystemCountdownScheduler` waits on `Task.sleep`'s monotonic clock.
+    /// The two need only disagree by a fraction of a second — the wall clock being slewed
+    /// to correct NTP offset is enough — for the callback to arrive with time still on
+    /// the countdown.
+    ///
+    /// Passing that early callback on would spend the one shot for nothing: the caller
+    /// sees time remaining, declines to transition, and no further callback is ever
+    /// scheduled. The countdown then runs out unobserved and the timer sits at its
+    /// expired display forever, dropping every transition after it. So an early callback
+    /// re-arms for the time the wall clock still shows instead. Each pass waits out a
+    /// residual the clocks can only disagree over by a fraction of itself, so this
+    /// settles within a pass or two rather than looping; and `scheduleExpiry` replaces
+    /// any pending callback, so a `begin` that lands mid-flight supersedes it rather
+    /// than racing it.
+    private func armExpiry(
+        after delay: TimeInterval,
+        _ onExpiry: @escaping @MainActor @Sendable () -> Void
+    ) {
+        scheduler.scheduleExpiry(after: delay) { [weak self] in
+            guard let self else { return }
+
+            // No deadline means `freeze()` or `clear()` won the race with a callback
+            // already past cancellation. Neither wants an expiry: the frozen remainder
+            // resumes through `begin`, and a cleared countdown owes nothing at all.
+            guard let deadline else { return }
+
+            let remaining = deadline.timeIntervalSince(scheduler.now)
+            guard remaining <= 0 else {
+                armExpiry(after: remaining, onExpiry)
+                return
+            }
+
+            onExpiry()
+        }
     }
 
     /// Freezes the countdown, preserving the remaining time and dropping the deadline.
