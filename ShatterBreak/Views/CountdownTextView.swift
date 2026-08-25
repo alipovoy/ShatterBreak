@@ -9,9 +9,24 @@ struct CountdownTextView: View {
 
     var body: some View {
         Text(displayStyle.text(forRemaining: state.timeRemaining(at: referenceDate)))
-            .task(id: CountdownTaskKey(mode: state.mode, isActive: isActive, displayStyle: displayStyle)) {
+            .task(id: taskKey) {
                 await driveVisibleClockIfNeeded()
             }
+    }
+
+    /// Restarts the visible clock whenever the interval being counted changes.
+    ///
+    /// The deadline is the part that matters: the loop below ends when it reaches zero, so
+    /// only a new key can revive it, and back-to-back sessions in the same mode — work
+    /// auto-resuming after a break, or after an absence that stood in for one — would
+    /// otherwise leave it dead with the last frame still on screen (issue #108).
+    private var taskKey: CountdownTaskKey {
+        CountdownTaskKey(
+            deadline: state.countdownDeadline,
+            mode: state.mode,
+            isActive: isActive,
+            displayStyle: displayStyle
+        )
     }
 
     @MainActor
@@ -39,6 +54,7 @@ struct CountdownTextView: View {
 }
 
 private struct CountdownTaskKey: Equatable {
+    let deadline: Date?
     let mode: TimerState.Mode
     let isActive: Bool
     let displayStyle: CountdownDisplayStyle
