@@ -250,9 +250,13 @@ private struct BreakScreenSettingsTab: View {
                 // The effects are full-screen and low-frequency — a blur radius meant for
                 // a display, a fog the window server draws behind the overlay. A card
                 // cannot show either, so the picker offers the real thing instead.
+                // Centred, because it belongs to the row of cards above it rather than to
+                // the form: the cards centre themselves across the row, and a button
+                // hugging the form's leading edge reads as a separate, unrelated control.
                 Button(.tryEffect) { trial.start() }
                     .help(Text(.tryEffectHelp))
                     .disabled(isBreakOnScreen || trial.isRunning)
+                    .frame(maxWidth: .infinity)
             }
 
             Section {

@@ -33,16 +33,16 @@ struct BreakEffectTrialTests {
     }
 
     @Test("the sample's clock reads like the user's own break")
-    func sampleUsesTheConfiguredRestDuration() {
+    func sampleUsesTheConfiguredRestDuration() throws {
         let defaults = InMemoryKeyValueStore()
         defaults.set(420.0, forKey: PreferenceKeys.restDurationSecs)
         let overlays = OverlayRecorder()
 
         makeTrial(overlays, defaults: defaults).start()
 
-        let sample = try? #require(overlays.lastState)
-        #expect(sample?.isResting == true)
-        #expect((sample?.timeRemaining ?? 0) > 419, "A sample announcing someone else's break is a lie.")
+        let sample = try #require(overlays.lastState)
+        #expect(sample.isResting)
+        #expect(sample.timeRemaining > 419, "A sample announcing someone else's break is a lie.")
     }
 
     @Test("starting again while a sample is up does not stack a second one")
