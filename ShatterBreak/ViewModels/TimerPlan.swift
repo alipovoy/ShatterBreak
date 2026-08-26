@@ -44,8 +44,14 @@ struct TimerPlan: Equatable, Sendable {
     ///
     /// An *input* to measuring the absence, never a gate on transitions — that distinction
     /// is the whole of #87, where the old asleep flag stalled the timer permanently when a
-    /// wake notification never arrived. A stale value here at worst credits an absence
-    /// ``TimerReducer/measuredAbsence(_:at:)`` would have measured anyway.
+    /// wake notification never arrived.
+    ///
+    /// It is not free of that failure, only downgraded. This is the sole evidence for a
+    /// display asleep on a running machine, where the two clocks show nothing, so a value
+    /// left standing — a lost wake, and a user who returns without touching the app —
+    /// restarts the work session once per ``TimerPreferences/awayResetThreshold`` for as
+    /// long as it stands. A stalled timer became a silently repeating one. Any user action
+    /// clears it (`TimerReducer.apply`), which is what usually ends it.
     var unattendedSince: Date?
 
     /// How much of ``unattendedSince`` has already been resolved into a transition, without
