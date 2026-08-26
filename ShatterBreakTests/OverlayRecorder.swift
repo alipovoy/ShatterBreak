@@ -21,6 +21,10 @@ final class OverlayRecorder {
     /// The timer the most recent `show` was given, so tests can inspect what an overlay
     /// would be rendering.
     private(set) var lastState: TimerState?
+    /// What is on screen right now — set by `show`, cleared by `dismiss` — so tests can
+    /// exercise callers that check whether the window is still theirs before taking it
+    /// down.
+    private(set) var presented: TimerState?
 
     var presenter: OverlayPresenter {
         OverlayPresenter(
@@ -29,8 +33,13 @@ final class OverlayRecorder {
                 self.showCount += 1
                 self.lastSettled = style == .settled
                 self.lastState = state
+                self.presented = state
             },
-            dismiss: { self.dismissCount += 1 }
+            dismiss: {
+                self.dismissCount += 1
+                self.presented = nil
+            },
+            presenting: { self.presented }
         )
     }
 }

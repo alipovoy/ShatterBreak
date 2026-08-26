@@ -97,6 +97,12 @@ final class OverlayManager {
         return selected
     }
 
+    /// The timer whose break is on screen, or `nil` when nothing is presented.
+    ///
+    /// Exists so that a caller sharing this manager can tell whether the window is still
+    /// the one it put up before taking it down.
+    var presentedState: TimerState? { session?.state }
+
     func showOverlays(state: TimerState, settled: Bool) {
         dismissOverlays()
 

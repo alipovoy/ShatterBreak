@@ -18,6 +18,13 @@ struct OverlayPresenter {
     var prepare: @MainActor () -> Void
     var show: @MainActor (TimerState, OverlayPresentationStyle) -> Void
     var dismiss: @MainActor () -> Void
+    /// The timer whose break is currently on screen, or `nil` for nothing.
+    ///
+    /// The break window has one owner, so anything sharing this presenter has to be able
+    /// to ask whether the window is still its own — dismissing on the strength of having
+    /// shown something once would close whatever replaced it. Defaults to "nothing",
+    /// which is the truthful answer for a presenter that never shows anything.
+    var presenting: @MainActor () -> TimerState? = { nil }
 }
 
 extension OverlayPresenter {
@@ -38,7 +45,8 @@ extension OverlayPresenter {
                 Task { await permissions.prepareForCapture() }
             },
             show: { manager.showOverlays(state: $0, settled: $1 == .settled) },
-            dismiss: { manager.dismissOverlays() }
+            dismiss: { manager.dismissOverlays() },
+            presenting: { manager.presentedState }
         )
     }
 

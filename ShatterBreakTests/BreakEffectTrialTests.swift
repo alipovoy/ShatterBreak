@@ -11,12 +11,26 @@ import Testing
 @Suite("Break effect trial", .tags(.overlays), .timeLimit(.minutes(1)))
 @MainActor
 struct BreakEffectTrialTests {
+    /// The app's timer, which is also the trial's — one presenter, one break window.
+    private func makeTimer(
+        _ overlays: OverlayRecorder,
+        defaults: any KeyValueStore = InMemoryKeyValueStore(),
+        showing plan: TimerPlan? = nil
+    ) -> TimerState {
+        TimerState(
+            overlays: overlays.presenter,
+            defaults: defaults,
+            clock: ManualTimerClock(),
+            showing: plan
+        )
+    }
+
     private func makeTrial(
         _ overlays: OverlayRecorder,
         defaults: any KeyValueStore = InMemoryKeyValueStore(),
         duration: Duration = .milliseconds(20)
     ) -> BreakEffectTrial {
-        BreakEffectTrial(overlays: overlays.presenter, defaults: defaults, duration: duration)
+        BreakEffectTrial(timer: makeTimer(overlays, defaults: defaults), duration: duration)
     }
 
     @Test("a sample is presented like a break beginning now")
@@ -103,6 +117,34 @@ struct BreakEffectTrialTests {
         }
 
         #expect(overlays.dismissCount == 1, "A sample nobody owns is a break screen nobody can dismiss.")
+    }
+
+    @Test("a sample is refused while a real break owns the screen")
+    func noSampleDuringARealBreak() {
+        let overlays = OverlayRecorder()
+        let resting = makeTimer(overlays, showing: .starting(.rest, duration: 300))
+        let trial = BreakEffectTrial(timer: resting, duration: .milliseconds(20))
+
+        #expect(trial.canStart == false)
+        trial.start()
+
+        #expect(overlays.showCount == 0, "There is one break window, and the break already has it.")
+    }
+
+    @Test("a break falling due mid-sample keeps the screen")
+    func aRealBreakTakesTheWindowFromTheSample() {
+        let overlays = OverlayRecorder()
+        let timer = makeTimer(overlays)
+        let trial = BreakEffectTrial(timer: timer, duration: .milliseconds(20))
+
+        trial.start()
+        // The break the user was actually waiting for, presented through the same
+        // presenter, which is what makes it the owner of the window from here on.
+        overlays.presenter.show(timer, .animated)
+        trial.end()
+
+        #expect(overlays.dismissCount == 0, "The sample's timeout must not close a real break.")
+        #expect(overlays.presented === timer, "The break stays up.")
     }
 
     @Test("nothing a sample does is counted")

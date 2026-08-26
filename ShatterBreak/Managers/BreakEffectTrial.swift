@@ -12,6 +12,12 @@ import AppKit
 /// The sample is disposable in every way that could touch the app: its own throwaway
 /// statistics store, so nothing is tallied, and a plan nothing schedules, so it never
 /// transitions to anything.
+///
+/// It presents through the *app's* presenter rather than one of its own, so the break
+/// window keeps a single owner. That is what makes the two directions decidable: a sample
+/// is refused while a real break is up (``canStart``), and a real break falling due
+/// mid-sample simply takes the window, after which the trial ends without dismissing
+/// something that is no longer its own.
 @MainActor
 @Observable
 final class BreakEffectTrial {
@@ -25,39 +31,37 @@ final class BreakEffectTrial {
     /// wait out the real thing to prove it ends on its own.
     let duration: Duration
 
-    private let injectedOverlays: OverlayPresenter?
-    private let defaults: any KeyValueStore
-
-    /// Built on first use. A live presenter creates an `OverlayManager`, which starts
-    /// observing display changes, and a view that is initialised more often than it is
-    /// shown should not be creating those to throw away.
+    /// The app's timer, for its overlay layer, its preferences and its break length. The
+    /// sample borrows all three rather than assembling a parallel set of its own.
     @ObservationIgnored
-    private lazy var overlays: OverlayPresenter = injectedOverlays ?? .live(defaults: defaults)
+    private let timer: TimerState
 
     /// Held while the sample is up: the overlay reads its clock from this.
     private var sample: TimerState?
     private var timeout: Task<Void, Never>?
     private var interruption: Any?
 
-    init(
-        overlays: OverlayPresenter? = nil,
-        defaults: any KeyValueStore = UserDefaults.standard,
-        duration: Duration = BreakEffectTrial.defaultDuration
-    ) {
-        self.defaults = defaults
-        self.injectedOverlays = overlays
+    init(timer: TimerState, duration: Duration = BreakEffectTrial.defaultDuration) {
+        self.timer = timer
         self.duration = duration
     }
 
     isolated deinit {
-        // Only if a sample is actually up: touching `overlays` otherwise would build the
-        // presenter this trial spent its whole life avoiding.
         guard isRunning else { return }
         end()
     }
 
+    /// Whether a sample can be shown right now.
+    ///
+    /// A real break already owns the screen during rest and while waiting for the user to
+    /// come back, and there is exactly one break window: a sample then would not sit
+    /// alongside the break, it would replace it.
+    var canStart: Bool {
+        isRunning == false && timer.isResting == false && timer.awaitingReturn == false
+    }
+
     func start() {
-        guard isRunning == false else { return }
+        guard canStart else { return }
         isRunning = true
 
         // The consent a real break needs, asked for by an action that plainly means "I
@@ -67,7 +71,7 @@ final class BreakEffectTrial {
 
         let sample = TimerState(
             overlays: overlays,
-            defaults: defaults,
+            defaults: timer.defaults,
             statistics: StatisticsStore(defaults: InMemoryKeyValueStore()),
             showing: .starting(.rest, duration: restDuration)
         )
@@ -107,14 +111,19 @@ final class BreakEffectTrial {
         }
         interruption = nil
 
-        overlays.dismiss()
+        // Only if the sample is still what is on screen. A break falling due mid-sample
+        // presents through this same presenter and takes the window; dismissing here on
+        // the strength of having shown something a few seconds ago would close the user's
+        // actual break.
+        if overlays.presenting() === sample {
+            overlays.dismiss()
+        }
         sample = nil
     }
 
+    private var overlays: OverlayPresenter { timer.overlays }
+
     /// The user's own break length, so the sample's clock reads like the real thing rather
     /// than announcing a number no break of theirs would show.
-    private var restDuration: TimeInterval {
-        defaults.duration(forKey: PreferenceKeys.restDurationSecs,
-                          default: PreferenceDefaults.restDurationSecs)
-    }
+    private var restDuration: TimeInterval { timer.restDurationSecs }
 }
