@@ -9,10 +9,6 @@ struct OverlayView: View {
     @State private var hasPlayedSound = false
     @State private var hasAppeared = false
 
-    /// Ticks once per second while resting so the time-windowed action buttons
-    /// re-evaluate their visibility as the break elapses.
-    @State private var referenceDate = Date.now
-
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
 
@@ -41,33 +37,38 @@ struct OverlayView: View {
             }
 
             if showsForegroundContent {
-                VStack(spacing: 24) {
-                    Text(.timeToRest)
-                        .font(.largeTitle)
-                        .foregroundStyle(.white)
-                        .shadow(color: .black, radius: 5)
+                // The same clock the countdown text runs on: the Postpone and "I'm back"
+                // windows open and close as the break elapses, so they need to re-evaluate
+                // on the same cadence the text redraws on.
+                CountdownClock(state: state) { referenceDate in
+                    VStack(spacing: 24) {
+                        Text(.timeToRest)
+                            .font(.largeTitle)
+                            .foregroundStyle(.white)
+                            .shadow(color: .black, radius: 5)
 
-                    CountdownTextView(state: state)
-                        .font(.system(size: 80, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .shadow(color: .black, radius: 5)
+                        CountdownTextView(state: state)
+                            .font(.system(size: 80, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.white)
+                            .shadow(color: .black, radius: 5)
 
-                    if state.showsPostponeButton(at: referenceDate) {
-                        Button {
-                            state.postpone()
-                        } label: {
-                            Text(.postpone)
+                        if state.showsPostponeButton(at: referenceDate) {
+                            Button {
+                                state.postpone()
+                            } label: {
+                                Text(.postpone)
+                            }
+                            .buttonStyle(OverlayActionButtonStyle())
                         }
-                        .buttonStyle(OverlayActionButtonStyle())
-                    }
 
-                    if state.showsReturnButton(at: referenceDate) {
-                        Button {
-                            state.returnToWork()
-                        } label: {
-                            Text(.imBack)
+                        if state.showsReturnButton(at: referenceDate) {
+                            Button {
+                                state.returnToWork()
+                            } label: {
+                                Text(.imBack)
+                            }
+                            .buttonStyle(OverlayActionButtonStyle())
                         }
-                        .buttonStyle(OverlayActionButtonStyle())
                     }
                 }
             }
@@ -77,40 +78,7 @@ struct OverlayView: View {
         .task(id: presentation.phase) {
             await handlePhase()
         }
-        .task(id: state.mode) {
-            await driveActionClock()
-        }
         .onAppear { hasAppeared = true }
-    }
-
-    /// Refreshes `referenceDate` on each second boundary while the break counts down,
-    /// so the Postpone and "I'm back" windows re-evaluate. Mirrors
-    /// ``CountdownTextView/driveVisibleClockIfNeeded``. Awaiting-return is static, so it
-    /// sets the date once and returns without looping.
-    @MainActor
-    private func driveActionClock() async {
-        referenceDate = Date.now
-
-        guard state.isResting else { return }
-
-        while Task.isCancelled == false {
-            let remaining = state.timeRemaining(at: referenceDate)
-            guard remaining > 0 else { return }
-
-            do {
-                try await Task.sleep(for: nextRefreshDelay(for: remaining), tolerance: .milliseconds(100))
-            } catch {
-                return
-            }
-
-            referenceDate = Date.now
-        }
-    }
-
-    private func nextRefreshDelay(for remaining: TimeInterval) -> Duration {
-        let fractionalSecond = remaining - floor(remaining)
-        let secondsUntilRefresh = fractionalSecond > 0 ? fractionalSecond : 1
-        return .seconds(secondsUntilRefresh)
     }
 
     private var showsForegroundContent: Bool {
