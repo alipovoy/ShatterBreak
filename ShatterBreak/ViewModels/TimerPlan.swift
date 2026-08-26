@@ -54,6 +54,16 @@ struct TimerPlan: Equatable, Sendable {
     /// ``TimerReducer/measuredAbsence(_:at:)`` would have measured anyway.
     var unattendedSince: Date?
 
+    /// How much of ``unattendedSince`` has already been resolved into a transition.
+    ///
+    /// A display that sleeps while the machine keeps running leaves the notification as the
+    /// only evidence, and it keeps growing for as long as nobody comes back. Without this,
+    /// the same absence would be credited again at every heartbeat past the threshold,
+    /// restarting the work session over and over. Kept separate from ``unattendedSince``
+    /// rather than advancing it, because the moment the user actually returns they are owed
+    /// a decision about the *whole* absence, not the sliver since it was last credited.
+    var absenceCreditedAt: Date?
+
     /// The moment the reducer last ran. The gap to the next one, compared against the
     /// awake-only clock, is what proves the machine slept — no notification required.
     var lastSeen: TimerInstant
@@ -68,6 +78,7 @@ struct TimerPlan: Equatable, Sendable {
             savedRestRemaining: nil,
             postponeUsedThisCycle: false,
             unattendedSince: nil,
+            absenceCreditedAt: nil,
             lastSeen: instant
         )
     }

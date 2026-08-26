@@ -123,3 +123,68 @@ struct TimerResilienceTests {
         )
     }
 }
+
+/// The break-end window, when the break itself happened off-screen.
+///
+/// Issues #76 and #94 are one rule: a break that already elapsed is announced settled —
+/// no shake, no entrance sound. The DarkWake gate makes that rule easy to break, because
+/// a presentation can now outlive the break it was queued for.
+@Suite("Break-end window after a dark screen", .tags(.timerState, .overlays), .timeLimit(.minutes(1)))
+struct DarkScreenBreakEndTests {
+    @Test("a break that elapsed behind a dark screen is announced settled, not shattered")
+    @MainActor
+    func breakElapsedBehindADarkScreenIsSettled() async {
+        let environment = TestEnvironment()
+        environment.defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
+
+        let recorder = OverlayRecorder()
+        let state = environment.makeTimerState(overlays: recorder.presenter)
+        state.workDurationSecs = 2
+        state.restDurationSecs = 3
+
+        state.start()
+        // The display goes dark while work is still running.
+        environment.isDisplayAwake = false
+        await environment.advanceTime(by: 2)
+        #expect(state.isResting, "The plan advances with no screen; only the presentation waits.")
+        #expect(recorder.showCount == 0, "Nothing is presented onto a dark screen (issues #99, #107).")
+
+        // The whole break elapses behind the dark screen, so manual mode parks in the
+        // break-end window with no overlay ever having been shown.
+        await environment.advanceTime(by: 3)
+        #expect(state.awaitingReturn, "Manual mode should park in the break-end window.")
+
+        environment.isDisplayAwake = true
+        await environment.advanceTime(by: 1)
+
+        #expect(recorder.showCount == 1, "The window the user comes back to is presented once.")
+        #expect(
+            recorder.lastSettled == true,
+            "It announces a break that is already over, so it arrives settled — no shake, no chime."
+        )
+    }
+
+    @Test("a break dismissed while the screen was dark never surfaces")
+    @MainActor
+    func breakDismissedBehindADarkScreenNeverSurfaces() async {
+        let environment = TestEnvironment()
+        let recorder = OverlayRecorder()
+        let state = environment.makeTimerState(overlays: recorder.presenter)
+        state.workDurationSecs = 2
+        state.restDurationSecs = 3
+
+        state.start()
+        environment.isDisplayAwake = false
+        await environment.advanceTime(by: 2)
+        #expect(state.isResting, "The setup needs a break held back from a dark screen.")
+
+        // The user wakes the display in the break's closing seconds, and the next reconcile
+        // is the one that ends it. The held break must not flash on before that reconcile
+        // takes it down again.
+        environment.isDisplayAwake = true
+        await environment.advanceTime(by: 3)
+
+        #expect(state.mode == .running, "Auto mode should have started the next work session.")
+        #expect(recorder.showCount == 0, "A break the same reconcile ends must never reach the screen.")
+    }
+}

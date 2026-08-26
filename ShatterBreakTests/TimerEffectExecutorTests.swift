@@ -125,4 +125,77 @@ struct TimerEffectExecutorTests {
         #expect(recorder.shown.isEmpty, "A wake is not by itself a reason to present anything (issue #94).")
         #expect(recorder.dismissCount == 0, "Nor a reason to dismiss anything.")
     }
+
+    @Test("a dismissal in the same batch cancels a held break before it can flash")
+    @MainActor
+    func batchDismissalBeatsTheFlush() {
+        let recorder = EffectRecorder()
+        let display = StubDisplay()
+        let executor = makeExecutor(recorder, display: display)
+
+        display.isAwake = false
+        executor.perform([.showOverlay(.animated)])
+
+        // The user wakes the display in the closing seconds of a break, and the next
+        // reconcile is the one that ends it. Retrying the held presentation before applying
+        // the batch would shatter the break onto the screen, with its sound, a moment before
+        // this very batch tore it down.
+        display.isAwake = true
+        executor.perform([.record(.breakCompleted), .prepareCapturePermissions, .dismissOverlay])
+
+        #expect(recorder.shown.isEmpty, "A break the same batch dismisses must never reach the screen.")
+        #expect(recorder.dismissCount == 1, "The dismissal itself still goes through.")
+    }
+
+    @Test("a presentation in the same batch supersedes a held one even on a lit display")
+    @MainActor
+    func batchPresentationSupersedesAHeldOne() {
+        let recorder = EffectRecorder()
+        let display = StubDisplay()
+        let executor = makeExecutor(recorder, display: display)
+
+        display.isAwake = false
+        executor.perform([.showOverlay(.animated)])
+
+        display.isAwake = true
+        executor.perform([.showOverlay(.settled)])
+
+        #expect(
+            recorder.shown == [.settled],
+            "The current answer replaces the held one; flushing it afterwards would stack a stale break on top."
+        )
+    }
+
+    @Test("a held break whose break has ended loses its entrance")
+    @MainActor
+    func settlingDemotesAHeldPresentation() {
+        let recorder = EffectRecorder()
+        let display = StubDisplay()
+        let executor = makeExecutor(recorder, display: display)
+
+        display.isAwake = false
+        executor.perform([.showOverlay(.animated)])
+        // The break ran out while the display stayed dark.
+        executor.perform([.record(.breakCompleted), .settleHeldOverlay])
+
+        display.isAwake = true
+        executor.perform([])
+
+        #expect(
+            recorder.shown == [.settled],
+            "Announcing a break that ended while the screen was off, with a shake and a chime, is issues #76 and #94."
+        )
+    }
+
+    @Test("settling does nothing when nothing is held")
+    @MainActor
+    func settlingWithNothingHeldIsQuiet() {
+        let recorder = EffectRecorder()
+        let executor = makeExecutor(recorder, display: StubDisplay())
+
+        executor.perform([.settleHeldOverlay])
+
+        #expect(recorder.shown.isEmpty, "There is no held break to correct, and none to conjure.")
+        #expect(recorder.dismissCount == 0, "Nor anything to take down.")
+    }
 }

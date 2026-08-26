@@ -220,7 +220,7 @@ struct TimerReducerAbsenceTests {
     }
 
     @Test("a machine still unattended does not reset the session on every reconcile")
-    func ongoingAbsenceResolvesOncePerCycle() {
+    func ongoingAbsenceResolvesOncePerThreshold() {
         var driver = ReducerDriver(prefs: .testing(work: 1_500, rest: 300))
         driver.act(.start)
         // The display slept and never woke: the notification arrives, the matching wake
@@ -240,7 +240,83 @@ struct TimerReducerAbsenceTests {
         #expect(driver.remaining == 1_500 - 60, "A credited absence must not restart the session again.")
     }
 
-    // MARK: - Notifications as an optimisation, never a requirement
+    @Test("resetting a session in an empty room does not settle capture consent")
+    func absenceResetsDoNotProbeForCaptureConsent() {
+        var driver = ReducerDriver(prefs: .testing(work: 1_500, rest: 300))
+        driver.act(.start)
+        #expect(
+            driver.count(of: .prepareCapturePermissions) == 1,
+            "Starting a session the user is present for settles the consent its break needs (issue #90)."
+        )
+
+        driver.act(.observedSleep)
+        // Hours with the display dark and the machine awake. Every threshold's worth of
+        // absence restarts the session, which is what keeps a cycle from ever completing in
+        // an empty room and inflating the tally — but settling consent means a real capture
+        // call macOS may answer with a dialog, and nobody is there to answer it.
+        for _ in 0..<12 {
+            driver.drift(300)
+            driver.reconcile()
+        }
+
+        #expect(
+            driver.count(of: .prepareCapturePermissions) == 1,
+            "An unattended machine must not be asked for capture consent, over and over, with nobody there."
+        )
+        #expect(
+            driver.count(of: .record(.workSessionCompleted)) == 0,
+            "Nor should an hour in an empty room bank sessions nobody worked."
+        )
+    }
+
+    @Test("returning credits the whole absence, not the sliver since it was last resolved")
+    func returningCreditsTheWholeAbsence() {
+        var driver = ReducerDriver(prefs: .testing(work: 1_500, rest: 300))
+        driver.act(.start)
+        driver.act(.observedSleep)
+
+        // An hour away with the display dark. The session quietly restarted several times
+        // over; the last of those was only moments ago.
+        for _ in 0..<12 {
+            driver.drift(300)
+            driver.reconcile()
+        }
+        driver.drift(30)
+
+        driver.act(.observedWake)
+
+        // Measuring only the thirty seconds since the last restart would hand back a session
+        // already a few minutes old. The user was away for an hour: they are owed a whole one.
+        #expect(driver.phase == .work, "An hour away served as the break.")
+        #expect(driver.remaining == 1_500, "The session the user comes back to must be whole.")
+        #expect(driver.plan.unattendedSince == nil, "The absence is over.")
+        #expect(
+            driver.lastEffects.contains(.prepareCapturePermissions),
+            "The session they actually return to settles the consent its break will need (issue #90)."
+        )
+    }
+
+    @Test("anything the user does is proof they are at the machine")
+    func userActionRetiresAnAbsence() {
+        var driver = ReducerDriver(prefs: .testing(work: 1_500, rest: 300))
+        driver.act(.start)
+        driver.act(.observedSleep)
+        driver.drift(600)
+
+        // No wake notification — the user simply moved the mouse and pressed Pause. A
+        // notification is evidence, never authority, and this is better evidence.
+        driver.act(.pause)
+
+        #expect(driver.plan.unattendedSince == nil, "A user action must retire the absence a notification claimed.")
+    }
+}
+
+/// Sleep and wake notifications improve an absence measurement. They never authorise one.
+///
+/// The distinction is the whole of issue #87: the old design could not resolve an absence
+/// at all without a matching wake, so one that never arrived stalled the timer for good.
+@Suite("Timer reducer absence notifications", .tags(.timerState, .sleepWake))
+struct TimerReducerAbsenceNotificationTests {
 
     @Test("a display sleep with no matching wake still resolves on the next reconcile")
     func displaySleepWithoutWakeStillResolves() {

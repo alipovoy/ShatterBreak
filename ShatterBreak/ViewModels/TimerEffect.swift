@@ -12,6 +12,9 @@ enum TimerEffect: Equatable {
     case prepareCapturePermissions
     case showOverlay(OverlayPresentationStyle)
     case dismissOverlay
+    /// A break presentation still waiting for a screen is now out of date — the break it
+    /// would announce has ended. Present it settled, with no shake and no sound (#76, #94).
+    case settleHeldOverlay
     case record(StatisticsEvent)
     /// The stop→start boundary, where the opt-in statistics reset applies.
     case resetStatisticsForNewSession

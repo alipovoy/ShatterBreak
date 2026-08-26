@@ -47,15 +47,20 @@ final class TimerEffectExecutor {
         self.isDisplayAwake = isDisplayAwake
     }
 
-    /// Performs `effects`, first retrying anything that was waiting for a screen.
+    /// Performs `effects`, then retries anything still waiting for a screen.
+    ///
+    /// The retry comes *last* so the batch has had its say first. Flushing up front would
+    /// resolve a held presentation against a plan the same batch is about to invalidate —
+    /// a break window shattering onto the screen with its chime a moment before the
+    /// dismissal in the very same batch tears it down.
     ///
     /// Callers pass an empty array freely: every reconcile is also a retry, which is what
     /// makes the heartbeat the backstop for a `screensDidWakeNotification` that never comes.
     func perform(_ effects: [TimerEffect]) {
-        flushIfPossible()
         for effect in effects {
             perform(effect)
         }
+        flushIfPossible()
     }
 
     /// Presents anything held back, if there is now a screen to present it on.
@@ -74,6 +79,9 @@ final class TimerEffectExecutor {
             handlers.prepareCapture()
 
         case .showOverlay(let style):
+            // Supersedes anything waiting, presented or not: this is the current answer,
+            // and the held one is by definition out of date.
+            deferredPresentation = nil
             guard isDisplayAwake() else {
                 deferredPresentation = style
                 return
@@ -85,6 +93,12 @@ final class TimerEffectExecutor {
             // appear when the display comes back.
             deferredPresentation = nil
             handlers.dismissOverlay()
+
+        case .settleHeldOverlay:
+            // The break a held presentation would have announced is over. Nothing is on
+            // screen to correct, so this only demotes what is still waiting.
+            guard deferredPresentation != nil else { return }
+            deferredPresentation = .settled
 
         case .record(let event):
             handlers.record(event)

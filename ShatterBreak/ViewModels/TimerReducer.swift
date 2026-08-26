@@ -16,6 +16,10 @@ enum TimerReducer {
 
     /// Brings `plan` up to date with `instant`, crossing at most one boundary.
     ///
+    /// `creditingAbsence` lets a caller that measured an absence itself have it credited in
+    /// full — the wake path, which knows the whole absence and not just the part left over
+    /// since it was last resolved.
+    ///
     /// At most one, deliberately: the obvious `while remaining <= 0 { cross() }` would
     /// replay a three-hour sleep as four work→break cycles and record four completed
     /// sessions. An absence is resolved as a single event instead, which is also what the
@@ -23,10 +27,11 @@ enum TimerReducer {
     static func advance(
         _ plan: TimerPlan,
         to instant: TimerInstant,
-        prefs: TimerPreferences
+        prefs: TimerPreferences,
+        creditingAbsence override: TimeInterval? = nil
     ) -> (TimerPlan, [TimerEffect]) {
         var plan = plan
-        let absence = measuredAbsence(plan, at: instant)
+        let absence = max(override ?? 0, measuredAbsence(plan, at: instant))
         plan.lastSeen = instant
 
         // A user pause is the one thing an absence must not disturb: the timer is frozen
@@ -70,7 +75,13 @@ enum TimerReducer {
         let wallGap = instant.date.timeIntervalSince(plan.lastSeen.date)
         let awakeGap = instant.awakeUptime - plan.lastSeen.awakeUptime
         let slept = max(0, wallGap - awakeGap)
-        let noted = plan.unattendedSince.map { max(0, instant.date.timeIntervalSince($0)) } ?? 0
+        // Measured from wherever this absence was last resolved, so a machine that is still
+        // unattended is not told the same thing over and over. The credit point only ever
+        // narrows an absence that is already in flight — on its own it is not evidence of
+        // anything, and treating it as such would resolve an absence nobody reported.
+        let noted = plan.unattendedSince.map { start in
+            max(0, instant.date.timeIntervalSince(max(start, plan.absenceCreditedAt ?? start)))
+        } ?? 0
         return max(slept, noted)
     }
 
@@ -83,6 +94,15 @@ enum TimerReducer {
         at instant: TimerInstant,
         prefs: TimerPreferences
     ) -> (TimerPlan, [TimerEffect]) {
+        // Anything the user did is proof they are at the machine, whatever the last
+        // notification claimed. Notifications are evidence, not authority.
+        let originalPlan = plan
+        var plan = plan
+        if action != .observedSleep {
+            plan.unattendedSince = nil
+            plan.absenceCreditedAt = nil
+        }
+
         switch action {
         case .start:
             return startWork(plan, at: instant, prefs: prefs)
@@ -112,12 +132,29 @@ enum TimerReducer {
             plan.unattendedSince = instant.date
             return (plan, [])
         case .observedWake:
-            // Reconcile before retiring the timestamp: it is the input the absence is
-            // measured from, and clearing it first would throw away the evidence.
-            var (plan, effects) = advance(plan, to: instant, prefs: prefs)
-            plan.unattendedSince = nil
-            return (plan, effects)
+            return returned(originalPlan, at: instant, prefs: prefs)
         }
+    }
+
+    /// The user is back: resolve the whole absence, then stop treating the machine as
+    /// unattended.
+    ///
+    /// The absence is measured here rather than left to ``measuredAbsence(_:at:)`` because
+    /// that one deliberately measures only what has not been credited yet. A work session
+    /// that quietly restarted while the machine sat dark is not the fresh one the user is
+    /// owed on walking back to it.
+    private static func returned(
+        _ plan: TimerPlan,
+        at instant: TimerInstant,
+        prefs: TimerPreferences
+    ) -> (TimerPlan, [TimerEffect]) {
+        var plan = plan
+        let absence = plan.unattendedSince.map { max(0, instant.date.timeIntervalSince($0)) }
+        // Cleared *before* reconciling, so a work session this starts counts as one the
+        // user is present for and settles the consent its break will need (#90).
+        plan.unattendedSince = nil
+        plan.absenceCreditedAt = nil
+        return advance(plan, to: instant, prefs: prefs, creditingAbsence: absence)
     }
 
     private static func pause(
@@ -192,7 +229,13 @@ enum TimerReducer {
         if plan.phase == .rest || plan.phase == .awaitingReturn {
             effects.append(.dismissOverlay)
         }
-        effects.append(.prepareCapturePermissions)
+        // Skipped while the machine is known to be unattended: settling consent means a
+        // real ScreenCaptureKit call that macOS may answer with a dialog, and a work
+        // session restarting every few minutes in an empty room would leave a stack of them
+        // waiting for the user (#90). The session they actually come back to settles it.
+        if plan.unattendedSince == nil {
+            effects.append(.prepareCapturePermissions)
+        }
 
         var plan = plan
         plan.phase = .work
@@ -280,7 +323,10 @@ enum TimerReducer {
         presenting: Bool
     ) -> (TimerPlan, [TimerEffect]) {
         guard prefs.autoStartWork else {
-            return (awaitReturn(plan, at: instant), presenting ? [.showOverlay(.settled)] : [])
+            // Nothing is presented when the break overlay is already on screen — but one may
+            // be held back from a dark display, still carrying the shake and chime of a
+            // break that has now ended. Settle it rather than let it announce itself late.
+            return (awaitReturn(plan, at: instant), presenting ? [.showOverlay(.settled)] : [.settleHeldOverlay])
         }
         return startWork(plan, at: instant, prefs: prefs)
     }
@@ -294,6 +340,7 @@ enum TimerReducer {
         plan.pausedAt = nil
         plan.savedRestRemaining = nil
         plan.unattendedSince = nil
+        plan.absenceCreditedAt = nil
         plan.lastSeen = instant
         plan.intervalID += 1
         return plan
@@ -304,12 +351,13 @@ private extension TimerPlan {
     /// Marks the absence measured so far as accounted for.
     ///
     /// Without this, a machine that is still unattended would re-resolve the same absence
-    /// at every heartbeat, resetting the work session over and over — and idempotency,
-    /// which everything else here rests on, would not hold.
+    /// at every heartbeat, and idempotency — which everything else here rests on — would
+    /// not hold. `unattendedSince` itself is left where it is, because the user's actual
+    /// return is owed a decision about the whole absence.
     func spendingAbsence(at instant: TimerInstant) -> TimerPlan {
         guard unattendedSince != nil else { return self }
         var plan = self
-        plan.unattendedSince = instant.date
+        plan.absenceCreditedAt = instant.date
         return plan
     }
 }
