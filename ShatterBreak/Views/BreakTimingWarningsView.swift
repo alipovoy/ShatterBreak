@@ -13,9 +13,7 @@ struct BreakTimingWarningsView: View {
                     WarningLabel(message: message(for: warning))
                 }
             }
-            // A preferred reading width keeps these long warnings from dictating the
-            // Form's width; maxWidth lets them fill and wrap to whatever the controls set.
-            .frame(idealWidth: 320, maxWidth: .infinity, alignment: .leading)
+            .readingWidth()
         }
     }
 
@@ -26,9 +24,4 @@ struct BreakTimingWarningsView: View {
         case .windowsOverlap: .windowsOverlapWarning
         }
     }
-}
-
-#Preview {
-    BreakTimingWarningsView(warnings: [.postponeWindowExceedsRest, .windowsOverlap])
-        .padding()
 }

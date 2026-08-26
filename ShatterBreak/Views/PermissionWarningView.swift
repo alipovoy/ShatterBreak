@@ -15,24 +15,6 @@ struct PermissionWarningView: View {
                 .buttonStyle(.link)
                 .font(.callout)
         }
-        // A preferred reading width keeps this note from dictating the Form's width;
-        // maxWidth lets it fill and wrap to whatever the surrounding controls set.
-        .frame(idealWidth: 320, maxWidth: .infinity, alignment: .leading)
+        .readingWidth()
     }
-}
-
-#Preview("Screen Recording") {
-    PermissionWarningView(
-        message: .permissionWarningText,
-        actionTitle: .openSystemSettingsToGrant,
-        action: { }
-    )
-}
-
-#Preview("Direct Capture") {
-    PermissionWarningView(
-        message: .directCaptureWarningText,
-        actionTitle: .directCaptureConfirmAction,
-        action: { }
-    )
 }

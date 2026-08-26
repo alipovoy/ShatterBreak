@@ -37,7 +37,7 @@ struct ScreenCaptureConsentView: View {
             Text(.directCaptureNote)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-                .frame(idealWidth: 320, maxWidth: .infinity, alignment: .leading)
+                .readingWidth()
         }
     }
 }
