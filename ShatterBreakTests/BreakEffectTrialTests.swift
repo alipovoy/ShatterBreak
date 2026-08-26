@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Testing
 
@@ -30,7 +31,11 @@ struct BreakEffectTrialTests {
         defaults: any KeyValueStore = InMemoryKeyValueStore(),
         duration: Duration = .milliseconds(20)
     ) -> BreakEffectTrial {
-        BreakEffectTrial(timer: makeTimer(overlays, defaults: defaults), duration: duration)
+        BreakEffectTrial(
+            timer: makeTimer(overlays, defaults: defaults),
+            duration: duration,
+            sampleClock: ManualTimerClock()
+        )
     }
 
     @Test("a sample is presented like a break beginning now")
@@ -144,6 +149,55 @@ struct BreakEffectTrialTests {
 
         #expect(overlays.dismissCount == 0, "The sample's timeout must not close a real break.")
         #expect(overlays.presented === timer, "The break stays up.")
+    }
+
+    @Test("the user's first key or click ends the sample and goes no further")
+    func interruptingTakesTheEventAndTheSample() {
+        let overlays = OverlayRecorder()
+        let trial = makeTrial(overlays)
+
+        trial.start()
+
+        #expect(trial.interrupt(), "The click was meant for the sample, not for what is under it.")
+        #expect(trial.isRunning == false)
+        #expect(overlays.dismissCount == 1)
+    }
+
+    @Test("a click meant for a real break is not eaten by a finished sample")
+    func interruptingPassesOnEventsThatBelongToARealBreak() {
+        let overlays = OverlayRecorder()
+        let timer = makeTimer(overlays)
+        let trial = BreakEffectTrial(timer: timer, duration: .seconds(30), sampleClock: ManualTimerClock())
+
+        trial.start()
+        overlays.presenter.show(timer, .animated)
+
+        #expect(trial.interrupt() == false, "That key press was the user answering their break.")
+        #expect(overlays.dismissCount == 0)
+        #expect(trial.isRunning == false, "The sample stands down even so; it no longer owns anything.")
+    }
+
+    @Test("a sample is deaf to the machine sleeping")
+    func sampleDoesNotObserveWorkspaceNotifications() {
+        let overlays = OverlayRecorder()
+        // Held, not discarded: a released trial dismisses its own sample from `deinit`.
+        let trial = makeTrial(overlays, duration: .seconds(30))
+        trial.start()
+
+        // The sample shares the app's presenter, so a reducer running inside it could take
+        // the break window down with it.
+        NSWorkspace.shared.notificationCenter.post(
+            name: NSWorkspace.screensDidSleepNotification,
+            object: nil
+        )
+        NSWorkspace.shared.notificationCenter.post(
+            name: NSWorkspace.screensDidWakeNotification,
+            object: nil
+        )
+
+        #expect(overlays.dismissCount == 0)
+        #expect(overlays.showCount == 1)
+        trial.end()
     }
 
     @Test("nothing a sample does is counted")

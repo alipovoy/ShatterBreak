@@ -30,13 +30,23 @@ final class BreakEffectTrial {
     @ObservationIgnored
     private let timer: TimerState
 
+    @ObservationIgnored
+    private let sampleClock: (any TimerClock)?
+
     private var sample: TimerState?
     private var timeout: Task<Void, Never>?
     private var interruption: Any?
 
-    init(timer: TimerState, duration: Duration = BreakEffectTrial.defaultDuration) {
+    /// - Parameter sampleClock: the clock the sample reads its countdown from. Injected by
+    ///   tests; the app takes the system one.
+    init(
+        timer: TimerState,
+        duration: Duration = BreakEffectTrial.defaultDuration,
+        sampleClock: (any TimerClock)? = nil
+    ) {
         self.timer = timer
         self.duration = duration
+        self.sampleClock = sampleClock
     }
 
     isolated deinit {
@@ -58,22 +68,26 @@ final class BreakEffectTrial {
         // arriving this second would get, which is the honest thing to show.
         overlays.prepare()
 
+        // A notification centre of its own, which nothing posts to. The sample exists to be
+        // looked at: wired to the workspace's, a display sleep inside these few seconds
+        // would drive the sample's own reducer, arm real timers for it, and let it emit
+        // effects — including a dismissal — through the presenter the app shares with it.
         let sample = TimerState(
             overlays: overlays,
             defaults: timer.defaults,
+            clock: sampleClock,
+            workspaceNotificationCenter: NotificationCenter(),
             statistics: StatisticsStore(defaults: InMemoryKeyValueStore()),
             showing: .starting(.rest, duration: restDuration)
         )
         self.sample = sample
         overlays.show(sample, .animated)
 
-        // Swallowed rather than passed on: the first thing the user does means "enough",
-        // including a click that would otherwise land on the sample's own Postpone button.
         interruption = NSEvent.addLocalMonitorForEvents(
             matching: [.keyDown, .leftMouseDown, .rightMouseDown]
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.end() }
-            return nil
+        ) { [weak self] event in
+            guard let self else { return event }
+            return MainActor.assumeIsolated { interrupt() } ? nil : event
         }
 
         // Weakly, here and in the monitor: a Preferences window closed mid-sample should
@@ -84,6 +98,19 @@ final class BreakEffectTrial {
             guard Task.isCancelled == false else { return }
             self?.end()
         }
+    }
+
+    /// Ends the sample on the user's first key or click, reporting whether that event was
+    /// the sample's to take.
+    ///
+    /// Swallowed while the sample is up, since the first thing the user does means "enough"
+    /// — including a click that would otherwise land on the sample's own Postpone button.
+    /// Once a real break has taken the window the event belongs to it, and passing it on is
+    /// the difference between dismissing a sample and eating the user's "I'm back".
+    func interrupt() -> Bool {
+        let wasOurs = overlays.presenting() === sample
+        end()
+        return wasOurs
     }
 
     func end() {
