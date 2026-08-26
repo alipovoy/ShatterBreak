@@ -24,7 +24,7 @@ struct CountdownIntervalIdentityTests {
 
         state.start()
         await environment.advanceTime(by: 4)
-        let deadlineBeforeSleep = state.countdownDeadline
+        let identityBeforeSleep = state.countdownIntervalID
 
         let notificationCenter = environment.workspaceNotificationCenter
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
@@ -35,7 +35,7 @@ struct CountdownIntervalIdentityTests {
 
         #expect(state.mode == .running, "The scenario needs work running on both sides of the sleep.")
         #expect(
-            state.countdownDeadline != deadlineBeforeSleep,
+            state.countdownIntervalID != identityBeforeSleep,
             "A fresh work session must be a new interval, or the visible clock never restarts."
         )
     }
@@ -58,7 +58,7 @@ struct CountdownIntervalIdentityTests {
 
         #expect(
             observation.fired,
-            "The deadline must be observable, or a view reading the clock cannot know it moved."
+            "The plan must be observable, or a view reading the clock cannot know it moved."
         )
     }
 
@@ -73,15 +73,15 @@ struct CountdownIntervalIdentityTests {
         state.restDurationSecs = 2
 
         state.start()
-        let work = state.countdownDeadline
+        let work = state.countdownIntervalID
 
         await environment.advanceTime(by: 2)
         #expect(state.isResting, "The work session should hand over to the break.")
-        let rest = state.countdownDeadline
+        let rest = state.countdownIntervalID
 
         await environment.advanceTime(by: 2)
         #expect(state.mode == .running, "Auto-start should begin the next work session.")
-        let nextWork = state.countdownDeadline
+        let nextWork = state.countdownIntervalID
 
         #expect(work != rest, "The break is not the work session it followed.")
         #expect(rest != nextWork, "The next work session is not the break it followed.")

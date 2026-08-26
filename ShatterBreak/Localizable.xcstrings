@@ -609,54 +609,6 @@
         }
       }
     },
-    "stalledTimerOverdueDuration": {
-      "comment": "Detail line under the stalled-timer warning showing how long the transition has been overdue. The placeholder is a formatted duration such as '12 minutes'.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Overdue by %@."
-          }
-        }
-      }
-    },
-    "stalledTimerReportAction": {
-      "comment": "Button that opens a prefilled bug report about the stalled timer.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Report this"
-          }
-        }
-      }
-    },
-    "stalledTimerResetAction": {
-      "comment": "Button that clears the stuck state and lets the overdue timer transition fire.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Resume the timer"
-          }
-        }
-      }
-    },
-    "stalledTimerWarning": {
-      "comment": "Inline warning shown in the menu when a timer transition came due but could not fire.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The timer stopped advancing. It was due to move on and never did."
-          }
-        }
-      }
-    },
     "startFocus": {
       "comment": "Menu button that starts a focus session.",
       "extractionState": "manual",

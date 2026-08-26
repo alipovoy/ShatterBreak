@@ -15,16 +15,6 @@ struct MenuView: View {
         VStack(spacing: 16) {
             TimerDisplayView(state: state, isActive: isWindowVisible)
 
-            // Read as the menu opens, which is when the user has noticed nothing is
-            // happening — with the menu bar timer hidden by default there is no 00:00 on
-            // screen to notice instead (issue #89).
-            if let stalledTransition = state.stalledTransition {
-                StalledTimerWarningView(
-                    report: stalledTransition,
-                    onResume: resumeStalledTimer
-                )
-            }
-
             HStack(spacing: 12) {
                 if state.isRunning || state.isPaused {
                     Button {
@@ -110,10 +100,6 @@ struct MenuView: View {
                 .padding(.all)
         }
         .background(MenuWindowVisibilityObserver(isVisible: $isWindowVisible))
-    }
-
-    private func resumeStalledTimer() {
-        state.recoverFromStalledTransition()
     }
 
     private func openPreferences() {

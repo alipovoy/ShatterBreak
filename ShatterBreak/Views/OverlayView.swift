@@ -204,12 +204,12 @@ struct OverlayView: View {
     // opening window is still active even without a running countdown.
     UserDefaults.standard.set(true, forKey: PreferenceKeys.allowPostpone)
     let restingState = TimerState()
-    restingState.mode = .resting
     restingState.restDurationSecs = 30
+    restingState.setPreviewPhase(.rest, duration: 30)
 
     // awaiting return → I'm back button
     let awaitingState = TimerState()
-    awaitingState.mode = .awaitingReturn
+    awaitingState.setPreviewPhase(.awaitingReturn)
 
     return VStack(spacing: 0) {
         OverlayView(state: restingState, presentation: restingPresentation)

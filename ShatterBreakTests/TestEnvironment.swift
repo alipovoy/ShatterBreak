@@ -6,17 +6,22 @@ final class TestEnvironment {
     let defaults: any KeyValueStore = InMemoryKeyValueStore()
     let workspaceNotificationCenter = NotificationCenter()
     let appNotificationCenter = NotificationCenter()
-    private var cachedScheduler: ManualCountdownScheduler?
+    private var cachedClock: ManualTimerClock?
+    /// Whether the stub display is lit. Tests that care about DarkWake gating switch it
+    /// off; everything else runs with a screen, so overlay assertions stay about the state
+    /// machine rather than about display state.
+    @MainActor
+    var isDisplayAwake = true
 
     @MainActor
-    private var scheduler: ManualCountdownScheduler {
-        if let cachedScheduler {
-            return cachedScheduler
+    var clock: ManualTimerClock {
+        if let cachedClock {
+            return cachedClock
         }
 
-        let scheduler = ManualCountdownScheduler()
-        cachedScheduler = scheduler
-        return scheduler
+        let clock = ManualTimerClock()
+        cachedClock = clock
+        return clock
     }
 
     @MainActor
@@ -28,8 +33,9 @@ final class TestEnvironment {
             overlays: overlays,
             postponeDurationSecs: postponeDurationSecs,
             defaults: defaults,
-            scheduler: scheduler,
-            workspaceNotificationCenter: workspaceNotificationCenter
+            clock: clock,
+            workspaceNotificationCenter: workspaceNotificationCenter,
+            isDisplayAwake: { [unowned self] in isDisplayAwake }
         )
     }
 
@@ -51,29 +57,31 @@ final class TestEnvironment {
         )
     }
 
-    /// The scheduler's current moment, for tests that need to plant a timestamp the
-    /// timer will measure against.
+    /// The clock's current moment, for tests that need to plant a timestamp the timer
+    /// will measure against.
     @MainActor
-    var now: Date { scheduler.now }
+    var now: Date { clock.date }
 
     @MainActor
     func advanceTime(by interval: TimeInterval = 1, ticks: Int = 1) async {
         for _ in 0..<ticks {
-            scheduler.advance(by: interval)
+            clock.advance(by: interval)
         }
     }
 
+    /// Time passing with the machine awake but nothing reconciling — a dropped boundary
+    /// timer, not an absence.
     @MainActor
     func elapseTimeWithoutTick(by interval: TimeInterval) {
-        scheduler.elapse(by: interval)
+        clock.elapse(by: interval)
     }
 
-    /// Delivers the pending expiry callback without moving time, reproducing a
-    /// scheduler whose monotonic wait elapsed before the wall clock reached the
-    /// deadline.
+    /// Time passing with the machine asleep, and no notification to say so. The wall clock
+    /// moves while the awake-only clock does not, which is the evidence an absence is
+    /// measured from.
     @MainActor
-    func fireExpiryEarly() {
-        scheduler.fireExpiryEarly()
+    func sleepMachine(by interval: TimeInterval) {
+        clock.sleepMachine(by: interval)
     }
 
     @MainActor

@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 /// Performs the effects ``TimerReducer`` emits, and decides when it is safe to.
@@ -25,36 +26,41 @@ final class TimerEffectExecutor {
     }
 
     private let handlers: Handlers
-    private(set) var screensAreAwake = true
+    /// Whether there is a lit screen to present on.
+    ///
+    /// Asked, not remembered. `screensDidWakeNotification` is a prompt to re-check, never
+    /// the source of truth: a break held behind a notification that never arrives is the
+    /// same class of bug as a transition held behind a wake that never arrives (#87).
+    private let isDisplayAwake: @MainActor () -> Bool
+
     /// The one presentation waiting for a screen, if any.
     ///
     /// One, not a queue: a second break coming due before the first was ever shown replaces
     /// it. Showing both would present a break the user already slept through.
     private(set) var deferredPresentation: OverlayPresentationStyle?
 
-    init(handlers: Handlers) {
+    init(
+        handlers: Handlers,
+        isDisplayAwake: @escaping @MainActor () -> Bool = { CGDisplayIsAsleep(CGMainDisplayID()) == 0 }
+    ) {
         self.handlers = handlers
+        self.isDisplayAwake = isDisplayAwake
     }
 
+    /// Performs `effects`, first retrying anything that was waiting for a screen.
+    ///
+    /// Callers pass an empty array freely: every reconcile is also a retry, which is what
+    /// makes the heartbeat the backstop for a `screensDidWakeNotification` that never comes.
     func perform(_ effects: [TimerEffect]) {
+        flushIfPossible()
         for effect in effects {
             perform(effect)
         }
     }
 
-    /// The display went dark. Presentations from here on wait.
-    func screensDidSleep() {
-        screensAreAwake = false
-    }
-
-    /// There is a screen again. Anything held back is presented now.
-    ///
-    /// Callers reconcile *before* calling this, so a break that elapsed while the display
-    /// was dark has already been resolved — and its pending presentation already replaced
-    /// or dismissed — rather than surfacing after the fact.
-    func screensDidWake() {
-        screensAreAwake = true
-        guard let deferred = deferredPresentation else { return }
+    /// Presents anything held back, if there is now a screen to present it on.
+    func flushIfPossible() {
+        guard let deferred = deferredPresentation, isDisplayAwake() else { return }
 
         deferredPresentation = nil
         handlers.showOverlay(deferred)
@@ -68,7 +74,7 @@ final class TimerEffectExecutor {
             handlers.prepareCapture()
 
         case .showOverlay(let style):
-            guard screensAreAwake else {
+            guard isDisplayAwake() else {
                 deferredPresentation = style
                 return
             }

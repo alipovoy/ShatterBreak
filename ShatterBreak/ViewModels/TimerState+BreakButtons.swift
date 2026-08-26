@@ -43,8 +43,8 @@ extension TimerState {
     }
 
     /// Button visibility at the tick source's current moment, for views and tests.
-    var showsPostponeButton: Bool { showsPostponeButton(at: countdown.now) }
-    var showsReturnButton: Bool { showsReturnButton(at: countdown.now) }
+    var showsPostponeButton: Bool { showsPostponeButton(at: clock.instant.date) }
+    var showsReturnButton: Bool { showsReturnButton(at: clock.instant.date) }
 
     // MARK: - Live preference reads
 
