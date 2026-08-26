@@ -155,35 +155,52 @@ struct OverlayView: View {
     }
 }
 
-#Preview("Over Frosted Wallpaper") { @MainActor in
-    // Render the stand-in wallpaper to a CGImage so the shatter effect has a real
-    // capture to frost, putting the action buttons over actual frosted glass.
-    let backgroundImage = ImageRenderer(content: PreviewWallpaper()).cgImage
+/// Builds a break overlay over a rendered stand-in wallpaper.
+///
+/// The wallpaper is rasterised to a `CGImage` so the shatter effect has a real capture to
+/// frost, which is what puts the action buttons over actual frosted glass rather than a
+/// flat colour.
+///
+/// The plan is assembled here as a complete value and handed to the timer at construction.
+/// Nothing schedules it, so no transition ever fires; a live phase still counts down,
+/// because the clock on screen is derived from the plan and the real current moment.
+@MainActor
+private func previewOverlay(phase: TimerPlan.Phase, duration: TimeInterval = 300) -> some View {
+    let presentation = OverlayPresentationState(effectType: .shatter)
+    presentation.backgroundImage = ImageRenderer(content: PreviewWallpaper()).cgImage
+    presentation.phase = .shattered
 
-    let restingPresentation = OverlayPresentationState(effectType: .shatter)
-    restingPresentation.backgroundImage = backgroundImage
-    restingPresentation.phase = .shattered
+    let now = Date.now
+    let plan = TimerPlan(
+        phase: phase,
+        startedAt: now,
+        duration: duration,
+        pausedAt: nil,
+        intervalID: 1,
+        savedRestRemaining: nil,
+        postponeUsedThisCycle: false,
+        unattendedSince: nil,
+        absenceCreditedAt: nil,
+        lastSeen: TimerInstant(date: now, awakeUptime: ProcessInfo.processInfo.systemUptime)
+    )
 
-    let awaitingPresentation = OverlayPresentationState(effectType: .shatter)
-    awaitingPresentation.backgroundImage = backgroundImage
-    awaitingPresentation.phase = .shattered
+    // Postpone has to be allowed for the resting overlay to offer it, and the break stays
+    // short so the button's opening window is still open. Written to a throwaway domain:
+    // the canvas runs against the app's real preferences otherwise, and opening a preview
+    // is not consent to change a setting.
+    let defaults = UserDefaults(suiteName: "dev.lipovoy.shatterbreak.previews") ?? .standard
+    defaults.set(true, forKey: PreferenceKeys.allowPostpone)
+    let state = TimerState(overlays: .disabled, defaults: defaults, showing: plan)
+    state.restDurationSecs = duration
 
-    // resting → Postpone button. Enable postpone and keep the break short so its
-    // opening window is still active even without a running countdown.
-    UserDefaults.standard.set(true, forKey: PreferenceKeys.allowPostpone)
-    let restingState = TimerState()
-    restingState.restDurationSecs = 30
-    restingState.setPreviewPhase(.rest, duration: 30)
+    return OverlayView(state: state, presentation: presentation)
+        .frame(width: 480, height: 320)
+}
 
-    // awaiting return → I'm back button
-    let awaitingState = TimerState()
-    awaitingState.setPreviewPhase(.awaitingReturn)
+#Preview("Resting Over Frosted Wallpaper") { @MainActor in
+    previewOverlay(phase: .rest, duration: 30)
+}
 
-    return VStack(spacing: 0) {
-        OverlayView(state: restingState, presentation: restingPresentation)
-            .frame(width: 480, height: 320)
-
-        OverlayView(state: awaitingState, presentation: awaitingPresentation)
-            .frame(width: 480, height: 320)
-    }
+#Preview("Awaiting Return Over Frosted Wallpaper") { @MainActor in
+    previewOverlay(phase: .awaitingReturn)
 }

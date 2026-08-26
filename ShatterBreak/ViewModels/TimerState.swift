@@ -144,6 +144,12 @@ final class TimerState {
 
     // MARK: - Initialization
 
+    /// - Parameter initialPlan: the plan to open on, for previews and design work that
+    ///   need a phase on screen without driving a countdown to reach one. Passed as a
+    ///   whole value at construction rather than poked into a live timer, so `plan` still
+    ///   has exactly one writer afterwards: ``commit(_:)``, with whatever the reducer
+    ///   returned. Nothing is scheduled for it — a preview renders a plan, it does not run
+    ///   one.
     init(
         overlays: OverlayPresenter,
         postponeDurationSecs: Double? = nil,
@@ -151,7 +157,8 @@ final class TimerState {
         clock: (any TimerClock)? = nil,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
         statistics: StatisticsStore? = nil,
-        isDisplayAwake: (@MainActor () -> Bool)? = nil
+        isDisplayAwake: (@MainActor () -> Bool)? = nil,
+        showing initialPlan: TimerPlan? = nil
     ) {
         let clock = clock ?? SystemTimerClock()
         self.clock = clock
@@ -159,7 +166,7 @@ final class TimerState {
         self.defaults = defaults
         self.statistics = statistics ?? StatisticsStore(defaults: defaults)
         self.sleepWakeObserver = SleepWakeObserver(notificationCenter: workspaceNotificationCenter)
-        self.plan = .idle(at: clock.instant)
+        self.plan = initialPlan ?? .idle(at: clock.instant)
         self.workDurationSecs = Self.loadDuration(
             forKey: PreferenceKeys.workDurationSecs,
             defaultValue: PreferenceDefaults.workDurationSecs,
@@ -302,19 +309,3 @@ final class TimerState {
         return "\(minutesStr):\(secondsStr)"
     }
 }
-
-#if DEBUG
-extension TimerState {
-    /// Places the timer directly into a phase, for previews and design work.
-    ///
-    /// Deliberately not general: a preview needs a break on screen without driving a
-    /// countdown to reach one, and the plan is otherwise only ever written by the reducer.
-    func setPreviewPhase(_ phase: TimerPlan.Phase, duration: TimeInterval = 300) {
-        plan.phase = phase
-        plan.duration = duration
-        plan.startedAt = clock.instant.date
-        plan.pausedAt = nil
-        plan.intervalID += 1
-    }
-}
-#endif
