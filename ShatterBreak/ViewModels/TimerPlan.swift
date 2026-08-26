@@ -83,7 +83,10 @@ struct TimerPlan: Equatable, Sendable {
     ) -> TimerPlan {
         var plan = TimerPlan.idle(at: instant)
         plan.phase = phase
-        plan.duration = duration
+        // `idle` and `awaitingReturn` do not count down, and ``duration`` is documented as
+        // zero for them. A factory that can produce a plan the reducer never would is no
+        // better than the hook it replaced.
+        plan.duration = plan.isCountingDown ? duration : 0
         plan.intervalID = 1
         return plan
     }

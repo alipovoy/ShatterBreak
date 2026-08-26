@@ -37,6 +37,16 @@ private extension TimerState {
         .padding()
 }
 
+#Preview("Paused") { @MainActor in
+    // Pausing is not a phase — it is a work session with `pausedAt` set — so this is the
+    // one state the `starting` factory cannot express on its own.
+    var plan = TimerPlan.starting(.work, duration: 1_500)
+    plan.pausedAt = plan.startedAt.addingTimeInterval(320)
+
+    return TimerDisplayView(state: .preview(plan), isActive: true)
+        .padding()
+}
+
 #Preview("Idle") { @MainActor in
     TimerDisplayView(state: .preview(.idle(at: .now)), isActive: true)
         .padding()

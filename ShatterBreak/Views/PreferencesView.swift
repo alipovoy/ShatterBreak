@@ -284,7 +284,7 @@ private extension View {
     // `@AppStorage` reads `UserDefaults` and nothing else, so this pane cannot use the
     // in-memory store the other previews do. A suite of its own is the next best thing:
     // toggling a switch in the canvas edits preview state, not real settings.
-    let defaults = UserDefaults(suiteName: "dev.lipovoy.shatterbreak.previews") ?? .standard
+    let defaults = UserDefaults.preview("settings")
 
     return PreferencesView(state: TimerState(overlays: .disabled, defaults: defaults))
         .environment(\.permissions, ScreenCapturePermissionManager(defaults: defaults))
@@ -295,7 +295,7 @@ private extension View {
     // Contradictory settings, so the warnings render where they actually appear — under
     // the controls that caused them. On their own they are three lines of orange text
     // about nothing.
-    let defaults = UserDefaults(suiteName: "dev.lipovoy.shatterbreak.previews.warnings") ?? .standard
+    let defaults = UserDefaults.preview("warnings")
     defaults.set(300, forKey: PreferenceKeys.restDurationSecs)
     defaults.set(true, forKey: PreferenceKeys.allowPostpone)
     defaults.set(600, forKey: PreferenceKeys.postponeWindowSecs)

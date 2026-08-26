@@ -114,16 +114,20 @@ struct MenuView: View {
 }
 
 #Preview("Idle") { @MainActor in
-    MenuView(state: TimerState(overlays: .disabled, defaults: InMemoryKeyValueStore()), onQuit: { })
+    // The statistics section reads `@AppStorage`, so this needs a real domain to be a
+    // preview domain: the in-memory store the timer uses is invisible to it.
+    MenuView(state: TimerState(overlays: .disabled, defaults: UserDefaults.preview("menu")), onQuit: { })
+        .defaultAppStorage(UserDefaults.preview("menu"))
 }
 
 #Preview("Working") { @MainActor in
     MenuView(
         state: TimerState(
             overlays: .disabled,
-            defaults: InMemoryKeyValueStore(),
+            defaults: UserDefaults.preview("menu"),
             showing: .starting(.work, duration: 1_500)
         ),
         onQuit: { }
     )
+    .defaultAppStorage(UserDefaults.preview("menu"))
 }
