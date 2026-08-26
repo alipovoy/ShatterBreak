@@ -36,7 +36,7 @@ struct PreferencesView: View {
 
             Tab(value: SettingsTab.breakScreen) {
                 if selectedTab == .breakScreen {
-                    BreakScreenSettingsTab()
+                    BreakScreenSettingsTab(state: state)
                 }
             } label: {
                 Label { Text(.settingsTabBreakScreen) } icon: { Image(systemName: "sparkles.rectangle.stack") }
@@ -206,7 +206,12 @@ private struct ScheduleSettingsTab: View {
 // MARK: - Break Screen
 
 private struct BreakScreenSettingsTab: View {
+    /// The live timer, consulted for one thing only: a sample must not fight a real break
+    /// for the screen.
+    let state: TimerState
+
     @Environment(\.permissions) private var permissions
+    @State private var trial = BreakEffectTrial()
 
     @AppStorage(PreferenceKeys.effectType) private var effectType = PreferenceDefaults.effectType
     @AppStorage(PreferenceKeys.softOverlay) private var softOverlay = PreferenceDefaults.softOverlay
@@ -241,6 +246,13 @@ private struct BreakScreenSettingsTab: View {
                         onConfirmDirectCapture: confirmDirectCapture
                     )
                 }
+
+                // The effects are full-screen and low-frequency — a blur radius meant for
+                // a display, a fog the window server draws behind the overlay. A card
+                // cannot show either, so the picker offers the real thing instead.
+                Button(.tryEffect) { trial.start() }
+                    .help(Text(.tryEffectHelp))
+                    .disabled(isBreakOnScreen || trial.isRunning)
             }
 
             Section {
@@ -249,6 +261,12 @@ private struct BreakScreenSettingsTab: View {
             }
         }
         .settingsTabLayout()
+    }
+
+    /// Whether a real break already owns the screen, in which case a sample would be
+    /// presenting a second break over the first.
+    private var isBreakOnScreen: Bool {
+        state.isResting || state.awaitingReturn
     }
 
     /// Asks *and* opens System Settings, because the app cannot tell which the user needs:
@@ -303,6 +321,15 @@ private extension View {
     defaults.set(600, forKey: PreferenceKeys.earlyReturnLeadSecs)
 
     return ScheduleSettingsTab(state: TimerState(overlays: .disabled, defaults: defaults))
+        .defaultAppStorage(defaults)
+        .frame(width: 480)
+}
+
+#Preview("Break Screen") { @MainActor in
+    let defaults = UserDefaults.preview("breakScreen")
+
+    return BreakScreenSettingsTab(state: TimerState(overlays: .disabled, defaults: defaults))
+        .environment(\.permissions, ScreenCapturePermissionManager(defaults: defaults))
         .defaultAppStorage(defaults)
         .frame(width: 480)
 }

@@ -753,6 +753,30 @@
         }
       }
     },
+    "tryEffect": {
+      "comment": "Button in Preferences that shows the selected break effect on screen for a few seconds.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try It"
+          }
+        }
+      }
+    },
+    "tryEffectHelp": {
+      "comment": "Tooltip for the Try It button in Preferences.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shows this effect on your screen for a few seconds. Any key or click ends it."
+          }
+        }
+      }
+    },
     "windowsOverlapWarning": {
       "comment": "Warning when the Postpone and “I’m back” windows overlap.",
       "extractionState": "manual",
