@@ -21,3 +21,24 @@ struct OverlayActionButtonStyle: ButtonStyle {
             .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
     }
 }
+
+#Preview("OverlayActionButtonStyle") {
+    // Over the frosted desktop, because the style exists to stay legible there: its
+    // material and vibrancy have nothing to work against on a flat background.
+    let desktop = ImageRenderer(content: PreviewWallpaper()).cgImage
+
+    ZStack {
+        if let desktop {
+            FrostedCaptureView(image: desktop)
+        } else {
+            Color.gray
+        }
+
+        HStack(spacing: 16) {
+            Button("Postpone", action: { })
+            Button("I'm back", action: { })
+        }
+        .buttonStyle(OverlayActionButtonStyle())
+    }
+    .frame(width: 480, height: 200)
+}

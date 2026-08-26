@@ -60,14 +60,3 @@ private struct DesktopBlurView: NSViewRepresentable {
         nsView.alphaValue = alpha
     }
 }
-
-#Preview("Fogged Desktop") {
-    // Behind-window vibrancy can't sample a sibling view, so the preview uses
-    // within-window blending to fog a stand-in wallpaper, mirroring the shatter
-    // preview's glass-over-wallpaper look.
-    ZStack {
-        PreviewWallpaper()
-        FoggedDesktopView(blendingMode: .withinWindow)
-    }
-    .frame(width: 480, height: 300)
-}
