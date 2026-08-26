@@ -20,6 +20,24 @@ struct TimerDisplayView: View {
     }
 }
 
-#Preview("Timer Display") { @MainActor in
-    TimerDisplayView(state: TimerState(), isActive: true)
+private extension TimerState {
+    /// A timer parked in a phase, reading and writing nothing outside the preview.
+    static func preview(_ plan: TimerPlan) -> TimerState {
+        TimerState(overlays: .disabled, defaults: InMemoryKeyValueStore(), showing: plan)
+    }
+}
+
+#Preview("Working") { @MainActor in
+    TimerDisplayView(state: .preview(.starting(.work, duration: 1_500)), isActive: true)
+        .padding()
+}
+
+#Preview("Resting") { @MainActor in
+    TimerDisplayView(state: .preview(.starting(.rest, duration: 300)), isActive: true)
+        .padding()
+}
+
+#Preview("Idle") { @MainActor in
+    TimerDisplayView(state: .preview(.idle(at: .now)), isActive: true)
+        .padding()
 }

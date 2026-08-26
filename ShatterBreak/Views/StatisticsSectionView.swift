@@ -60,7 +60,17 @@ struct StatisticsSectionView: View {
 }
 
 #Preview("StatisticsSectionView") { @MainActor in
-    StatisticsSectionView(statistics: StatisticsStore())
+    // An empty tally is four zeros and says nothing about the layout, so the preview
+    // records a plausible morning first.
+    let defaults = InMemoryKeyValueStore()
+    defaults.set(true, forKey: PreferenceKeys.trackStatistics)
+    let statistics = StatisticsStore(defaults: defaults)
+    for _ in 0..<4 { statistics.record(.workSessionCompleted) }
+    for _ in 0..<3 { statistics.record(.breakCompleted) }
+    statistics.record(.postponed)
+    statistics.record(.earlyReturn)
+
+    return StatisticsSectionView(statistics: statistics)
         .padding()
         .frame(width: 320)
 }

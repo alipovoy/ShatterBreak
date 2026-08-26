@@ -70,6 +70,24 @@ struct TimerPlan: Equatable, Sendable {
         )
     }
 
+    /// A plan already in a phase, for previews and design work that want a countdown on
+    /// screen without driving one to reach it.
+    ///
+    /// Built from ``idle(at:)`` so every other field is defined rather than inherited from
+    /// whatever came before — the failing of the hook this replaced, which wrote a phase
+    /// into a live plan and left the rest describing a cycle that no longer existed.
+    static func starting(
+        _ phase: Phase,
+        duration: TimeInterval = 300,
+        at instant: TimerInstant = .now
+    ) -> TimerPlan {
+        var plan = TimerPlan.idle(at: instant)
+        plan.phase = phase
+        plan.duration = duration
+        plan.intervalID = 1
+        return plan
+    }
+
     /// Whether this phase ran its whole length with the machine unattended, and so must not
     /// be tallied. The phase begun *before* the machine went dark is real work.
     var ranUnattended: Bool {
@@ -109,4 +127,9 @@ struct TimerInstant: Equatable, Sendable {
     var date: Date
     /// `ProcessInfo.systemUptime`: advances only while the machine is running.
     var awakeUptime: TimeInterval
+
+    /// Both clocks, read now. The one place the process clocks are actually sampled.
+    static var now: TimerInstant {
+        TimerInstant(date: .now, awakeUptime: ProcessInfo.processInfo.systemUptime)
+    }
 }

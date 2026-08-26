@@ -113,6 +113,17 @@ struct MenuView: View {
     }
 }
 
-#Preview("MenuView") { @MainActor in
-    MenuView(state: TimerState(), onQuit: { })
+#Preview("Idle") { @MainActor in
+    MenuView(state: TimerState(overlays: .disabled, defaults: InMemoryKeyValueStore()), onQuit: { })
+}
+
+#Preview("Working") { @MainActor in
+    MenuView(
+        state: TimerState(
+            overlays: .disabled,
+            defaults: InMemoryKeyValueStore(),
+            showing: .starting(.work, duration: 1_500)
+        ),
+        onQuit: { }
+    )
 }

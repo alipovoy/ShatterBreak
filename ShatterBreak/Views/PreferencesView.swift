@@ -280,7 +280,13 @@ private extension View {
     }
 }
 
-#Preview {
-    PreferencesView(state: TimerState())
-        .environment(\.permissions, ScreenCapturePermissionManager())
+#Preview { @MainActor in
+    // `@AppStorage` reads `UserDefaults` and nothing else, so this pane cannot use the
+    // in-memory store the other previews do. A suite of its own is the next best thing:
+    // toggling a switch in the canvas edits preview state, not real settings.
+    let defaults = UserDefaults(suiteName: "dev.lipovoy.shatterbreak.previews") ?? .standard
+
+    return PreferencesView(state: TimerState(overlays: .disabled, defaults: defaults))
+        .environment(\.permissions, ScreenCapturePermissionManager(defaults: defaults))
+        .defaultAppStorage(defaults)
 }
