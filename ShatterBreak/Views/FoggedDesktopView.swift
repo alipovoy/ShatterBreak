@@ -5,8 +5,7 @@ import SwiftUI
 /// `NSVisualEffectView` — so unlike ``FrostedCaptureView`` it needs no capture permission.
 ///
 /// The blur radius isn't adjustable and is heavy, so the layer is made partially
-/// transparent to let the sharp desktop read through rather than reading as an opaque wall
-/// (#62).
+/// transparent to let the sharp desktop read through rather than reading as an opaque wall.
 ///
 /// Also the shatter effect's fallback when a screenshot is unavailable, so the cracked glass
 /// always has a blurred backing instead of flat black.

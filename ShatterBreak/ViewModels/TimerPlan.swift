@@ -70,12 +70,8 @@ struct TimerPlan: Equatable, Sendable {
         )
     }
 
-    /// A plan already in a phase, for previews and design work that want a countdown on
-    /// screen without driving one to reach it.
-    ///
-    /// Built from ``idle(at:)`` so every other field is defined rather than inherited from
-    /// whatever came before — the failing of the hook this replaced, which wrote a phase
-    /// into a live plan and left the rest describing a cycle that no longer existed.
+    /// A plan already in a phase, for previews wanting a countdown without driving one to
+    /// reach it. Built from ``idle(at:)`` so no field is left describing a cycle that is gone.
     static func starting(
         _ phase: Phase,
         duration: TimeInterval = 300,
@@ -83,9 +79,7 @@ struct TimerPlan: Equatable, Sendable {
     ) -> TimerPlan {
         var plan = TimerPlan.idle(at: instant)
         plan.phase = phase
-        // `idle` and `awaitingReturn` do not count down, and ``duration`` is documented as
-        // zero for them. A factory that can produce a plan the reducer never would is no
-        // better than the hook it replaced.
+        // Must not build a plan the reducer never would.
         plan.duration = plan.isCountingDown ? duration : 0
         plan.intervalID = 1
         return plan
@@ -131,7 +125,7 @@ struct TimerInstant: Equatable, Sendable {
     /// `ProcessInfo.systemUptime`: advances only while the machine is running.
     var awakeUptime: TimeInterval
 
-    /// Both clocks, read now. The one place the process clocks are actually sampled.
+    /// The one place the process clocks are sampled.
     static var now: TimerInstant {
         TimerInstant(date: .now, awakeUptime: ProcessInfo.processInfo.systemUptime)
     }

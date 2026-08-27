@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The collapsible statistics tally in the menu (issue #10): four counters, the moment
+/// The collapsible statistics tally in the menu: four counters, the moment
 /// the tally began, and a manual reset. Shown only while "Track statistics" is enabled.
 struct StatisticsSectionView: View {
     let statistics: StatisticsStore

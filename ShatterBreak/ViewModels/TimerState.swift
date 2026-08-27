@@ -102,9 +102,8 @@ final class TimerState {
     let statistics: StatisticsStore
 
     let defaults: any KeyValueStore
-    /// The overlay layer this timer drives. Stored rather than only captured so that
-    /// anything else putting a break on screen — the effect sample offered from
-    /// Preferences — goes through the same presenter and cannot own a second window.
+    /// Stored, not only captured, so that anything else putting a break on screen goes
+    /// through the same presenter and cannot own a second window.
     let overlays: OverlayPresenter
 
     let clock: any TimerClock

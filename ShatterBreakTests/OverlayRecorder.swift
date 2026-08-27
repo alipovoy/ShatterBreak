@@ -12,7 +12,7 @@ final class OverlayRecorder {
     private(set) var prepareCount = 0
     private(set) var showCount = 0
     private(set) var dismissCount = 0
-    /// Whether the last presentation was already settled (#76).
+    /// Whether the last presentation was already settled.
     private(set) var lastSettled: Bool?
     /// The timer the last `show` was given, for inspecting what an overlay would render.
     private(set) var lastState: TimerState?

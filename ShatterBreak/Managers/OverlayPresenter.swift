@@ -2,16 +2,13 @@ import Foundation
 
 /// The seam through which `TimerState` drives break overlays.
 ///
-/// `TimerState` is a pure state machine and should not own AppKit windows, so it reaches
-/// the overlay layer through closures — the same seam used for `ScreenCaptureClient`.
-/// Production wires them to a live `OverlayManager`; tests use ``disabled`` or a recorder.
-///
-/// See #41: this seam could be removed entirely by driving overlays from an observer
-/// of `TimerState.mode` (visible iff `.resting`/`.awaitingReturn`) in the app layer.
+/// `TimerState` is a pure state machine and should not own AppKit windows, so it reaches the
+/// overlay layer through closures — the same seam used for `ScreenCaptureClient`. Production
+/// wires them to a live `OverlayManager`; tests use ``disabled`` or a recorder.
 struct OverlayPresenter {
     /// Settles the permissions the next break will need, at the head of a work session:
     /// presentation is instantaneous, so a possible system dialog must come well before the
-    /// break (#90).
+    /// break.
     var prepare: @MainActor () -> Void
     var show: @MainActor (TimerState, OverlayPresentationStyle) -> Void
     var dismiss: @MainActor () -> Void
