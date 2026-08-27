@@ -1,23 +1,17 @@
 import SwiftUI
 
-/// The app's view of the timer: an observable shell around a plan, a reducer and an
-/// effect executor.
+/// An observable shell around a plan, a reducer and an effect executor.
 ///
-/// It owns no rules. Every question about what the timer *is* is answered by
-/// ``TimerPlan`` and every question about what it *does next* by ``TimerReducer``; this
-/// type snapshots preferences, hands the reducer a moment, publishes the result, and asks
-/// the clock to come back. That leaves one place where state changes, and it is a pure
-/// function — which is the point of the exercise (#89).
+/// It owns no rules: ``TimerPlan`` says what the timer is and ``TimerReducer`` what it does
+/// next. This type snapshots preferences, hands the reducer a moment, publishes the result
+/// and asks the clock to come back — so state changes in one place, purely (#89).
 @MainActor
 @Observable
 final class TimerState {
     // MARK: - Types
 
-    /// The current operational state, as the UI thinks of it.
-    ///
-    /// Derived from the plan rather than stored: a paused work session is still a work
-    /// session with a pause on it, so there is no "what was I doing before?" to keep in
-    /// sync with anything.
+    /// The operational state as the UI thinks of it. Derived rather than stored: a paused
+    /// work session is still a work session, so there is no "what was I doing?" to sync.
     enum Mode: Equatable {
         case idle
         case running
@@ -29,8 +23,7 @@ final class TimerState {
 
     // MARK: - State
 
-    /// The whole of the timer's state. Observable, so a view that reads any derived value
-    /// registers a dependency on the one thing that changes.
+    /// The whole of the timer's state.
     private(set) var plan: TimerPlan
 
     var mode: Mode {
@@ -56,12 +49,11 @@ final class TimerState {
         }
     }
 
-    /// Whether postpone is available this cycle: only during a break, not yet used.
+    /// Available only during a break, and once per cycle.
     var canPostpone: Bool {
         plan.phase == .rest && plan.pausedAt == nil && plan.postponeUsedThisCycle == false
     }
 
-    /// Whether the timer is actively counting down (work, rest, or postponed work).
     var isRunning: Bool { plan.isCountingDown }
 
     var isPaused: Bool { mode == .paused }
@@ -69,8 +61,7 @@ final class TimerState {
     var awaitingReturn: Bool { mode == .awaitingReturn }
     var canEditDurations: Bool { mode == .idle }
 
-    /// Internal (not `private`) so tests can put the timer into a mid-cycle postpone state
-    /// without driving a whole cycle to reach it.
+    /// Settable so tests can reach a mid-cycle postpone state without driving a whole cycle.
     var hasPostponeBeenUsedThisCycle: Bool {
         get { plan.postponeUsedThisCycle }
         set { plan.postponeUsedThisCycle = newValue }
@@ -79,12 +70,10 @@ final class TimerState {
     /// The break time owed back while a postpone is in flight.
     var savedRestRemaining: TimeInterval? { plan.savedRestRemaining }
 
-    /// Identifies the interval currently on the clock, changing on every phase entry.
+    /// Identifies the interval on the clock, for views to key their refresh loop on.
     ///
-    /// What a view keys its refresh loop on. The phase cannot stand in for it: work
-    /// auto-resuming after a break leaves the phase exactly where it was, so a view keyed
-    /// on the phase alone never notices the new interval and keeps rendering the finished
-    /// one (issue #108).
+    /// The phase cannot stand in: work auto-resuming after a break leaves it unchanged, so a
+    /// view keyed on phase alone keeps rendering the finished interval (#108).
     var countdownIntervalID: Int { plan.intervalID }
 
     /// The remaining time at the clock's current moment.
@@ -105,31 +94,26 @@ final class TimerState {
 
     // MARK: - Collaborators
 
-    /// A test-supplied postpone delay that takes precedence over the live preference;
-    /// `nil` in the app so the value is read from preferences. Read by the break-button
-    /// extension in `TimerState+BreakButtons.swift`.
+    /// A test-supplied postpone delay taking precedence over the live preference; `nil` in
+    /// the app.
     let postponeDurationOverride: Double?
 
-    /// Tallies completed sessions, breaks, postpones, and early returns (issue #10).
+    /// Tallies sessions, breaks, postpones and early returns (#10).
     let statistics: StatisticsStore
 
-    /// Internal (not `private`) so the break-button extension can read live preferences.
     let defaults: any KeyValueStore
 
-    /// Internal so the break-button extension can read the clock.
     let clock: any TimerClock
 
     private let sleepWakeObserver: SleepWakeObserver
     private var executor: TimerEffectExecutor!
 
-    /// Whether work auto-starts after a break.
     private var autoStartWorkTimer: Bool {
         (defaults.string(forKey: PreferenceKeys.workStartMode)
             .flatMap { WorkStartMode(rawValue: $0) } ?? PreferenceDefaults.workStartMode) == .automatic
     }
 
-    /// The preference values the reducer needs, read at the moment it runs so edits in
-    /// Preferences apply mid-session.
+    /// Read at the moment the reducer runs, so Preferences edits apply mid-session.
     private var preferences: TimerPreferences {
         TimerPreferences(
             workDuration: workDurationSecs,
@@ -144,12 +128,9 @@ final class TimerState {
 
     // MARK: - Initialization
 
-    /// - Parameter initialPlan: the plan to open on, for previews and design work that
-    ///   need a phase on screen without driving a countdown to reach one. Passed as a
-    ///   whole value at construction rather than poked into a live timer, so `plan` still
-    ///   has exactly one writer afterwards: ``commit(_:)``, with whatever the reducer
-    ///   returned. Nothing is scheduled for it — a preview renders a plan, it does not run
-    ///   one.
+    /// - Parameter initialPlan: the plan to open on, for previews that need a phase on
+    ///   screen without driving a countdown to reach one. Whole-value at construction, so
+    ///   ``commit(_:)`` remains the only writer of `plan`. Nothing is scheduled for it.
     init(
         overlays: OverlayPresenter,
         postponeDurationSecs: Double? = nil,
@@ -184,8 +165,7 @@ final class TimerState {
         self.executor = isDisplayAwake.map { TimerEffectExecutor(handlers: handlers, isDisplayAwake: $0) }
             ?? TimerEffectExecutor(handlers: handlers)
 
-        // Observed for the object's whole life rather than only while counting. There is no
-        // state to strand that way, and the alternative — subscribing per countdown — is
+        // For the object's whole life, not only while counting: subscribing per countdown is
         // how a notification came to arrive with nobody listening (#87).
         sleepWakeObserver.startObserving(
             onSleep: { [weak self] in self?.perform(.observedSleep) },
@@ -237,11 +217,8 @@ final class TimerState {
 
     // MARK: - Reconciliation
 
-    /// Brings the published state up to date with the current moment.
-    ///
-    /// Safe to call from anywhere, at any time, as often as anything likes — that is the
-    /// contract the reducer's idempotency buys, and the reason a lost callback here costs a
-    /// tick rather than a session.
+    /// Brings the published state up to date. Safe to call from anywhere, as often as
+    /// anything likes — that is what the reducer's idempotency buys.
     func reconcile() {
         commit(TimerReducer.advance(plan, to: clock.instant, prefs: preferences))
         rearm()
@@ -260,21 +237,18 @@ final class TimerState {
 
     private func commit(_ result: (TimerPlan, [TimerEffect])) {
         plan = result.0
-        // Always called, even with nothing to do: performing effects is also when anything
-        // held back from a dark screen gets retried, so every reconcile is a retry.
+        // Called even with nothing to do: this is also where anything held back from a dark
+        // screen is retried.
         executor.perform(result.1)
     }
 
-    /// Arming is the caller's last step rather than part of ``commit(_:)`` because
-    /// ``perform(_:)`` commits twice — the reconcile, then the action — and a boundary
-    /// computed from the plan in between is cancelled microseconds later without ever
-    /// having been reachable.
+    /// The caller's last step rather than part of ``commit(_:)``: ``perform(_:)`` commits
+    /// twice, and a boundary computed from the plan in between is never reachable.
     private func rearm() {
         let boundary = plan.isCountingDown
             ? max(0, plan.rawRemaining(at: clock.instant.date))
             : nil
-        // A break waiting for a screen has no countdown left but still needs someone to
-        // come back and try again.
+        // A break waiting for a screen has no countdown left, but still needs a retry.
         let pending = boundary != nil || executor.deferredPresentation != nil
         clock.schedule(nextBoundary: boundary, heartbeat: pending) { [weak self] in
             self?.reconcile()

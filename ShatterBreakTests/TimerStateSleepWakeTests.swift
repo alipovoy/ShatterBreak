@@ -192,10 +192,9 @@ struct TimerStateSleepWakeTests {
         let notificationCenter = environment.workspaceNotificationCenter
         state.start()
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
-        // Stop lands before the matching wake arrives, so the absence is still open when
-        // the cycle resets. It must not follow the user into the next one (issue #87): a
-        // leaked eight seconds would read as a break already taken and reset the very work
-        // session they just started.
+        // Stop lands before the wake, so the absence is still open when the cycle resets. It
+        // must not follow the user into the next one (#87), where a leaked eight seconds
+        // would read as a break already taken.
         environment.elapseTimeWithoutTick(by: 8)
         state.stop()
         #expect(state.mode == .idle, "Stop should return to idle even while a sleep is in flight.")
@@ -220,17 +219,15 @@ struct TimerStateSleepWakeTests {
         state.start()
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
 
-        // Work runs out while the machine is still asleep. The old design deferred the
-        // transition until a wake notification arrived to authorise it, which is exactly
-        // why a wake that never came stalled the timer for good (issue #87). Nothing is
-        // deferred now: the reconcile that observes the boundary resolves it, crediting the
-        // three seconds away as break already taken.
+        // Work runs out while the machine is asleep. The old design deferred the transition
+        // until a wake authorised it, which is why a wake that never came stalled the timer
+        // (#87). Now the reconcile that observes the boundary resolves it.
         await environment.advanceTime(by: 3)
         #expect(state.isResting, "The boundary must resolve when it is observed, not when a notification allows it.")
         #expect(state.timeRemaining == 2, "The whole absence is credited as rest (5 - 3).")
 
-        // Safety is the executor's job, not the state machine's: the plan advances during a
-        // dark wake, and only the presentation waits for a screen (issues #99, #107).
+        // Safety is the executor's job: the plan advances during a dark wake, and only the
+        // presentation waits for a screen (#99, #107).
         #expect(recorder.showCount == 1, "With a display awake, the break is presented as usual.")
 
         notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
@@ -253,9 +250,8 @@ struct TimerStateSleepWakeTests {
         await environment.advanceUntil(maxTicks: 4) { state.awaitingReturn }
         #expect(state.awaitingReturn, "Manual mode should park in awaiting-return after the break.")
 
-        // The break-end window can sit here for hours before the user comes back. An
-        // absence carried into it would credit all of that as a break the moment they
-        // start, resetting the session they just asked for (issue #89).
+        // This window can sit for hours. An absence carried into it would credit all of that
+        // as a break the moment the user starts, resetting the session they asked for (#89).
         state.start()
         #expect(state.timeRemaining == 1, "The session the user started must begin whole.")
     }

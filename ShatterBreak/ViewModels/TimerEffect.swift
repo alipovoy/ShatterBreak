@@ -2,18 +2,16 @@ import Foundation
 
 /// Something the world must do because the plan changed.
 ///
-/// The reducer decides *what* should happen; an executor decides *when it is safe*.
-/// Keeping the two apart is what lets the plan advance during a DarkWake — the display is
-/// off but time really did pass — while the break overlay waits for a screen to be shown
-/// on (#99, #107).
+/// The reducer decides *what*; the executor decides *when it is safe*. That split is what
+/// lets the plan advance during a DarkWake while the overlay waits for a screen (#99, #107).
 enum TimerEffect: Equatable {
     /// Settle screen-capture consent at the head of a work session, well before a break
     /// needs it (#90).
     case prepareCapturePermissions
     case showOverlay(OverlayPresentationStyle)
     case dismissOverlay
-    /// A break presentation still waiting for a screen is now out of date — the break it
-    /// would announce has ended. Present it settled, with no shake and no sound (#76, #94).
+    /// A held presentation is now out of date: the break it would announce has ended, so
+    /// present it settled, with no shake and no sound (#76, #94).
     case settleHeldOverlay
     case record(StatisticsEvent)
     /// The stop→start boundary, where the opt-in statistics reset applies.
@@ -29,26 +27,21 @@ enum TimerAction: Equatable {
     case postpone
     /// The overlay's "I'm back".
     case returnToWork
-    /// The system or the display went to sleep. Advisory only — it improves the absence
-    /// measurement, it does not gate anything.
+    /// Advisory only: improves the absence measurement, gates nothing.
     case observedSleep
     /// The system or the display woke. Reconciles first, then retires the absence.
     case observedWake
 }
 
-/// The preference values the reducer needs, snapshotted at the moment it runs.
-///
-/// A snapshot rather than a stored copy so edits in Preferences apply mid-session, which
-/// is what the live reads in the old `TimerState` were for.
+/// The preference values the reducer needs, snapshotted at the moment it runs so that
+/// edits in Preferences apply mid-session.
 struct TimerPreferences: Equatable, Sendable {
     var workDuration: TimeInterval
     var restDuration: TimeInterval
     var postponeDuration: TimeInterval
     /// Whether work auto-starts once a break ends.
     var autoStartWork: Bool
-    /// An absence at least this long counts as the break itself (#69).
-    ///
-    /// A parameter from day one but always passed ``restDuration``: making it configurable
-    /// (#71) is then a preference read, not a redesign.
+    /// An absence at least this long counts as the break itself (#69). Always passed
+    /// ``restDuration`` today; a parameter so that #71 is a preference read, not a redesign.
     var awayResetThreshold: TimeInterval
 }

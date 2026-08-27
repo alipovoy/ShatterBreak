@@ -13,12 +13,10 @@ struct CountdownTextView: View {
     }
 }
 
-/// The remaining time as of a reference date someone else supplies.
+/// The remaining time as of a reference date the caller supplies.
 ///
-/// Split out from ``CountdownTextView`` for callers that are already inside a
-/// ``CountdownClock`` — the break overlay opens its buttons on the countdown's cadence, so
-/// it owns a clock of its own. Nesting the text view inside it would start a second drive
-/// loop ticking the same second for the same label.
+/// For callers already inside a ``CountdownClock``: nesting ``CountdownTextView`` in one
+/// would start a second drive loop ticking the same second for the same label.
 struct CountdownLabel: View {
     let state: TimerState
     let referenceDate: Date

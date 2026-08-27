@@ -5,11 +5,9 @@ import Testing
 
 /// A new countdown interval must be visible to anything rendering the clock.
 ///
-/// The menu-bar label drives its own per-second refresh in a task that ends when the
-/// countdown reaches zero, and only a change in the task's key revives it. Keying that on
-/// `mode` alone was not enough: work auto-resuming after an absence that stood in for the
-/// break leaves the mode at `.running`, so the label kept the finished interval's last
-/// frame on screen while the state machine counted down a fresh session (issue #108).
+/// The label's refresh task ends at zero and only a new key revives it. Keying on `mode`
+/// was not enough: work auto-resuming after an absence leaves it at `.running`, so the
+/// label kept the finished interval's last frame while a fresh session counted down (#108).
 @Suite("Countdown interval identity", .tags(.timerState, .sleepWake), .timeLimit(.minutes(1)))
 struct CountdownIntervalIdentityTests {
     @Test("a fresh session on wake changes the countdown identity even in the same mode")

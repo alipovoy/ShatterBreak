@@ -1,37 +1,25 @@
 import Foundation
 
-/// Break-overlay action-button visibility and the live preference reads that drive it.
-///
-/// Split out from ``TimerState`` so the state machine file stays focused; these members
-/// are pure functions of `mode`, the elapsed/remaining break time, and the user's
-/// preferences (read live so Preferences edits apply mid-session).
+/// Break-overlay action-button visibility: pure functions of `mode`, the break time and the
+/// user's preferences, read live so Preferences edits apply mid-session.
 extension TimerState {
-    /// How long a single postpone pushes the break back by.
-    ///
-    /// Read live from preferences so edits in the Preferences window take effect
-    /// immediately, unless a test supplied an explicit override at init.
+    /// How long a single postpone pushes the break back by, unless a test overrode it.
     var postponeDurationSecs: Double {
         postponeDurationOverride
             ?? defaults.duration(forKey: PreferenceKeys.postponeDurationSecs,
                                  default: PreferenceDefaults.postponeDurationSecs)
     }
 
-    /// Whether the Postpone button should be visible at `referenceDate`.
-    ///
-    /// Offered only during the opening window of the break: from the moment rest
-    /// begins until `postponeWindowSecs` has elapsed. A window longer than the break
-    /// simply keeps the button visible for the whole break.
+    /// Offered only in the break's opening window, until `postponeWindowSecs` has elapsed.
+    /// A window longer than the break keeps the button up for all of it.
     func showsPostponeButton(at referenceDate: Date) -> Bool {
         guard canPostpone, allowPostpone else { return false }
         let elapsed = restDurationSecs - timeRemaining(at: referenceDate)
         return elapsed < postponeWindowSecs
     }
 
-    /// Whether the "I'm back" button should be visible at `referenceDate`.
-    ///
-    /// Always shown once a manual-mode break has ended (`awaitingReturn`). During the
-    /// break it appears early — in the closing `earlyReturnLeadSecs` — when enabled,
-    /// in both automatic and manual work-start modes.
+    /// Always shown once a manual-mode break has ended (`awaitingReturn`); during a break it
+    /// appears in the closing `earlyReturnLeadSecs`, when enabled.
     func showsReturnButton(at referenceDate: Date) -> Bool {
         switch mode {
         case .awaitingReturn:

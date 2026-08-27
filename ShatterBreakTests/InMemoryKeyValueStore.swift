@@ -2,14 +2,13 @@ import Foundation
 
 @testable import ShatterBreak
 
-/// A volatile `KeyValueStore` for tests: every instance is isolated, nothing is
-/// ever written to disk, and there is no shared process state to leak between
-/// parallel tests. This replaces the per-test `UserDefaults(suiteName:)` suites,
-/// which left an empty backing `plist` behind on every run.
+/// A volatile `KeyValueStore`: isolated per instance, never written to disk.
 ///
-/// Numeric and boolean coercions mirror `UserDefaults` semantics for the value
-/// kinds this app stores (durations as `Double`, flags as `Bool`, enum raw values
-/// as `String`).
+/// Replaces the per-test `UserDefaults(suiteName:)` suites, which left a backing `plist`
+/// behind on every run.
+///
+/// Coercions mirror `UserDefaults` for the kinds this app stores: durations as `Double`,
+/// flags as `Bool`, enum raw values as `String`.
 final class InMemoryKeyValueStore: KeyValueStore, @unchecked Sendable {
     private var storage: [String: Any] = [:]
     private let lock = NSLock()

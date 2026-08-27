@@ -3,17 +3,15 @@ import Testing
 
 @testable import ShatterBreak
 
-/// The properties the whole design rests on.
+/// The properties the design rests on.
 ///
-/// Everything above the reducer — a boundary timer, a coalesced heartbeat, wake
-/// notifications, the menu opening — is allowed to call `advance` at any moment, as often
-/// as it likes, and none of them is trusted. That is only safe if reconciling is
-/// idempotent and never crosses more than one boundary at a time. If these fail, the
-/// design is broken, not the test.
+/// Everything above the reducer may call `advance` at any moment, as often as it likes,
+/// and none of it is trusted — which is only safe if reconciling is idempotent and crosses
+/// at most one boundary. If these fail, the design is broken, not the test.
 @Suite("Timer reducer laws", .tags(.timerState))
 struct TimerReducerLawTests {
-    /// A plan/instant pair generator wide enough to reach every phase, both sides of every
-    /// boundary, paused and running, with and without an absence in flight.
+    /// Wide enough to reach every phase, both sides of every boundary, paused and running,
+    /// with and without an absence in flight.
     private struct Scenario {
         var plan: TimerPlan
         var instant: TimerInstant
@@ -104,8 +102,8 @@ struct TimerReducerLawTests {
             let (_, effects) = TimerReducer.advance(scenario.plan, to: scenario.instant, prefs: scenario.prefs)
             let completions = effects.filter { $0 == .record(.workSessionCompleted) || $0 == .record(.breakCompleted) }
 
-            // The trap this rules out: a `while remaining <= 0 { cross() }` loop replaying a
-            // three-hour sleep as four cycles, four completed sessions and four overlays.
+            // Rules out a `while remaining <= 0 { cross() }` loop replaying a three-hour
+            // sleep as four cycles and four overlays.
             #expect(
                 completions.count <= 1,
                 "A single reconcile must never bank more than one completion — \(scenario.description)"
@@ -143,9 +141,8 @@ struct TimerReducerLawTests {
             let (next, _) = TimerReducer.advance(scenario.plan, to: scenario.instant, prefs: scenario.prefs)
             guard next.isCountingDown else { continue }
 
-            // The 00:00 stall in one line: a counting phase whose deadline is already behind
-            // it, with nothing left to fire. Reconciling can only ever produce a phase that
-            // still has time on it, so the symptom has nowhere to come from.
+            // The 00:00 stall in one line: a counting phase past its deadline with nothing
+            // left to fire. Reconciling can only produce a phase with time still on it.
             #expect(
                 next.rawRemaining(at: scenario.instant.date) > 0,
                 "A reconcile must not leave a live phase already expired — \(scenario.description)"

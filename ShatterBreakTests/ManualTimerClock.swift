@@ -4,24 +4,20 @@ import Foundation
 
 /// A `TimerClock` driven by hand, so tests stay fast and deterministic.
 ///
-/// The three ways time can pass are separate, because they are separate in reality and the
-/// reducer distinguishes them:
+/// The three ways time can pass are kept apart, because the reducer distinguishes them:
 ///
 /// - ``advance(by:)`` — awake and reconciling, the ordinary tick.
-/// - ``elapse(by:)`` — awake, but nothing reconciled. Both clocks move, so this is *not*
-///   an absence: it is a lost boundary timer, a throttled heartbeat, App Nap.
-/// - ``sleepMachine(by:)`` — the machine was asleep. Wall time moves and awake time does
-///   not, which is what `ProcessInfo.systemUptime` does for real.
+/// - ``elapse(by:)`` — awake, nothing reconciled. Both clocks move, so this is a lost
+///   boundary timer or App Nap, *not* an absence.
+/// - ``sleepMachine(by:)`` — asleep: wall time moves, awake time does not.
 ///
-/// Unlike the one-shot scheduler it replaces, the callback is *retained* across ticks.
-/// That is not a convenience: in the new design nothing is a one-shot, so a fake that
-/// spent its callback would be modelling a failure mode that no longer exists.
+/// The callback is retained across ticks: nothing in this design is a one-shot, so a fake
+/// that spent its callback would model a failure mode that no longer exists.
 @MainActor
 final class ManualTimerClock: TimerClock {
     private(set) var date: Date
     private(set) var awakeUptime: TimeInterval
     private var onReconcile: (@MainActor @Sendable () -> Void)?
-    /// The boundary the state last asked to be woken for, so tests can assert punctuality.
     private(set) var scheduledBoundary: TimeInterval?
     private(set) var heartbeatRequested = false
 
@@ -62,8 +58,7 @@ final class ManualTimerClock: TimerClock {
         date = date.addingTimeInterval(interval)
     }
 
-    /// Reconciles without moving either clock, the way a spurious or duplicate callback
-    /// does. Nothing should come of it.
+    /// A spurious or duplicate callback: nothing should come of it.
     func fireReconcile() {
         onReconcile?()
     }

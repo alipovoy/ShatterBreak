@@ -2,14 +2,11 @@ import Foundation
 
 /// Supplies the current moment and asks to be called back to reconcile.
 ///
-/// The one test seam for time. Note what it does *not* promise: nothing here is required
-/// to be punctual, or even to fire. A reconcile is idempotent and derives everything from
-/// the moment it runs, so an early callback, a late one, and a missing one all cost at
-/// most a tick — which is why the old design's re-arming, stall detection and Resume
-/// button have no successor here.
+/// Note what it does *not* promise: punctuality, or even firing at all. Reconciling is
+/// idempotent, so an early, late or missing callback costs at most a tick — which is why
+/// the old design's stall detection and Resume button have no successor.
 @MainActor
 protocol TimerClock: AnyObject {
-    /// Now, on both clocks: wall time, and time the machine has been awake.
     var instant: TimerInstant { get }
 
     /// Asks to be called back, replacing any previous request.
@@ -18,8 +15,8 @@ protocol TimerClock: AnyObject {
     ///   - nextBoundary: seconds until the next transition is due, or `nil` when no
     ///     countdown is running.
     ///   - heartbeat: whether to keep checking in regardless. Not the same question as
-    ///     `nextBoundary != nil`: a break held back from a dark screen has no countdown
-    ///     left but still needs someone to come back and try again.
+    ///     `nextBoundary != nil`: a break held back from a dark screen has no countdown but
+    ///     still needs a retry.
     func schedule(
         nextBoundary: TimeInterval?,
         heartbeat: Bool,
@@ -30,28 +27,22 @@ protocol TimerClock: AnyObject {
     func stop()
 }
 
-/// The production clock: a punctual boundary timer, plus a coalesced heartbeat behind it.
+/// A punctual boundary timer, plus a coalesced heartbeat behind it.
 ///
-/// Two timers because one is not enough and one is too many:
+/// - The **boundary timer** is armed for exactly the time left, and is the thing that
+///   historically went missing (#106, #107).
+/// - The **heartbeat** is the safety net: coarse and tolerant so the system coalesces it,
+///   and armed only while something is pending, so an idle app schedules nothing.
 ///
-/// - The **boundary timer** is the fast path. It is armed for exactly the time left, so
-///   transitions land within a couple of hundred milliseconds — the punctuality the app
-///   has always had. It is also the thing that historically went missing (#106, #107).
-/// - The **heartbeat** is the safety net, and nothing more. Thirty seconds with ten
-///   seconds of tolerance so the system coalesces it with other wake-ups, and only while
-///   something is actually pending, so an idle app schedules nothing at all.
-///
-/// Neither is trusted. A heartbeat *alone* was considered and rejected: it would park the
-/// menu bar at 00:00 for up to half a minute at every transition, which is exactly the
-/// symptom #108 was about. A boundary timer alone is what the app had.
+/// A heartbeat alone was rejected — it would park the menu bar at 00:00 for up to half a
+/// minute at every transition (#108). A boundary timer alone is what the app had.
 @MainActor
 final class SystemTimerClock: TimerClock {
-    /// How often the safety net checks. Long enough to coalesce, short enough that a lost
-    /// boundary timer is a hiccup rather than the stall it is today.
+    /// Long enough to coalesce, short enough that a lost boundary timer is a hiccup.
     static let heartbeatPeriod: TimeInterval = 30
-    /// Generous slack so the system can fold this into wake-ups it was making anyway.
+    /// Slack, so the system folds this into wake-ups it was making anyway.
     static let heartbeatTolerance: Duration = .seconds(10)
-    /// Tight, because this one is what the user sees land.
+    /// Tight: this one is what the user sees land.
     static let boundaryTolerance: Duration = .milliseconds(100)
 
     private var boundaryTask: Task<Void, Never>?
@@ -79,9 +70,8 @@ final class SystemTimerClock: TimerClock {
             heartbeatTask = nil
             return
         }
-        // Left running across boundaries: re-creating it on every transition would reset
-        // its phase, and its whole value is being the timer nothing in the state machine
-        // has a reason to touch.
+        // Left running across boundaries: re-creating it would reset its phase, and its
+        // whole value is being the timer nothing else touches.
         guard heartbeatTask == nil else { return }
 
         heartbeatTask = Task(priority: .utility) {

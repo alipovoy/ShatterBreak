@@ -3,11 +3,9 @@ import Testing
 
 @testable import ShatterBreak
 
-/// The ordinary cycle, driven entirely through the pure reducer.
-///
-/// These are the same behaviours the ``TimerState`` suites assert end to end, restated
-/// against the state machine alone. They are the safety net for the driver swap: if a
-/// scenario holds here and fails there, the fault is in the wiring, not the rules.
+/// The ordinary cycle through the pure reducer — the same behaviours the ``TimerState``
+/// suites assert end to end. If a scenario holds here and fails there, the fault is in the
+/// wiring, not the rules.
 @Suite("Timer reducer cycle", .tags(.timerState))
 struct TimerReducerTests {
     @Test("starting begins work with the configured duration and settles capture consent")
@@ -71,8 +69,8 @@ struct TimerReducerTests {
     func lateReconcileCrossesOneBoundary() {
         var driver = ReducerDriver(prefs: .testing(work: 3, rest: 60))
         driver.act(.start)
-        // A boundary timer that never fired: the machine was awake the whole time, so this
-        // is a lost callback, not an absence. It used to strand the timer at 00:00 (#106).
+        // A boundary timer that never fired. The machine was awake throughout, so this is a
+        // lost callback, not an absence; it used to strand the timer at 00:00 (#106).
         driver.drift(45)
         driver.reconcile()
 
@@ -164,9 +162,8 @@ struct TimerReducerTests {
         driver.run(2)
         let nextWork = driver.plan.intervalID
 
-        // A view keys its refresh loop on this. Back-to-back work sessions are identical in
-        // every other field, which is exactly how the menu bar came to render a finished
-        // one (issue #108).
+        // Views key their refresh loop on this; back-to-back sessions are identical in every
+        // other field, which is how the menu bar came to render a finished one (#108).
         #expect(work != rest, "Work and its break must be distinguishable intervals.")
         #expect(rest != nextWork, "A break and the session after it must be distinguishable.")
         #expect(work != nextWork, "Consecutive work sessions must be distinguishable.")

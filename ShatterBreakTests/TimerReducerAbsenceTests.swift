@@ -2,14 +2,12 @@ import Testing
 
 @testable import ShatterBreak
 
-/// What happens when the user goes away — the rules worked out across issues #4, #69 and
-/// #72, restated against the reducer.
+/// What happens when the user goes away: the rules from #4, #69 and #72, restated against
+/// the reducer.
 ///
-/// The difference from the old design is not the policy, which is carried over unchanged.
-/// It is the input: an absence is now *measured* — wall-clock time that passed while the
-/// awake-only clock stood still — instead of being inferred from a sleep notification that
-/// has to arrive, and has to be matched by a wake notification, for anything to happen
-/// (issues #87, #106).
+/// The policy is carried over unchanged; the input is not. An absence is now *measured*
+/// from the two clocks rather than inferred from a sleep notification that has to arrive,
+/// and be matched by a wake, for anything to happen (#87, #106).
 @Suite("Timer reducer absences", .tags(.timerState, .sleepWake))
 struct TimerReducerAbsenceTests {
     // MARK: - Absences measured with no notification at all
@@ -49,8 +47,7 @@ struct TimerReducerAbsenceTests {
         driver.sleepMachine(7)
         driver.reconcile()
 
-        // The whole 7s away is credited as rest, not just the 2s past the boundary: the
-        // user really was away for all of it (issue #72).
+        // The whole 7s away is credited, not just the 2s past the boundary (#72).
         #expect(driver.phase == .rest, "The absence crossed the work boundary into the break.")
         #expect(driver.remaining == 3, "The break resumes with the whole absence credited as rest.")
         #expect(driver.count(of: .record(.workSessionCompleted)) == 1, "The work session completed off-screen.")
@@ -77,10 +74,9 @@ struct TimerReducerAbsenceTests {
         driver.sleepMachine(3)
         driver.reconcile()
 
-        // One rule for every crossing: whatever the absence was, it counts as rest (#72).
-        // The old design branched here on `away <= workRemaining` and gave a full break for
-        // this exact instant while docking one a millisecond either side of it — a seam
-        // worth losing, and unreachable in practice besides.
+        // One rule for every crossing (#72). The old design branched on `away <=
+        // workRemaining`, giving a full break at this exact instant and docking one a
+        // millisecond either side.
         #expect(driver.phase == .rest, "Work ran out exactly as the absence ended.")
         #expect(driver.remaining == 2, "The absence is credited as rest, as it is for any crossing.")
         #expect(driver.count(of: .record(.workSessionCompleted)) == 1, "The session completed and should count.")
@@ -250,10 +246,9 @@ struct TimerReducerAbsenceTests {
         )
 
         driver.act(.observedSleep)
-        // Hours with the display dark and the machine awake. Every threshold's worth of
-        // absence restarts the session, which is what keeps a cycle from ever completing in
-        // an empty room and inflating the tally — but settling consent means a real capture
-        // call macOS may answer with a dialog, and nobody is there to answer it.
+        // Hours with the display dark and the machine awake. Restarting the session each
+        // threshold keeps an empty room from inflating the tally, but settling consent can
+        // raise a dialog nobody is there to answer.
         for _ in 0..<12 {
             driver.drift(300)
             driver.reconcile()
@@ -285,8 +280,8 @@ struct TimerReducerAbsenceTests {
 
         driver.act(.observedWake)
 
-        // Measuring only the thirty seconds since the last restart would hand back a session
-        // already a few minutes old. The user was away for an hour: they are owed a whole one.
+        // Measuring only the seconds since the last restart would hand back a session
+        // already minutes old; an hour away is owed a whole one.
         #expect(driver.phase == .work, "An hour away served as the break.")
         #expect(driver.remaining == 1_500, "The session the user comes back to must be whole.")
         #expect(driver.plan.unattendedSince == nil, "The absence is over.")
@@ -303,18 +298,16 @@ struct TimerReducerAbsenceTests {
         driver.act(.observedSleep)
         driver.drift(600)
 
-        // No wake notification — the user simply moved the mouse and pressed Pause. A
-        // notification is evidence, never authority, and this is better evidence.
+        // No wake notification: the user moved the mouse and pressed Pause, which is better
+        // evidence than one.
         driver.act(.pause)
 
         #expect(driver.plan.unattendedSince == nil, "A user action must retire the absence a notification claimed.")
     }
 }
 
-/// Sleep and wake notifications improve an absence measurement. They never authorise one.
-///
-/// The distinction is the whole of issue #87: the old design could not resolve an absence
-/// at all without a matching wake, so one that never arrived stalled the timer for good.
+/// Notifications improve an absence measurement; they never authorise one. That is the
+/// whole of #87, where a wake that never arrived stalled the timer for good.
 @Suite("Timer reducer absence notifications", .tags(.timerState, .sleepWake))
 struct TimerReducerAbsenceNotificationTests {
 
@@ -323,8 +316,8 @@ struct TimerReducerAbsenceNotificationTests {
         var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5))
         driver.act(.start)
         driver.act(.observedSleep)
-        // The machine stayed awake — `systemUptime` keeps advancing — so only the
-        // notification tells us the user is not there. No wake notification ever comes.
+        // The machine stayed awake, so only the notification says the user is gone — and no
+        // wake ever comes.
         driver.drift(6)
         driver.reconcile()
 

@@ -7,9 +7,8 @@ final class TestEnvironment {
     let workspaceNotificationCenter = NotificationCenter()
     let appNotificationCenter = NotificationCenter()
     private var cachedClock: ManualTimerClock?
-    /// Whether the stub display is lit. Tests that care about DarkWake gating switch it
-    /// off; everything else runs with a screen, so overlay assertions stay about the state
-    /// machine rather than about display state.
+    /// Lit unless a DarkWake-gating test says otherwise, so overlay assertions stay about
+    /// the state machine.
     @MainActor
     var isDisplayAwake = true
 
@@ -40,10 +39,9 @@ final class TestEnvironment {
     }
 
     @MainActor
-    /// - Parameter directCaptureAccess: left `.unknown` by default, matching the app
-    ///   before its probe answers. A test that needs the shatter effect to survive
-    ///   ``OverlayManager/resolveEffectType(selected:hasScreenRecordingPermission:directCaptureAccess:)``
-    ///   must pass `.allowed`.
+    /// - Parameter directCaptureAccess: `.unknown` by default, matching the app before its
+    ///   probe answers. A test needing shatter to survive `resolveEffectType` passes
+    ///   `.allowed`.
     func makeOverlayManager(
         captureClient: ScreenCaptureClient = .live,
         notificationCenter: NotificationCenter = NotificationCenter(),
@@ -57,8 +55,7 @@ final class TestEnvironment {
         )
     }
 
-    /// The clock's current moment, for tests that need to plant a timestamp the timer
-    /// will measure against.
+    /// For tests planting a timestamp the timer will measure against.
     @MainActor
     var now: Date { clock.date }
 
@@ -69,16 +66,13 @@ final class TestEnvironment {
         }
     }
 
-    /// Time passing with the machine awake but nothing reconciling — a dropped boundary
-    /// timer, not an absence.
+    /// Awake but not reconciling: a dropped boundary timer, not an absence.
     @MainActor
     func elapseTimeWithoutTick(by interval: TimeInterval) {
         clock.elapse(by: interval)
     }
 
-    /// Time passing with the machine asleep, and no notification to say so. The wall clock
-    /// moves while the awake-only clock does not, which is the evidence an absence is
-    /// measured from.
+    /// Asleep, with no notification to say so — the evidence an absence is measured from.
     @MainActor
     func sleepMachine(by interval: TimeInterval) {
         clock.sleepMachine(by: interval)

@@ -37,10 +37,8 @@ struct OverlayView: View {
             }
 
             if showsForegroundContent {
-                // One clock for the whole break screen. The Postpone and "I'm back"
-                // windows open and close as the break elapses, so they re-evaluate on the
-                // same cadence the text redraws on — and the text takes its date from here
-                // rather than starting a second loop of its own.
+                // One clock for the whole break screen: the buttons' windows open and close
+                // as the break elapses, so they re-evaluate on the text's cadence.
                 CountdownClock(state: state) { referenceDate in
                     VStack(spacing: 24) {
                         Text(.timeToRest)
@@ -90,17 +88,15 @@ struct OverlayView: View {
         return true
     }
 
-    /// The overlay's opacity during its intro. The shatter effect stages its own
-    /// entrance through the shake-and-crack sequence, so it appears at full opacity;
-    /// the dimmed and fogged effects gently fade in instead of snapping on (issue #62).
+    /// Shatter stages its own entrance through the shake-and-crack sequence, so it appears
+    /// at full opacity; the other effects fade in rather than snapping on (#62).
     private var introOpacity: Double {
         guard presentation.isShatterEffect == false else { return 1 }
         return hasAppeared ? 1 : 0
     }
 
-    /// Reacts to the current overlay phase: plays the break sound, and for the shatter
-    /// effect runs the shake intro before settling into the shattered state. The
-    /// branching decision lives in the pure, tested ``OverlayPhaseAction/resolve``.
+    /// Plays the break sound and, for shatter, runs the shake intro before settling. The
+    /// branching decision lives in the tested ``OverlayPhaseAction/resolve``.
     private func handlePhase() async {
         switch OverlayPhaseAction.resolve(
             phase: presentation.phase,
@@ -156,15 +152,11 @@ struct OverlayView: View {
     }
 }
 
-/// Builds a break overlay over a rendered stand-in wallpaper.
+/// A break overlay over a rendered stand-in wallpaper, rasterised so the shatter effect has
+/// a real capture to frost and the buttons sit over actual frosted glass.
 ///
-/// The wallpaper is rasterised to a `CGImage` so the shatter effect has a real capture to
-/// frost, which is what puts the action buttons over actual frosted glass rather than a
-/// flat colour.
-///
-/// The plan is assembled here as a complete value and handed to the timer at construction.
-/// Nothing schedules it, so no transition ever fires; a live phase still counts down,
-/// because the clock on screen is derived from the plan and the real current moment.
+/// Nothing schedules the plan, so no transition fires — though a live phase still counts
+/// down, the clock being derived from the plan and the real moment.
 @MainActor
 private func previewOverlay(phase: TimerPlan.Phase, duration: TimeInterval = 300) -> some View {
     let presentation = OverlayPresentationState(effectType: .shatter)

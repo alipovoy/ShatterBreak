@@ -58,8 +58,7 @@ struct TimerEffectExecutorTests {
         display.isAwake = false
         executor.perform([.record(.workSessionCompleted), .showOverlay(.animated)])
 
-        // macOS wakes to service background work with the display still off. Shattering
-        // onto a screen nobody is looking at spends the break for nothing (#99, #107).
+        // A DarkWake leaves the display off; shattering there spends the break (#99, #107).
         #expect(recorder.shown.isEmpty, "A break must not be presented onto a dark screen.")
         #expect(
             recorder.recorded == [.workSessionCompleted],
@@ -67,8 +66,7 @@ struct TimerEffectExecutorTests {
         )
 
         display.isAwake = true
-        // Any reconcile is a retry, so the heartbeat gets there even if no wake
-        // notification ever arrives.
+        // Any reconcile is a retry, so the heartbeat suffices without a wake notification.
         executor.perform([])
         #expect(recorder.shown == [.animated], "The held break should be presented once there is a screen.")
     }
@@ -136,10 +134,9 @@ struct TimerEffectExecutorTests {
         display.isAwake = false
         executor.perform([.showOverlay(.animated)])
 
-        // The user wakes the display in the closing seconds of a break, and the next
-        // reconcile is the one that ends it. Retrying the held presentation before applying
-        // the batch would shatter the break onto the screen, with its sound, a moment before
-        // this very batch tore it down.
+        // The display wakes in a break's closing seconds. Retrying the held presentation
+        // before the batch would shatter it onto the screen a moment before the same batch
+        // tore it down.
         display.isAwake = true
         executor.perform([.record(.breakCompleted), .prepareCapturePermissions, .dismissOverlay])
 

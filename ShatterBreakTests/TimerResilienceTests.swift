@@ -3,12 +3,10 @@ import Testing
 
 @testable import ShatterBreak
 
-/// What the rewrite is *for*: the failures that used to end a session now cost a tick.
+/// What the rewrite is *for*: failures that used to end a session now cost a tick.
 ///
-/// Each of these describes a way the old design broke and could not recover — a lost
-/// expiry callback, a wake notification that never arrived, a break presented onto a dark
-/// screen. None of them needs new machinery to survive here; they survive because nothing
-/// is trusted and everything is recomputed.
+/// Each is a way the old design broke and could not recover. None needs new machinery to
+/// survive here — they survive because nothing is trusted and everything is recomputed.
 @Suite("Timer resilience", .tags(.timerState, .sleepWake), .timeLimit(.minutes(1)))
 struct TimerResilienceTests {
     @Test("the timer still transitions when the boundary timer never fires")
@@ -20,9 +18,8 @@ struct TimerResilienceTests {
         state.restDurationSecs = 60
 
         state.start()
-        // Nothing reconciles for well past the boundary: the callback the whole old design
-        // hung on simply never arrives. It used to leave the timer at 00:00 until the user
-        // noticed and pressed Resume (issues #106, #107).
+        // The callback the old design hung on never arrives; it used to leave the timer at
+        // 00:00 until the user pressed Resume (#106, #107).
         environment.elapseTimeWithoutTick(by: 45)
         // The heartbeat, arriving whenever it arrives.
         environment.clock.fireReconcile()
@@ -41,9 +38,8 @@ struct TimerResilienceTests {
         state.restDurationSecs = 300
 
         state.start()
-        // Wall-clock time passes while the awake-only clock stands still, which is what a
-        // sleeping machine does to `ProcessInfo.systemUptime`. That is the evidence, and it
-        // cannot go missing the way a notification can (issue #87).
+        // Wall time passes while the awake-only clock stands still — evidence that cannot go
+        // missing the way a notification can (#87).
         environment.sleepMachine(by: 3_600)
         environment.clock.fireReconcile()
 
@@ -87,9 +83,8 @@ struct TimerResilienceTests {
         state.restDurationSecs = 60
 
         state.start()
-        // macOS wakes to service background work with the display still off. Shattering
-        // there spends the break against a screen nobody is looking at, which is why
-        // automatic recovery was rejected in the #99 and #107 reviews.
+        // A DarkWake services background work with the display off; shattering there spends
+        // the break on nobody, which is why automatic recovery was rejected (#99, #107).
         environment.isDisplayAwake = false
         await environment.advanceTime(by: 2)
 
@@ -126,9 +121,9 @@ struct TimerResilienceTests {
 
 /// The break-end window, when the break itself happened off-screen.
 ///
-/// Issues #76 and #94 are one rule: a break that already elapsed is announced settled —
-/// no shake, no entrance sound. The DarkWake gate makes that rule easy to break, because
-/// a presentation can now outlive the break it was queued for.
+/// #76 and #94 are one rule: an elapsed break is announced settled, with no shake and no
+/// sound. The DarkWake gate makes it easy to break, a presentation now being able to
+/// outlive the break it was queued for.
 @Suite("Break-end window after a dark screen", .tags(.timerState, .overlays), .timeLimit(.minutes(1)))
 struct DarkScreenBreakEndTests {
     @Test("a break that elapsed behind a dark screen is announced settled, not shattered")
@@ -178,9 +173,8 @@ struct DarkScreenBreakEndTests {
         await environment.advanceTime(by: 2)
         #expect(state.isResting, "The setup needs a break held back from a dark screen.")
 
-        // The user wakes the display in the break's closing seconds, and the next reconcile
-        // is the one that ends it. The held break must not flash on before that reconcile
-        // takes it down again.
+        // The display wakes in the break's closing seconds. The held break must not flash on
+        // before the reconcile that ends it takes it down again.
         environment.isDisplayAwake = true
         await environment.advanceTime(by: 3)
 

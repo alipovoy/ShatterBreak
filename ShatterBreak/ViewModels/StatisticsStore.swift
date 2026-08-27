@@ -9,12 +9,10 @@ enum StatisticsEvent: Equatable {
     case earlyReturn
 }
 
-/// Owns the session-statistics tally (issue #10).
+/// Owns the session-statistics tally (#10).
 ///
-/// Counting is gated on the "Track statistics" preference, read live so toggling it in
-/// Preferences applies mid-session; disabling stops the counting but keeps the stored
-/// values. The tally persists across relaunches — a relaunch by itself never resets
-/// anything, so a mid-day reboot keeps the day's numbers.
+/// Gated on "Track statistics", read live; disabling stops counting but keeps the values.
+/// A relaunch never resets anything, so a mid-day reboot keeps the day's numbers.
 @MainActor
 @Observable
 final class StatisticsStore {
@@ -56,8 +54,8 @@ final class StatisticsStore {
         persist()
     }
 
-    /// The automatic reset at the stop→start boundary, when the user opted in.
-    /// A disabled tracker never mutates its stored values, so both preferences gate it.
+    /// The opt-in reset at the stop→start boundary. A disabled tracker never mutates its
+    /// values, so both preferences gate it.
     func resetForNewSessionIfEnabled() {
         let resetOnStart = (defaults.object(forKey: PreferenceKeys.resetStatisticsOnStart) as? Bool)
             ?? PreferenceDefaults.resetStatisticsOnStart

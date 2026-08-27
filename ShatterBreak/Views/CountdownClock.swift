@@ -3,22 +3,18 @@ import SwiftUI
 /// Supplies a reference date that advances exactly when the countdown's display can next
 /// change, and no sooner.
 ///
-/// **Read-only by construction.** It never touches the plan and never emits an effect —
-/// the timer itself is driven by ``TimerState``'s own clock, which keeps running whether
-/// or not anything is on screen. So a drive loop that dies here leaves a stale label and
-/// nothing else: cosmetic, not a stall. Historically the two were confused, and a dead
-/// view loop was indistinguishable from a stuck timer (issue #108).
+/// Read-only by construction: the timer runs on ``TimerState``'s own clock, so a drive loop
+/// that dies here leaves a stale label, not a stalled timer. The two were once confused,
+/// and a dead view loop was indistinguishable from a stuck timer (#108).
 ///
-/// One implementation for every countdown on screen. The menu bar, the popover and the
-/// break overlay all used to keep their own near-copies of this loop, each with its own
-/// idea of when to restart.
+/// One implementation for every countdown on screen; the menu bar, popover and overlay all
+/// used to keep near-copies with their own ideas of when to restart.
 struct CountdownClock<Content: View>: View {
     let state: TimerState
-    /// Whether the view is actually visible. An off-screen popover should not wake the
-    /// machine to redraw something nobody can see.
+    /// An off-screen popover should not wake the machine to redraw what nobody can see.
     var isActive = true
-    /// Determines the cadence: exactly the distance to the next visible change, which is
-    /// once a minute in the power-save style (issue #78).
+    /// Sets the cadence: the distance to the next visible change, once a minute in the
+    /// power-save style (#78).
     var displayStyle: CountdownDisplayStyle = .seconds
     @ViewBuilder var content: (Date) -> Content
 
@@ -29,12 +25,10 @@ struct CountdownClock<Content: View>: View {
             .task(id: taskKey) { await drive() }
     }
 
-    /// Restarts the visible clock whenever the interval being counted changes.
+    /// Restarts the loop when the interval changes.
     ///
-    /// The interval is the part that matters: the loop below ends when it reaches zero, so
-    /// only a new key can revive it, and back-to-back sessions in the same mode — work
-    /// auto-resuming after a break, or after an absence that stood in for one — would
-    /// otherwise leave it dead with the last frame still on screen (issue #108).
+    /// The loop ends at zero, so only a new key revives it. Keyed on anything coarser,
+    /// back-to-back sessions in the same mode leave it dead on the last frame (#108).
     private var taskKey: CountdownClockKey {
         CountdownClockKey(
             intervalID: state.countdownIntervalID,
