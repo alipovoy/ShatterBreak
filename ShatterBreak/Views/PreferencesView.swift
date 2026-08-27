@@ -6,17 +6,15 @@ import SwiftUI
 struct PreferencesView: View {
     @Environment(\.permissions) private var permissions
 
-    /// The live timer model. Work/Rest durations must be edited through it — it
-    /// loads its durations from defaults once at init and persists on set, so a
-    /// plain `@AppStorage` binding here would silently desync from the menu.
+    /// Durations must be edited through the model: it loads them once at init and persists
+    /// on set, so an `@AppStorage` binding here would silently desync from the menu.
     @Bindable var state: TimerState
 
     @State private var selectedTab: SettingsTab = .general
 
     var body: some View {
-        // Each tab's content renders only while selected: TabView measures every
-        // tab to size itself, so populated hidden tabs would fix the window at
-        // the tallest tab's height with shorter tabs floating centered in it.
+        // Only the selected tab renders: TabView measures every tab to size itself, so
+        // populated hidden tabs would fix the window at the tallest one's height.
         TabView(selection: $selectedTab) {
             Tab(value: SettingsTab.general) {
                 if selectedTab == .general {
@@ -43,8 +41,7 @@ struct PreferencesView: View {
             }
         }
         .frame(width: 480)
-        // Hug the selected tab's height so the window opens content-sized and
-        // resizes — both ways — when the selection or the tab's content changes.
+        // Hug the selected tab, so the window resizes both ways as the selection changes.
         .fixedSize(horizontal: false, vertical: true)
         .onAppear { permissions.refresh() }
     }
@@ -131,8 +128,7 @@ private struct ScheduleSettingsTab: View {
                     max: DurationBounds.restMaximumSecs
                 )
 
-                // WorkStartMode has exactly two cases, so it reads better as a
-                // toggle than as the picker it is stored as.
+                // Two cases, so it reads better as a toggle than the picker it is stored as.
                 Toggle(.startWorkAutomaticallyToggle, isOn: startWorkAutomatically)
                     .help(Text(.workStartModeHelp))
             }
@@ -190,8 +186,7 @@ private struct ScheduleSettingsTab: View {
         )
     }
 
-    /// The break-timing contradiction warnings for the current settings. Rest is read
-    /// from the live model, so the warnings react to edits made here or in the menu.
+    /// Rest is read from the live model, so the warnings react to edits made in the menu.
     private var breakTimingWarnings: [BreakTimingWarning] {
         BreakTimingValidator.warnings(
             restDurationSecs: state.restDurationSecs,
@@ -247,12 +242,9 @@ private struct BreakScreenSettingsTab: View {
                     )
                 }
 
-                // The effects are full-screen and low-frequency — a blur radius meant for
-                // a display, a fog the window server draws behind the overlay. A card
-                // cannot show either, so the picker offers the real thing instead.
-                // Centred, because it belongs to the row of cards above it rather than to
-                // the form: the cards centre themselves across the row, and a button
-                // hugging the form's leading edge reads as a separate, unrelated control.
+                // A card cannot show a display-sized blur or a fog drawn behind the overlay,
+                // so the picker offers the real thing. Centred to belong to the cards, which
+                // centre themselves, rather than to the form's leading edge.
                 Button(.tryEffect) { trial.start() }
                     .help(Text(.tryEffectHelp))
                     .disabled(trial.canStart == false)
@@ -267,11 +259,9 @@ private struct BreakScreenSettingsTab: View {
         .settingsTabLayout()
     }
 
-    /// Asks *and* opens System Settings, because the app cannot tell which the user needs:
-    /// macOS shows its dialog only when it holds no answer, and Settings is the only place
-    /// an answer it already holds can be changed. Doing both keeps the link from being a
-    /// dead click on a fresh install, where nothing has requested access yet and the app
-    /// is therefore not listed in Settings at all.
+    /// Asks *and* opens System Settings, the app being unable to tell which is needed: macOS
+    /// shows its dialog only when it holds no answer, and Settings is the only place an
+    /// answer it holds can be changed — but lists the app only once it has asked.
     private func grantScreenRecording() {
         permissions.requestAccessIfNeeded()
         permissions.openSystemSettings()
@@ -298,8 +288,8 @@ private extension View {
 
 #Preview("Settings") { @MainActor in
     // `@AppStorage` reads `UserDefaults` and nothing else, so this pane cannot use the
-    // in-memory store the other previews do. A suite of its own is the next best thing:
-    // toggling a switch in the canvas edits preview state, not real settings.
+    // in-memory store other previews do; a suite of its own keeps the canvas off real
+    // settings.
     let defaults = UserDefaults.preview("settings")
 
     return PreferencesView(state: TimerState(overlays: .disabled, defaults: defaults))
@@ -308,9 +298,8 @@ private extension View {
 }
 
 #Preview("Schedule with warnings") { @MainActor in
-    // Contradictory settings, so the warnings render where they actually appear — under
-    // the controls that caused them. On their own they are three lines of orange text
-    // about nothing.
+    // Contradictory settings, so the warnings render under the controls that caused them.
+    // On their own they are three lines of orange text about nothing.
     let defaults = UserDefaults.preview("warnings")
     defaults.set(300, forKey: PreferenceKeys.restDurationSecs)
     defaults.set(true, forKey: PreferenceKeys.allowPostpone)

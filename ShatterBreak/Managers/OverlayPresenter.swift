@@ -2,34 +2,26 @@ import Foundation
 
 /// The seam through which `TimerState` drives break overlays.
 ///
-/// `TimerState` is a pure state machine and should not own AppKit windows, so it
-/// reaches the overlay layer through these two closures. Production wires them to a
-/// live `OverlayManager`; tests use ``disabled`` (or a small recorder) so the state
-/// machine can be exercised without presenting real windows. This mirrors the
-/// closure-based dependency seams used elsewhere (`ScreenCaptureClient`,
-/// `ScreenCapturePermissionClient`).
+/// `TimerState` is a pure state machine and should not own AppKit windows, so it reaches
+/// the overlay layer through closures — the same seam used for `ScreenCaptureClient`.
+/// Production wires them to a live `OverlayManager`; tests use ``disabled`` or a recorder.
 ///
 /// See #41: this seam could be removed entirely by driving overlays from an observer
 /// of `TimerState.mode` (visible iff `.resting`/`.awaitingReturn`) in the app layer.
 struct OverlayPresenter {
-    /// Settles the permissions the next break's overlay will need, called when a work
-    /// session begins. Presentation has to be instantaneous, so anything that might put a
-    /// system dialog on screen must happen well before the break (issue #90).
+    /// Settles the permissions the next break will need, at the head of a work session:
+    /// presentation is instantaneous, so a possible system dialog must come well before the
+    /// break (#90).
     var prepare: @MainActor () -> Void
     var show: @MainActor (TimerState, OverlayPresentationStyle) -> Void
     var dismiss: @MainActor () -> Void
-    /// The timer whose break is currently on screen, or `nil` for nothing.
-    ///
-    /// The break window has one owner, so anything sharing this presenter has to be able
-    /// to ask whether the window is still its own — dismissing on the strength of having
-    /// shown something once would close whatever replaced it. Defaults to "nothing",
-    /// which is the truthful answer for a presenter that never shows anything.
+    /// The timer whose break is on screen, so that anything sharing this presenter can ask
+    /// whether the window is still its own before taking it down.
     var presenting: @MainActor () -> TimerState? = { nil }
 }
 
 extension OverlayPresenter {
-    /// A presenter backed by a freshly created `OverlayManager`, retained for the
-    /// presenter's lifetime by the captured closures.
+    /// Backed by a fresh `OverlayManager`, retained by the captured closures.
     @MainActor
     static func live(defaults: any KeyValueStore = UserDefaults.standard) -> OverlayPresenter {
         let permissions = ScreenCapturePermissionManager.shared

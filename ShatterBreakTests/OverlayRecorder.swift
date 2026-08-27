@@ -2,28 +2,21 @@ import Foundation
 
 @testable import ShatterBreak
 
-/// Records overlay show/dismiss calls so tests can assert the overlay lifecycle that
-/// the timer state machine drives. Replaces the former `OverlaySpy`: instead of a
-/// one-method protocol, it vends a plain `OverlayPresenter` built from closures.
+/// Records overlay calls, so tests can assert the lifecycle the state machine drives.
 ///
-/// The closures hold the recorder strongly, matching `OverlayPresenter.live`, which holds
-/// its manager the same way. An unowned capture here made the recorder's lifetime every
-/// caller's problem: anything dismissing an overlay from its own `deinit` crashed if the
-/// recorder happened to be torn down first.
+/// The closures hold the recorder strongly, matching `OverlayPresenter.live`. An unowned
+/// capture crashed anything dismissing an overlay from its own `deinit`, which could run
+/// after the recorder was torn down.
 @MainActor
 final class OverlayRecorder {
     private(set) var prepareCount = 0
     private(set) var showCount = 0
     private(set) var dismissCount = 0
-    /// The `settled` argument from the most recent `show` call, so tests can assert
-    /// whether the break-end window was presented already settled (issue #76).
+    /// Whether the last presentation was already settled (#76).
     private(set) var lastSettled: Bool?
-    /// The timer the most recent `show` was given, so tests can inspect what an overlay
-    /// would be rendering.
+    /// The timer the last `show` was given, for inspecting what an overlay would render.
     private(set) var lastState: TimerState?
-    /// What is on screen right now — set by `show`, cleared by `dismiss` — so tests can
-    /// exercise callers that check whether the window is still theirs before taking it
-    /// down.
+    /// What is on screen now, for callers that check whether the window is still theirs.
     private(set) var presented: TimerState?
 
     var presenter: OverlayPresenter {

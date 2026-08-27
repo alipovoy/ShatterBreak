@@ -1,9 +1,7 @@
 import SwiftUI
 
-/// A frosted "material pill" style for the action buttons shown over the break
-/// overlay. The translucent material plus a drop shadow give the buttons depth
-/// against the frosted-glass capture, and the label uses the semantic primary
-/// style so the system applies vibrancy for legibility over any wallpaper.
+/// A frosted "material pill" for the overlay's action buttons. The semantic primary label
+/// style lets the system apply vibrancy, for legibility over any wallpaper.
 struct OverlayActionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -23,8 +21,8 @@ struct OverlayActionButtonStyle: ButtonStyle {
 }
 
 #Preview("OverlayActionButtonStyle") {
-    // Over the frosted desktop, because the style exists to stay legible there: its
-    // material and vibrancy have nothing to work against on a flat background.
+    // Over the frosted desktop: material and vibrancy have nothing to work against on a
+    // flat background.
     let desktop = PreviewWallpaper.image
 
     ZStack {

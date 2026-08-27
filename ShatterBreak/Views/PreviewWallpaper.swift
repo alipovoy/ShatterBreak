@@ -1,23 +1,16 @@
 import SwiftUI
 
-/// A stand-in desktop for previews, since a real screen capture isn't available in Xcode
-/// Previews.
+/// A stand-in desktop for previews, which have no real screen capture available.
 ///
-/// Deliberately busy. Every effect the app puts over the screen — the frost, the fog, the
-/// cracked glass — works by destroying detail, so a stand-in with no detail cannot show
-/// what any of them do: a blurred gradient is the same gradient. Menu bar, window chrome,
-/// text rules, icons and a dock give the blur edges to eat and the glass something to
-/// distort, which is the whole reason to look at those previews.
-///
-/// Shared by every effect preview so the treatments are compared over the same desktop.
+/// Deliberately busy: every effect works by destroying detail, so a stand-in without detail
+/// shows nothing — a blurred gradient is the same gradient. Shared by every effect preview,
+/// so the treatments are compared over the same desktop.
 struct PreviewWallpaper: View {
     static let size = CGSize(width: 480, height: 300)
 
-    /// The desktop as a `CGImage`, for the previews of effects that take one — the frost
-    /// and the cracked glass both work from a capture rather than from a view.
-    ///
-    /// Computed rather than stored: `ImageRenderer` is main-actor-bound, and a preview
-    /// renders once, so there is nothing here worth caching across.
+    /// The desktop as a `CGImage`, for the effects that work from a capture rather than a
+    /// view. Computed, not stored: `ImageRenderer` is main-actor-bound and a preview renders
+    /// once.
     @MainActor
     static var image: CGImage? { ImageRenderer(content: PreviewWallpaper()).cgImage }
 
@@ -49,8 +42,7 @@ struct PreviewWallpaper: View {
     }
 }
 
-/// The menu bar: the sharpest horizontal edge on any desktop, and the first thing a blur
-/// softens.
+/// The sharpest horizontal edge on any desktop, and the first thing a blur softens.
 private struct MenuBarStrip: View {
     var body: some View {
         HStack(spacing: 10) {
@@ -76,8 +68,8 @@ private struct MenuBarStrip: View {
     }
 }
 
-/// A document window: title bar, sidebar, and ruled text. The text rules matter most —
-/// evenly spaced thin lines are what a blur turns to mush first.
+/// Title bar, sidebar and ruled text — evenly spaced thin lines are what a blur turns to
+/// mush first.
 private struct WindowMockup: View {
     var body: some View {
         VStack(spacing: 0) {
@@ -119,7 +111,7 @@ private struct WindowMockup: View {
         .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
     }
 
-    /// Ragged like real prose, so the blur has uneven edges to soften rather than a block.
+    /// Ragged like real prose, so the blur has uneven edges rather than a block.
     private static let lineWidths: [CGFloat] = [150, 138, 156, 96, 148, 132, 60, 144, 120]
 }
 

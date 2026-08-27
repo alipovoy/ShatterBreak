@@ -19,9 +19,8 @@ struct OverlayBackgroundView: View {
                 } else if phase == .plain {
                     Color.clear
                 } else {
-                    // Permission was granted but this display's capture failed; fall
-                    // back to the live fogged desktop so the cracks read as
-                    // intentional glass rather than a flat black panel.
+                    // Capture failed for this display; fall back to the fogged desktop so
+                    // the cracks read as glass rather than a flat black panel.
                     FoggedDesktopView()
                 }
             case .fogged:
@@ -65,13 +64,12 @@ private struct EffectSample: View {
     }
 }
 
-// The three break effects over one desktop, which is the only way to judge them: each one
-// is a treatment of the same screen, and the question is always how much of the screen
-// survives it.
+// The three effects over one desktop, since each is a treatment of the same screen and the
+// question is how much of it survives.
 //
-// The fogged sample shows its tint without its blur, and no preview can do better:
-// behind-window vibrancy blurs what the window server composites beneath the overlay
-// window, which in a preview is nothing. Only a running break shows the fog.
+// Fogged shows its tint without its blur, and no preview can do better: behind-window
+// vibrancy blurs what the window server composites beneath the overlay, which in a preview
+// is nothing.
 #Preview("Break effects") {
     let desktop = PreviewWallpaper.image
 

@@ -48,8 +48,7 @@ struct StatisticsSectionView: View {
         .font(.callout)
     }
 
-    /// A same-day tally shows just the time; an older one adds the date so a
-    /// long-running tally is not mistaken for today's.
+    /// An older tally adds the date, so it is not mistaken for today's.
     private var sinceText: String {
         let since = statistics.current.since
         if Calendar.current.isDateInToday(since) {
@@ -60,8 +59,7 @@ struct StatisticsSectionView: View {
 }
 
 #Preview("StatisticsSectionView") { @MainActor in
-    // An empty tally is four zeros and says nothing about the layout, so the preview
-    // records a plausible morning first.
+    // Four zeros say nothing about the layout, so the preview records a morning first.
     let defaults = InMemoryKeyValueStore()
     defaults.set(true, forKey: PreferenceKeys.trackStatistics)
     let statistics = StatisticsStore(defaults: defaults)

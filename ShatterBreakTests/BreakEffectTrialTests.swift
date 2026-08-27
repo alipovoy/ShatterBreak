@@ -5,9 +5,9 @@ import Testing
 
 /// The effect sample offered from Preferences (`Try It`).
 ///
-/// Its whole justification is that it is a real break rather than a picture of one, so
-/// what these pin down is the "real" part: it presents through the ordinary overlay
-/// path, with the user's own break length, and leaves nothing behind when it ends.
+/// Its justification is being a real break rather than a picture of one, so what these pin
+/// down is the "real" part: the ordinary overlay path, the user's own break length, and
+/// nothing left behind.
 @Suite("Break effect trial", .tags(.overlays), .timeLimit(.minutes(1)))
 @MainActor
 struct BreakEffectTrialTests {
@@ -138,8 +138,7 @@ struct BreakEffectTrialTests {
         let trial = BreakEffectTrial(timer: timer, duration: .milliseconds(20))
 
         trial.start()
-        // The break the user was actually waiting for, presented through the same
-        // presenter, which is what makes it the owner of the window from here on.
+        // Presented through the same presenter, which makes it the window's owner.
         overlays.presenter.show(timer, .animated)
         trial.end()
 
