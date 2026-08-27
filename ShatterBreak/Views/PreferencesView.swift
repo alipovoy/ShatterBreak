@@ -244,7 +244,7 @@ private struct BreakScreenSettingsTab: View {
 
                 // A card cannot show a display-sized blur or a fog drawn behind the overlay,
                 // so the picker offers the real thing.
-                Button(.tryEffect) { trial.start() }
+                Button(.tryEffect) { Task { await trial.start() } }
                     .help(Text(.tryEffectHelp))
                     .disabled(trial.canStart == false)
             }

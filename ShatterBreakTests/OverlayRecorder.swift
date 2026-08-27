@@ -19,9 +19,36 @@ final class OverlayRecorder {
     /// What is on screen now, for callers that check whether the window is still theirs.
     private(set) var presented: TimerState?
 
+    private var prepareGate: CheckedContinuation<Void, Never>?
+    private var holdsPrepare = false
+
+    /// Suspends `prepare` until ``releasePrepare()``, so a caller that must settle capture
+    /// consent before presenting can be caught presenting through it.
+    func holdPrepare() { holdsPrepare = true }
+
+    func releasePrepare() {
+        holdsPrepare = false
+        prepareGate?.resume()
+        prepareGate = nil
+    }
+
+    /// Waits for preparations the timer starts and does not await. Bounded, so a regression
+    /// reports the count it reached rather than hanging until the suite's time limit.
+    func prepared(_ count: Int) async {
+        var yields = 0
+        while prepareCount < count, yields < 100 {
+            await Task.yield()
+            yields += 1
+        }
+    }
+
     var presenter: OverlayPresenter {
         OverlayPresenter(
-            prepare: { self.prepareCount += 1 },
+            prepare: {
+                self.prepareCount += 1
+                guard self.holdsPrepare else { return }
+                await withCheckedContinuation { self.prepareGate = $0 }
+            },
             show: { state, style in
                 self.showCount += 1
                 self.lastSettled = style == .settled

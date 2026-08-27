@@ -15,6 +15,7 @@ struct TimerStateOverlayTests {
         state.restDurationSecs = 1
 
         state.start()
+        await recorder.prepared(1)
 
         #expect(
             recorder.prepareCount == 1,
@@ -41,6 +42,7 @@ struct TimerStateOverlayTests {
         state.start()
         await environment.advanceTime()
         await environment.advanceTime()
+        await recorder.prepared(2)
 
         #expect(state.isRunning && state.isResting == false, "Automatic mode should begin a second work session.")
         #expect(

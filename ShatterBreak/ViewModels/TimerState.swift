@@ -160,7 +160,7 @@ final class TimerState {
             default: PreferenceDefaults.restDurationSecs)
 
         let handlers = TimerEffectExecutor.Handlers(
-            prepareCapture: { overlays.prepare() },
+            prepareCapture: { Task { await overlays.prepare() } },
             showOverlay: { [unowned self] in overlays.show(self, $0) },
             dismissOverlay: { overlays.dismiss() },
             record: { [unowned self] in self.statistics.record($0) },

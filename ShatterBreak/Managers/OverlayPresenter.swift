@@ -9,7 +9,10 @@ struct OverlayPresenter {
     /// Settles the permissions the next break will need, at the head of a work session:
     /// presentation is instantaneous, so a possible system dialog must come well before the
     /// break.
-    var prepare: @MainActor () -> Void
+    ///
+    /// Awaitable because a caller presenting immediately — the effect sample — must let it
+    /// finish; the timer, which has a whole work session to spare, fires and forgets.
+    var prepare: @MainActor () async -> Void
     var show: @MainActor (TimerState, OverlayPresentationStyle) -> Void
     var dismiss: @MainActor () -> Void
     /// The timer whose break is on screen, so that anything sharing this presenter can ask
@@ -31,7 +34,7 @@ extension OverlayPresenter {
                 // Only an effect that captures the screen may raise the system's
                 // capture dialogs; a user on Fogged or Dimmed is never asked.
                 guard manager.selectedEffectType.requiresScreenCapture else { return }
-                Task { await permissions.prepareForCapture() }
+                await permissions.prepareForCapture()
             },
             show: { manager.showOverlays(state: $0, settled: $1 == .settled) },
             dismiss: { manager.dismissOverlays() },
