@@ -114,7 +114,7 @@ final class BreakEffectTrial {
     /// The user's own break length, so the sample's clock reads like the real thing rather
     /// than announcing a number no break of theirs would show.
     private var restDuration: TimeInterval {
-        let stored = defaults.double(forKey: PreferenceKeys.restDurationSecs)
-        return stored > 0 ? stored : PreferenceDefaults.restDurationSecs
+        defaults.duration(forKey: PreferenceKeys.restDurationSecs,
+                          default: PreferenceDefaults.restDurationSecs)
     }
 }

@@ -25,7 +25,7 @@ struct OverlayActionButtonStyle: ButtonStyle {
 #Preview("OverlayActionButtonStyle") {
     // Over the frosted desktop, because the style exists to stay legible there: its
     // material and vibrancy have nothing to work against on a flat background.
-    let desktop = ImageRenderer(content: PreviewWallpaper()).cgImage
+    let desktop = PreviewWallpaper.image
 
     ZStack {
         if let desktop {

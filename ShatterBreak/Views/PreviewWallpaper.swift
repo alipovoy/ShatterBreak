@@ -13,6 +13,14 @@ import SwiftUI
 struct PreviewWallpaper: View {
     static let size = CGSize(width: 480, height: 300)
 
+    /// The desktop as a `CGImage`, for the previews of effects that take one — the frost
+    /// and the cracked glass both work from a capture rather than from a view.
+    ///
+    /// Computed rather than stored: `ImageRenderer` is main-actor-bound, and a preview
+    /// renders once, so there is nothing here worth caching across.
+    @MainActor
+    static var image: CGImage? { ImageRenderer(content: PreviewWallpaper()).cgImage }
+
     var body: some View {
         ZStack(alignment: .top) {
             LinearGradient(

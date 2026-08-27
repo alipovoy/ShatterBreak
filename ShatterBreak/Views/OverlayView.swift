@@ -160,7 +160,7 @@ struct OverlayView: View {
 @MainActor
 private func previewOverlay(phase: TimerPlan.Phase, duration: TimeInterval = 300) -> some View {
     let presentation = OverlayPresentationState(effectType: .shatter)
-    presentation.backgroundImage = ImageRenderer(content: PreviewWallpaper()).cgImage
+    presentation.backgroundImage = PreviewWallpaper.image
     presentation.phase = .shattered
 
     // A volatile store, so the canvas neither reads nor writes real preferences. Postpone

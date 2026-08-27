@@ -47,7 +47,7 @@ struct CrackedGlassView: View {
 }
 
 #Preview("CrackedGlassView") {
-    let wallpaper = ImageRenderer(content: PreviewWallpaper()).cgImage
+    let wallpaper = PreviewWallpaper.image
 
     ZStack {
         if let wallpaper {

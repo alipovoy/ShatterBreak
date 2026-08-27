@@ -73,7 +73,7 @@ private struct EffectSample: View {
 // behind-window vibrancy blurs what the window server composites beneath the overlay
 // window, which in a preview is nothing. Only a running break shows the fog.
 #Preview("Break effects") {
-    let desktop = ImageRenderer(content: PreviewWallpaper()).cgImage
+    let desktop = PreviewWallpaper.image
 
     HStack(spacing: 12) {
         ForEach(EffectType.allCases) { effect in

@@ -30,9 +30,7 @@ struct FrostedCaptureView: View {
 }
 
 #Preview("Frosted Capture") {
-    let renderer = ImageRenderer(content: PreviewWallpaper())
-
-    if let image = renderer.cgImage {
+    if let image = PreviewWallpaper.image {
         FrostedCaptureView(image: image)
     } else {
         Color.gray
