@@ -20,3 +20,16 @@ protocol KeyValueStore: Sendable {
 }
 
 extension UserDefaults: KeyValueStore {}
+
+extension KeyValueStore {
+    /// A duration preference, or `defaultValue` when it has never been set.
+    ///
+    /// `double(forKey:)` cannot distinguish "unset" from "zero", and no duration the app
+    /// stores is legitimately zero, so a non-positive reading means nothing was written.
+    /// Stated once here rather than at each reader, so the convention has one definition
+    /// to change.
+    func duration(forKey key: String, default defaultValue: Double) -> Double {
+        let stored = double(forKey: key)
+        return stored > 0 ? stored : defaultValue
+    }
+}

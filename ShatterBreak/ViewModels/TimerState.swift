@@ -167,14 +167,12 @@ final class TimerState {
         self.statistics = statistics ?? StatisticsStore(defaults: defaults)
         self.sleepWakeObserver = SleepWakeObserver(notificationCenter: workspaceNotificationCenter)
         self.plan = initialPlan ?? .idle(at: clock.instant)
-        self.workDurationSecs = Self.loadDuration(
+        self.workDurationSecs = defaults.duration(
             forKey: PreferenceKeys.workDurationSecs,
-            defaultValue: PreferenceDefaults.workDurationSecs,
-            defaults: defaults)
-        self.restDurationSecs = Self.loadDuration(
+            default: PreferenceDefaults.workDurationSecs)
+        self.restDurationSecs = defaults.duration(
             forKey: PreferenceKeys.restDurationSecs,
-            defaultValue: PreferenceDefaults.restDurationSecs,
-            defaults: defaults)
+            default: PreferenceDefaults.restDurationSecs)
 
         let handlers = TimerEffectExecutor.Handlers(
             prepareCapture: { overlays.prepare() },
@@ -215,15 +213,6 @@ final class TimerState {
         sleepWakeObserver.stopObserving()
     }
 
-    private static func loadDuration(
-        forKey key: String,
-        defaultValue: Double,
-        defaults: any KeyValueStore
-    ) -> Double {
-        let value = defaults.double(forKey: key)
-        return value > 0 ? value : defaultValue
-    }
-
     // MARK: - User Actions
 
     func start() { perform(.start) }
@@ -255,17 +244,18 @@ final class TimerState {
     /// tick rather than a session.
     func reconcile() {
         commit(TimerReducer.advance(plan, to: clock.instant, prefs: preferences))
+        rearm()
     }
 
     private func perform(_ action: TimerAction) {
         let instant = clock.instant
         let prefs = preferences
-        // Act on a current plan, never a stale one. `observedWake` reconciles internally,
-        // because the absence it resolves is measured from state it then retires.
-        if action != .observedWake {
+        // Act on a current plan, never a stale one.
+        if TimerReducer.reconcilesInternally(action) == false {
             commit(TimerReducer.advance(plan, to: instant, prefs: prefs))
         }
         commit(TimerReducer.apply(action, to: plan, at: instant, prefs: prefs))
+        rearm()
     }
 
     private func commit(_ result: (TimerPlan, [TimerEffect])) {
@@ -273,9 +263,12 @@ final class TimerState {
         // Always called, even with nothing to do: performing effects is also when anything
         // held back from a dark screen gets retried, so every reconcile is a retry.
         executor.perform(result.1)
-        rearm()
     }
 
+    /// Arming is the caller's last step rather than part of ``commit(_:)`` because
+    /// ``perform(_:)`` commits twice — the reconcile, then the action — and a boundary
+    /// computed from the plan in between is cancelled microseconds later without ever
+    /// having been reachable.
     private func rearm() {
         let boundary = plan.isCountingDown
             ? max(0, plan.rawRemaining(at: clock.instant.date))

@@ -12,7 +12,8 @@ extension TimerState {
     /// immediately, unless a test supplied an explicit override at init.
     var postponeDurationSecs: Double {
         postponeDurationOverride
-            ?? livePref(PreferenceKeys.postponeDurationSecs, default: PreferenceDefaults.postponeDurationSecs)
+            ?? defaults.duration(forKey: PreferenceKeys.postponeDurationSecs,
+                                 default: PreferenceDefaults.postponeDurationSecs)
     }
 
     /// Whether the Postpone button should be visible at `referenceDate`.
@@ -57,18 +58,13 @@ extension TimerState {
     }
 
     private var postponeWindowSecs: Double {
-        livePref(PreferenceKeys.postponeWindowSecs, default: PreferenceDefaults.postponeWindowSecs)
+        defaults.duration(forKey: PreferenceKeys.postponeWindowSecs,
+                          default: PreferenceDefaults.postponeWindowSecs)
     }
 
     private var earlyReturnLeadSecs: Double {
-        livePref(PreferenceKeys.earlyReturnLeadSecs, default: PreferenceDefaults.earlyReturnLeadSecs)
+        defaults.duration(forKey: PreferenceKeys.earlyReturnLeadSecs,
+                          default: PreferenceDefaults.earlyReturnLeadSecs)
     }
 
-    /// Reads a duration preference live, falling back to `defaultValue` when unset.
-    /// Mirrors `TimerState`'s init-time duration loading but without caching, so
-    /// Preferences edits apply mid-session.
-    private func livePref(_ key: String, default defaultValue: Double) -> Double {
-        let value = defaults.double(forKey: key)
-        return value > 0 ? value : defaultValue
-    }
 }

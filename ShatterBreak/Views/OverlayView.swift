@@ -37,9 +37,10 @@ struct OverlayView: View {
             }
 
             if showsForegroundContent {
-                // The same clock the countdown text runs on: the Postpone and "I'm back"
-                // windows open and close as the break elapses, so they need to re-evaluate
-                // on the same cadence the text redraws on.
+                // One clock for the whole break screen. The Postpone and "I'm back"
+                // windows open and close as the break elapses, so they re-evaluate on the
+                // same cadence the text redraws on — and the text takes its date from here
+                // rather than starting a second loop of its own.
                 CountdownClock(state: state) { referenceDate in
                     VStack(spacing: 24) {
                         Text(.timeToRest)
@@ -47,7 +48,7 @@ struct OverlayView: View {
                             .foregroundStyle(.white)
                             .shadow(color: .black, radius: 5)
 
-                        CountdownTextView(state: state)
+                        CountdownLabel(state: state, at: referenceDate)
                             .font(.system(size: 80, weight: .bold, design: .monospaced))
                             .foregroundStyle(.white)
                             .shadow(color: .black, radius: 5)

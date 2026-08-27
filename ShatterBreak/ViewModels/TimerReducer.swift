@@ -87,6 +87,17 @@ enum TimerReducer {
 
     // MARK: - Actions
 
+    /// Whether `action` brings the plan up to date itself, and so must *not* be handed a
+    /// reconciled one.
+    ///
+    /// Only `observedWake` does: the absence it resolves is measured from state that
+    /// reconciling would retire first. The rule lives here rather than in each caller,
+    /// because it is a rule of the machine — the app and the tests both drive it, and a
+    /// second action that reconciles internally should not need finding twice.
+    static func reconcilesInternally(_ action: TimerAction) -> Bool {
+        action == .observedWake
+    }
+
     /// Applies a user or system action. Callers reconcile first, so `plan` is current.
     static func apply(
         _ action: TimerAction,
@@ -96,9 +107,12 @@ enum TimerReducer {
     ) -> (TimerPlan, [TimerEffect]) {
         // Anything the user did is proof they are at the machine, whatever the last
         // notification claimed. Notifications are evidence, not authority.
-        let originalPlan = plan
+        //
+        // The two attendance actions are exempt because the fields *are* their subject:
+        // `observedSleep` writes the absence, and `observedWake` resolves it before
+        // clearing it itself.
         var plan = plan
-        if action != .observedSleep {
+        if action != .observedSleep && action != .observedWake {
             plan.unattendedSince = nil
             plan.absenceCreditedAt = nil
         }
@@ -128,11 +142,10 @@ enum TimerReducer {
             return (next, taken + effects)
         case .observedSleep:
             guard plan.unattendedSince == nil else { return (plan, []) }
-            var plan = plan
             plan.unattendedSince = instant.date
             return (plan, [])
         case .observedWake:
-            return returned(originalPlan, at: instant, prefs: prefs)
+            return returned(plan, at: instant, prefs: prefs)
         }
     }
 

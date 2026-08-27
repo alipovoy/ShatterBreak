@@ -48,7 +48,7 @@ struct ReducerDriver {
 
     mutating func act(_ action: TimerAction) {
         // The app reconciles before acting, so an action never lands on a stale plan.
-        if action != .observedWake {
+        if TimerReducer.reconcilesInternally(action) == false {
             record(TimerReducer.advance(plan, to: instant, prefs: prefs))
         }
         record(TimerReducer.apply(action, to: plan, at: instant, prefs: prefs))
