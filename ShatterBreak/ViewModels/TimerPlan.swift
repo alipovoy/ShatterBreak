@@ -48,10 +48,12 @@ struct TimerPlan: Equatable, Sendable {
     ///
     /// It is not free of that failure, only downgraded. This is the sole evidence for a
     /// display asleep on a running machine, where the two clocks show nothing, so a value
-    /// left standing — a lost wake, and a user who returns without touching the app —
-    /// restarts the work session once per ``TimerPreferences/awayResetThreshold`` for as
-    /// long as it stands. A stalled timer became a silently repeating one. Any user action
-    /// clears it (`TimerReducer.apply`), which is what usually ends it.
+    /// left standing — a lost wake, and a user who returns without touching the app — leaves
+    /// the timer cycling in an empty room: once per ``TimerPreferences/awayResetThreshold``,
+    /// or once per work-plus-break cycle where the break is the longer of the two. A stalled
+    /// timer became a silently repeating one. ``ranUnattended`` keeps it from tallying
+    /// (#113), but it is still not the session the user left running. Any user action clears
+    /// it (`TimerReducer.apply`), which is what usually ends it.
     var unattendedSince: Date?
 
     /// How much of ``unattendedSince`` has already been resolved into a transition, without
@@ -78,6 +80,16 @@ struct TimerPlan: Equatable, Sendable {
             absenceCreditedAt: nil,
             lastSeen: instant
         )
+    }
+
+    /// Whether this phase ran its whole length with the machine unattended.
+    ///
+    /// The crossing that ends a phase begun before the machine went dark is real work; every
+    /// cycle after that one counted down in an empty room. Tallying those inflates the
+    /// statistics once per cycle for as long as the absence lasts (#113).
+    var ranUnattended: Bool {
+        guard let unattendedSince else { return false }
+        return startedAt >= unattendedSince
     }
 
     var isCountingDown: Bool {

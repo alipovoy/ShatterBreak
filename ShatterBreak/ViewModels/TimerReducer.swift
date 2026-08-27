@@ -26,6 +26,7 @@ enum TimerReducer {
     ) -> (TimerPlan, [TimerEffect]) {
         var plan = plan
         let absence = max(override ?? 0, measuredAbsence(plan, at: instant))
+        let unattendedCycle = plan.ranUnattended
         plan.lastSeen = instant
 
         // A user pause outranks any absence: coming back from lunch does not un-freeze it.
@@ -42,7 +43,10 @@ enum TimerReducer {
                 return finishBreak(plan.spendingAbsence(at: instant), at: instant, prefs: prefs, presenting: true)
             }
             guard plan.rawRemaining(at: instant.date) <= 0 else { return (plan, []) }
-            return crossWorkBoundary(plan.spendingAbsence(at: instant), at: instant, prefs: prefs, absence: absence)
+            return untallied(
+                crossWorkBoundary(plan.spendingAbsence(at: instant), at: instant, prefs: prefs, absence: absence),
+                if: unattendedCycle
+            )
 
         case .rest:
             // No absence policy: time away *is* break taken, so sleep never pauses it (#4).
@@ -53,8 +57,24 @@ enum TimerReducer {
                 prefs: prefs,
                 presenting: false
             )
-            return (next, [.record(.breakCompleted)] + effects)
+            return untallied((next, [.record(.breakCompleted)] + effects), if: unattendedCycle)
         }
+    }
+
+    /// Drops the statistics of a crossing made in an empty room, which is what the
+    /// away-reset route above already does by recording nothing at all. Without this, which
+    /// of the two a still-unattended machine took — and so whether it tallied a cycle an
+    /// hour or nothing — turned on whether the break was longer than the work session
+    /// (#113).
+    ///
+    /// Only the tally: the transition and its overlay still happen, since the machine is
+    /// unattended, not stopped, and a lost wake must never leave the timer parked (#87).
+    private static func untallied(
+        _ result: (TimerPlan, [TimerEffect]),
+        if unattended: Bool
+    ) -> (TimerPlan, [TimerEffect]) {
+        guard unattended else { return result }
+        return (result.0, result.1.filter { if case .record = $0 { false } else { true } })
     }
 
     /// Time away, from two independent signals: wall-vs-awake clock divergence (the machine
