@@ -243,12 +243,10 @@ private struct BreakScreenSettingsTab: View {
                 }
 
                 // A card cannot show a display-sized blur or a fog drawn behind the overlay,
-                // so the picker offers the real thing. Centred to belong to the cards, which
-                // centre themselves, rather than to the form's leading edge.
+                // so the picker offers the real thing.
                 Button(.tryEffect) { trial.start() }
                     .help(Text(.tryEffectHelp))
                     .disabled(trial.canStart == false)
-                    .frame(maxWidth: .infinity)
             }
 
             Section {
