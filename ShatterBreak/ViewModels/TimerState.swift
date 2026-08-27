@@ -1,386 +1,265 @@
 import SwiftUI
 
-/// Manages the timer state machine for work/rest cycles with postpone capability.
+/// An observable shell around a plan, a reducer and an effect executor.
 ///
-/// Countdown mechanics live in `Countdown` and sleep/wake observation in
-/// `SleepWakeObserver`; this type owns the state machine that coordinates them.
+/// It owns no rules: ``TimerPlan`` says what the timer is and ``TimerReducer`` what it does
+/// next. This snapshots preferences, hands the reducer a moment, publishes the result and
+/// asks the clock to come back.
 @MainActor
 @Observable
 final class TimerState {
     // MARK: - Types
 
-    /// Represents the current operational state of the timer.
+    /// The operational state as the UI thinks of it. Derived rather than stored: a paused
+    /// work session is still a work session, so there is no "what was I doing?" to sync.
     enum Mode: Equatable {
-        case idle           // No active timer
-        case running        // Counting down work period
-        case paused         // Work paused (user or system initiated)
-        case resting        // Counting down rest period
-        case postponedWork  // Postponed rest, counting down work period
-        case awaitingReturn // Manual mode: rest complete, waiting for user
+        case idle
+        case running
+        case paused
+        case resting
+        case postponedWork
+        case awaitingReturn
     }
 
-    // MARK: - Properties
+    // MARK: - State
 
-    /// The current operational mode. All boolean state flags derive from this.
-    var mode: Mode = .idle
+    /// The whole of the timer's state.
+    private(set) var plan: TimerPlan
+
+    var mode: Mode {
+        guard plan.pausedAt == nil else { return .paused }
+        switch plan.phase {
+        case .idle: return .idle
+        case .work: return .running
+        case .rest: return .resting
+        case .postponedWork: return .postponedWork
+        case .awaitingReturn: return .awaitingReturn
+        }
+    }
 
     var workDurationSecs: Double {
-        didSet { defaults.set(workDurationSecs, forKey: PreferenceKeys.workDurationSecs) }
+        didSet {
+            defaults.set(workDurationSecs, forKey: PreferenceKeys.workDurationSecs)
+        }
     }
 
     var restDurationSecs: Double {
-        didSet { defaults.set(restDurationSecs, forKey: PreferenceKeys.restDurationSecs) }
+        didSet {
+            defaults.set(restDurationSecs, forKey: PreferenceKeys.restDurationSecs)
+        }
     }
 
-    /// Whether postpone is available this cycle: only when resting and not yet used.
+    /// Available only during a break, and once per cycle.
     var canPostpone: Bool {
-        mode == .resting && !hasPostponeBeenUsedThisCycle
+        plan.phase == .rest && plan.pausedAt == nil && plan.postponeUsedThisCycle == false
     }
 
-    /// Whether the timer is actively counting down (work, rest, or postponed work).
-    var isRunning: Bool {
-        mode == .running || mode == .resting || mode == .postponedWork
-    }
+    var isRunning: Bool { plan.isCountingDown }
 
     var isPaused: Bool { mode == .paused }
     var isResting: Bool { mode == .resting }
     var awaitingReturn: Bool { mode == .awaitingReturn }
     var canEditDurations: Bool { mode == .idle }
 
-    var hasPostponeBeenUsedThisCycle = false
-
-    /// The remaining time at the tick source's current moment.
-    var timeRemaining: TimeInterval {
-        countdown.remaining(at: countdown.now)
+    /// Settable so tests can reach a mid-cycle postpone state without driving a whole cycle.
+    var hasPostponeBeenUsedThisCycle: Bool {
+        get { plan.postponeUsedThisCycle }
+        set { plan.postponeUsedThisCycle = newValue }
     }
 
-    /// Identifies the countdown interval currently on the clock, changing on every
-    /// `start`, `resume`, break, and freeze.
+    /// The break time owed back while a postpone is in flight.
+    var savedRestRemaining: TimeInterval? { plan.savedRestRemaining }
+
+    /// Identifies the interval on the clock, for views to key their refresh loop on.
     ///
-    /// `mode` cannot stand in for it: a fresh work session started on wake leaves the mode
-    /// at `.running`, so a view that restarts its clock on mode changes alone never
-    /// notices the new interval and keeps rendering the finished one (issue #108).
-    var countdownDeadline: Date? { countdown.deadline }
+    /// The phase cannot stand in: work auto-resuming after a break leaves it unchanged, so a
+    /// view keyed on phase alone keeps rendering the finished interval.
+    var countdownIntervalID: Int { plan.intervalID }
+
+    /// The remaining time at the clock's current moment.
+    var timeRemaining: TimeInterval { plan.remaining(at: clock.instant.date) }
 
     var shouldShowTimeInMenuBar: Bool {
         switch mode {
         case .running, .paused, .postponedWork:
             return true
-        default:
+        case .idle, .resting, .awaitingReturn:
             return false
         }
     }
 
     var formattedTimeRemaining: String {
-        formattedTimeRemaining(at: countdown.now)
+        formattedTimeRemaining(at: clock.instant.date)
     }
 
-    // MARK: - Private State
+    // MARK: - Collaborators
 
-    /// The saved break remainder while a postpone is in flight. Internal (not `private`)
-    /// so the sleep/wake extension in `TimerState+SleepWake.swift` can reconcile it.
-    var savedRestRemaining: TimeInterval?
-
-    /// A test-supplied postpone delay that takes precedence over the live preference;
-    /// `nil` in the app so the value is read from preferences. Read by the break-button
-    /// extension in `TimerState+BreakButtons.swift`.
+    /// A test-supplied postpone delay taking precedence over the live preference; `nil` in
+    /// the app.
     let postponeDurationOverride: Double?
 
-    /// The mode to restore when a user pause resumes; `nil` when not paused.
-    private var modeBeforePause: Mode?
-
-    /// The moment sleep/display-off began. Doubles as the "asleep" flag — non-`nil` while
-    /// asleep — and measures how long the user was away on wake. Internal for the
-    /// sleep/wake extension.
-    var sleptAt: Date?
-
-    /// Tallies completed sessions, breaks, postpones, and early returns (issue #10).
-    /// Exposed so the menu's statistics section can read and reset the counters.
+    /// Tallies sessions, breaks, postpones and early returns.
     let statistics: StatisticsStore
 
-    /// Internal (not `private`) so the break-button extension can read the clock.
-    let countdown: Countdown
-    private let sleepWakeObserver: SleepWakeObserver
-    private let overlays: OverlayPresenter
-    /// Internal (not `private`) so the break-button extension can read live preferences.
     let defaults: any KeyValueStore
 
-    /// Whether work auto-starts after a break. Internal for the sleep/wake extension.
-    var autoStartWorkTimer: Bool {
+    let clock: any TimerClock
+
+    private let sleepWakeObserver: SleepWakeObserver
+    private var executor: TimerEffectExecutor!
+
+    private var autoStartWorkTimer: Bool {
         (defaults.string(forKey: PreferenceKeys.workStartMode)
             .flatMap { WorkStartMode(rawValue: $0) } ?? PreferenceDefaults.workStartMode) == .automatic
     }
 
+    /// Read at the moment the reducer runs, so Preferences edits apply mid-session.
+    private var preferences: TimerPreferences {
+        TimerPreferences(
+            workDuration: workDurationSecs,
+            restDuration: restDurationSecs,
+            postponeDuration: postponeDurationSecs,
+            autoStartWork: autoStartWorkTimer,
+            // Always the break duration for now; a parameter so making it configurable
+            // stays a one-line change.
+            awayResetThreshold: restDurationSecs
+        )
+    }
+
     // MARK: - Initialization
 
+    /// - Parameter initialPlan: the plan to open on, for previews needing a phase on screen
+    ///   without driving a countdown to reach one. Set whole at construction, so ``commit(_:)``
+    ///   remains the only writer of `plan`. Nothing is scheduled for it.
     init(
         overlays: OverlayPresenter,
         postponeDurationSecs: Double? = nil,
         defaults: any KeyValueStore = UserDefaults.standard,
-        scheduler: (any CountdownScheduler)? = nil,
+        clock: (any TimerClock)? = nil,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
-        statistics: StatisticsStore? = nil
+        statistics: StatisticsStore? = nil,
+        isDisplayAwake: (@MainActor () -> Bool)? = nil,
+        showing initialPlan: TimerPlan? = nil
     ) {
-        self.overlays = overlays
+        let clock = clock ?? SystemTimerClock()
+        self.clock = clock
         self.postponeDurationOverride = postponeDurationSecs
         self.defaults = defaults
         self.statistics = statistics ?? StatisticsStore(defaults: defaults)
-        self.countdown = Countdown(scheduler: scheduler ?? SystemCountdownScheduler())
         self.sleepWakeObserver = SleepWakeObserver(notificationCenter: workspaceNotificationCenter)
-        self.workDurationSecs = Self.loadDuration(
+        self.plan = initialPlan ?? .idle(at: clock.instant)
+        self.workDurationSecs = defaults.duration(
             forKey: PreferenceKeys.workDurationSecs,
-            defaultValue: PreferenceDefaults.workDurationSecs,
-            defaults: defaults)
-        self.restDurationSecs = Self.loadDuration(
+            default: PreferenceDefaults.workDurationSecs)
+        self.restDurationSecs = defaults.duration(
             forKey: PreferenceKeys.restDurationSecs,
-            defaultValue: PreferenceDefaults.restDurationSecs,
-            defaults: defaults)
+            default: PreferenceDefaults.restDurationSecs)
+
+        let handlers = TimerEffectExecutor.Handlers(
+            prepareCapture: { overlays.prepare() },
+            showOverlay: { [unowned self] in overlays.show(self, $0) },
+            dismissOverlay: { overlays.dismiss() },
+            record: { [unowned self] in self.statistics.record($0) },
+            resetStatisticsForNewSession: { [unowned self] in self.statistics.resetForNewSessionIfEnabled() }
+        )
+        self.executor = isDisplayAwake.map { TimerEffectExecutor(handlers: handlers, isDisplayAwake: $0) }
+            ?? TimerEffectExecutor(handlers: handlers)
+
+        // For the object's whole life, not only while counting: subscribing per countdown is
+        // how a notification comes to arrive with nobody listening.
+        sleepWakeObserver.startObserving(
+            onSleep: { [weak self] in self?.perform(.observedSleep) },
+            onWake: { [weak self] in self?.perform(.observedWake) }
+        )
     }
 
     convenience init(
         postponeDurationSecs: Double? = nil,
         defaults: any KeyValueStore = UserDefaults.standard,
-        scheduler: (any CountdownScheduler)? = nil,
+        clock: (any TimerClock)? = nil,
         workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         self.init(
             overlays: .live(defaults: defaults),
             postponeDurationSecs: postponeDurationSecs,
             defaults: defaults,
-            scheduler: scheduler,
+            clock: clock,
             workspaceNotificationCenter: workspaceNotificationCenter
         )
     }
 
     isolated deinit {
-        countdown.clear()
+        clock.stop()
         sleepWakeObserver.stopObserving()
-    }
-
-    private static func loadDuration(
-        forKey key: String,
-        defaultValue: Double,
-        defaults: any KeyValueStore
-    ) -> Double {
-        let value = defaults.double(forKey: key)
-        return value > 0 ? value : defaultValue
     }
 
     // MARK: - User Actions
 
-    func start() {
-        // A start from idle is the stop→start boundary where the opt-in automatic
-        // statistics reset begins a fresh tally.
-        if mode == .idle {
-            statistics.resetForNewSessionIfEnabled()
-        }
+    func start() { perform(.start) }
+    func pause() { perform(.pause) }
+    func resume() { perform(.resume) }
+    func stop() { perform(.stop) }
+    func postpone() { perform(.postpone) }
 
-        if mode == .resting || mode == .awaitingReturn {
-            overlays.dismiss()
-        }
+    /// The overlay's "I'm back" action.
+    func returnToWork() { perform(.returnToWork) }
 
-        mode = .running
-        modeBeforePause = nil
-        // Settle the break overlay's screen-capture consent now, at the head of a work
-        // session, rather than letting macOS raise its dialog mid-break (issue #90).
-        overlays.prepare()
-        beginCountdown(for: workDurationSecs)
-    }
-
-    /// Starts a work session at launch when the user has opted in.
-    ///
-    /// Guarded to `.idle` so it only fires for a fresh launch and never disrupts an
-    /// already-active cycle if invoked more than once.
+    /// Guarded to `.idle` so a second call never disrupts an active cycle. There is no
+    /// session to restore: the plan is deliberately not persisted.
     func autoStartIfEnabled() {
         let enabled = defaults.object(forKey: PreferenceKeys.autoStartOnLaunch) as? Bool
         guard mode == .idle, enabled ?? PreferenceDefaults.autoStartOnLaunch else { return }
         start()
     }
 
-    func pause() {
-        switch mode {
-        case .running, .postponedWork:
-            modeBeforePause = mode
-            countdown.freeze()
-            mode = .paused
-        case .resting:
-            // `start()` dismisses the overlays because `mode` is still `.resting`.
-            countdown.clear()
-            start()
-        case .idle, .paused, .awaitingReturn:
-            return
+    // MARK: - Reconciliation
+
+    /// Safe to call from anywhere, as often as anything likes — that is what the reducer's
+    /// idempotency buys.
+    func reconcile() {
+        commit(TimerReducer.advance(plan, to: clock.instant, prefs: preferences))
+        rearm()
+    }
+
+    private func perform(_ action: TimerAction) {
+        let instant = clock.instant
+        let prefs = preferences
+        // Act on a current plan, never a stale one.
+        if TimerReducer.reconcilesInternally(action) == false {
+            commit(TimerReducer.advance(plan, to: instant, prefs: prefs))
+        }
+        commit(TimerReducer.apply(action, to: plan, at: instant, prefs: prefs))
+        rearm()
+    }
+
+    private func commit(_ result: (TimerPlan, [TimerEffect])) {
+        plan = result.0
+        // Called even with nothing to do: this is also where anything held back from a dark
+        // screen is retried.
+        executor.perform(result.1)
+    }
+
+    /// The caller's last step rather than part of ``commit(_:)``: ``perform(_:)`` commits
+    /// twice, and a boundary computed from the plan in between is never reachable.
+    private func rearm() {
+        let boundary = plan.isCountingDown
+            ? max(0, plan.rawRemaining(at: clock.instant.date))
+            : nil
+        // A break waiting for a screen has no countdown left, but still needs a retry.
+        let pending = boundary != nil || executor.deferredPresentation != nil
+        clock.schedule(nextBoundary: boundary, heartbeat: pending) { [weak self] in
+            self?.reconcile()
         }
     }
 
-    func resume() {
-        guard mode == .paused else { return }
-
-        mode = modeBeforePause ?? .running
-        modeBeforePause = nil
-        resumeCountdown()
-    }
-
-    func stop() {
-        resetToIdle()
-    }
-
-    func postpone() {
-        guard mode == .resting && !hasPostponeBeenUsedThisCycle else { return }
-
-        let remainingRest = timeRemaining
-        countdown.freeze()
-        savedRestRemaining = remainingRest
-        mode = .postponedWork
-        hasPostponeBeenUsedThisCycle = true
-        statistics.record(.postponed)
-        overlays.dismiss()
-        beginCountdown(for: postponeDurationSecs)
-    }
-
-    /// The overlay's "I'm back" action.
-    ///
-    /// Tapped while still resting — inside the closing early-return window — the break
-    /// counts as taken (the rest happened; the user just declines to stare at the screen
-    /// for its final seconds) and the early return is tallied so a pattern of cutting
-    /// breaks short stays visible. From `.awaitingReturn` it is the routine manual-mode
-    /// resume and counts nothing.
-    func returnToWork() {
-        if mode == .resting {
-            statistics.record(.breakCompleted)
-            statistics.record(.earlyReturn)
-        }
-        start()
-    }
-
-    // MARK: - Timer Control
+    // MARK: - Display
 
     func timeRemaining(at referenceDate: Date) -> TimeInterval {
-        countdown.remaining(at: referenceDate)
+        plan.remaining(at: referenceDate)
     }
 
     func formattedTimeRemaining(at referenceDate: Date) -> String {
         Self.format(timeInterval: timeRemaining(at: referenceDate))
-    }
-
-    private func beginCountdown(for duration: TimeInterval) {
-        sleepWakeObserver.startObserving(
-            onSleep: { [weak self] in self?.handleSleep() },
-            onWake: { [weak self] in self?.handleWake() }
-        )
-        countdown.begin(for: duration) { [weak self] in
-            self?.handleCountdownExpiryIfNeeded()
-        }
-        handleCountdownExpiryIfNeeded()
-    }
-
-    /// Internal so the sleep/wake extension can re-arm the countdown after waking.
-    func resumeCountdown() {
-        beginCountdown(for: timeRemaining)
-    }
-
-    /// Internal so the sleep/wake extension can fire a transition the countdown elapsed
-    /// into while the machine was asleep.
-    func handleCountdownExpiryIfNeeded() {
-        guard countdown.remaining(at: countdown.now) <= 0 else { return }
-
-        // While the system or display is asleep we defer every transition until wake,
-        // where `handleWake` decides what to do with the time the user spent away.
-        guard sleptAt == nil else { return }
-
-        switch mode {
-        case .postponedWork:
-            countdown.clear()
-            resumeRest()
-        case .resting:
-            statistics.record(.breakCompleted)
-            // The break overlay is already on screen, so keep it up rather than re-present.
-            finishBreak(presentingOverlay: false)
-        case .running:
-            statistics.record(.workSessionCompleted)
-            countdown.clear()
-            enterRestPhase()
-        case .idle, .paused, .awaitingReturn:
-            break
-        }
-    }
-
-    // MARK: - Phase Transitions
-
-    /// Resets every cycle-scoped value and returns to `.idle`. Shared by `stop()` and the
-    /// wake-from-expired-rest path so both routes to idle behave identically.
-    private func resetToIdle() {
-        countdown.clear()
-        mode = .idle
-        modeBeforePause = nil
-        savedRestRemaining = nil
-        hasPostponeBeenUsedThisCycle = false
-        // Stopping mid-sleep must not leave a stale asleep flag behind: it would block
-        // every transition in the next cycle (issue #87).
-        sleptAt = nil
-        overlays.dismiss()
-        sleepWakeObserver.stopObserving()
-    }
-
-    private func enterRestPhase() {
-        beginRest(for: restDurationSecs, refreshingPostpone: true)
-    }
-
-    /// Returns to the break a postpone interrupted.
-    ///
-    /// Falls back to a full break rather than returning early: the caller has already
-    /// cleared the countdown, so a silent return would park `.postponedWork` at 00:00 with
-    /// nothing armed — the same stall by another route.
-    private func resumeRest() {
-        beginRest(for: savedRestRemaining ?? restDurationSecs, refreshingPostpone: false)
-    }
-
-    /// Enters the rest phase with `duration` on the clock and shows the break overlay.
-    ///
-    /// `refreshingPostpone` restores postpone availability for a brand-new cycle's break
-    /// (entered from work); a resumed postpone remainder keeps its already-spent state.
-    /// Internal so the sleep/wake extension can resume a prorated break on wake.
-    func beginRest(for duration: TimeInterval, refreshingPostpone: Bool) {
-        mode = .resting
-        modeBeforePause = nil
-        if refreshingPostpone {
-            hasPostponeBeenUsedThisCycle = false
-        }
-        savedRestRemaining = nil
-        overlays.show(self, .animated)
-        beginCountdown(for: duration)
-    }
-
-    /// Completes a break: auto-starts the next work session when enabled, otherwise parks
-    /// in the break-end window and waits for the user.
-    ///
-    /// `presentingOverlay` shows the window for the wake path where an absence served as
-    /// the break and no overlay is on screen yet (the user was working); the rest-expiry
-    /// path already has one up. That window is presented already settled (issue #76): no
-    /// shake intro or entrance sound, since the break already elapsed silently. Internal so
-    /// the sleep/wake extension can drive it after an absence that replaced the break.
-    func finishBreak(presentingOverlay: Bool) {
-        if autoStartWorkTimer {
-            // `start()` dismisses any break overlay because `mode` is still `.resting`.
-            start()
-        } else {
-            awaitReturn(presentingOverlay: presentingOverlay)
-        }
-    }
-
-    /// Parks in `.awaitingReturn`, discarding any in-flight saved break, and optionally
-    /// presents the break-end window.
-    private func awaitReturn(presentingOverlay: Bool) {
-        countdown.clear()
-        mode = .awaitingReturn
-        savedRestRemaining = nil
-        // Parking here stops sleep/wake observation, so a flag left set would have no route
-        // left to being cleared. Every caller arrives with it `nil` already; clearing anyway
-        // keeps that local rather than a property of the call graph (issue #89).
-        sleptAt = nil
-        if presentingOverlay {
-            overlays.show(self, .settled)
-        }
-        sleepWakeObserver.stopObserving()
     }
 
     // MARK: - Formatting

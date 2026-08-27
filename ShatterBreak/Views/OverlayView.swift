@@ -9,10 +9,6 @@ struct OverlayView: View {
     @State private var hasPlayedSound = false
     @State private var hasAppeared = false
 
-    /// Ticks once per second while resting so the time-windowed action buttons
-    /// re-evaluate their visibility as the break elapses.
-    @State private var referenceDate = Date.now
-
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
 
@@ -41,33 +37,37 @@ struct OverlayView: View {
             }
 
             if showsForegroundContent {
-                VStack(spacing: 24) {
-                    Text(.timeToRest)
-                        .font(.largeTitle)
-                        .foregroundStyle(.white)
-                        .shadow(color: .black, radius: 5)
+                // One clock for the whole break screen: the buttons' windows open and close
+                // as the break elapses, so they re-evaluate on the text's cadence.
+                CountdownClock(state: state) { referenceDate in
+                    VStack(spacing: 24) {
+                        Text(.timeToRest)
+                            .font(.largeTitle)
+                            .foregroundStyle(.white)
+                            .shadow(color: .black, radius: 5)
 
-                    CountdownTextView(state: state)
-                        .font(.system(size: 80, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .shadow(color: .black, radius: 5)
+                        CountdownLabel(state: state, at: referenceDate)
+                            .font(.system(size: 80, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.white)
+                            .shadow(color: .black, radius: 5)
 
-                    if state.showsPostponeButton(at: referenceDate) {
-                        Button {
-                            state.postpone()
-                        } label: {
-                            Text(.postpone)
+                        if state.showsPostponeButton(at: referenceDate) {
+                            Button {
+                                state.postpone()
+                            } label: {
+                                Text(.postpone)
+                            }
+                            .buttonStyle(OverlayActionButtonStyle())
                         }
-                        .buttonStyle(OverlayActionButtonStyle())
-                    }
 
-                    if state.showsReturnButton(at: referenceDate) {
-                        Button {
-                            state.returnToWork()
-                        } label: {
-                            Text(.imBack)
+                        if state.showsReturnButton(at: referenceDate) {
+                            Button {
+                                state.returnToWork()
+                            } label: {
+                                Text(.imBack)
+                            }
+                            .buttonStyle(OverlayActionButtonStyle())
                         }
-                        .buttonStyle(OverlayActionButtonStyle())
                     }
                 }
             }
@@ -77,40 +77,7 @@ struct OverlayView: View {
         .task(id: presentation.phase) {
             await handlePhase()
         }
-        .task(id: state.mode) {
-            await driveActionClock()
-        }
         .onAppear { hasAppeared = true }
-    }
-
-    /// Refreshes `referenceDate` on each second boundary while the break counts down,
-    /// so the Postpone and "I'm back" windows re-evaluate. Mirrors
-    /// ``CountdownTextView/driveVisibleClockIfNeeded``. Awaiting-return is static, so it
-    /// sets the date once and returns without looping.
-    @MainActor
-    private func driveActionClock() async {
-        referenceDate = Date.now
-
-        guard state.isResting else { return }
-
-        while Task.isCancelled == false {
-            let remaining = state.timeRemaining(at: referenceDate)
-            guard remaining > 0 else { return }
-
-            do {
-                try await Task.sleep(for: nextRefreshDelay(for: remaining), tolerance: .milliseconds(100))
-            } catch {
-                return
-            }
-
-            referenceDate = Date.now
-        }
-    }
-
-    private func nextRefreshDelay(for remaining: TimeInterval) -> Duration {
-        let fractionalSecond = remaining - floor(remaining)
-        let secondsUntilRefresh = fractionalSecond > 0 ? fractionalSecond : 1
-        return .seconds(secondsUntilRefresh)
     }
 
     private var showsForegroundContent: Bool {
@@ -121,17 +88,15 @@ struct OverlayView: View {
         return true
     }
 
-    /// The overlay's opacity during its intro. The shatter effect stages its own
-    /// entrance through the shake-and-crack sequence, so it appears at full opacity;
-    /// the dimmed and fogged effects gently fade in instead of snapping on (issue #62).
+    /// Shatter stages its own entrance through the shake-and-crack sequence, so it appears
+    /// at full opacity; the other effects fade in rather than snapping on.
     private var introOpacity: Double {
         guard presentation.isShatterEffect == false else { return 1 }
         return hasAppeared ? 1 : 0
     }
 
-    /// Reacts to the current overlay phase: plays the break sound, and for the shatter
-    /// effect runs the shake intro before settling into the shattered state. The
-    /// branching decision lives in the pure, tested ``OverlayPhaseAction/resolve``.
+    /// Plays the break sound and, for shatter, runs the shake intro before settling. The
+    /// branching decision lives in the tested ``OverlayPhaseAction/resolve``.
     private func handlePhase() async {
         switch OverlayPhaseAction.resolve(
             phase: presentation.phase,
@@ -187,35 +152,48 @@ struct OverlayView: View {
     }
 }
 
-#Preview("Over Frosted Wallpaper") { @MainActor in
-    // Render the stand-in wallpaper to a CGImage so the shatter effect has a real
-    // capture to frost, putting the action buttons over actual frosted glass.
-    let backgroundImage = ImageRenderer(content: PreviewWallpaper()).cgImage
+/// A break overlay over a rendered stand-in wallpaper, rasterised so the shatter effect has
+/// a real capture to frost and the buttons sit over actual frosted glass.
+///
+/// Nothing schedules the plan, so no transition fires — though a live phase still counts
+/// down, the clock being derived from the plan and the real moment.
+@MainActor
+private func previewOverlay(phase: TimerPlan.Phase, duration: TimeInterval = 300) -> some View {
+    let presentation = OverlayPresentationState(effectType: .shatter)
+    presentation.backgroundImage = ImageRenderer(content: PreviewWallpaper()).cgImage
+    presentation.phase = .shattered
 
-    let restingPresentation = OverlayPresentationState(effectType: .shatter)
-    restingPresentation.backgroundImage = backgroundImage
-    restingPresentation.phase = .shattered
+    let now = Date.now
+    let plan = TimerPlan(
+        phase: phase,
+        startedAt: now,
+        duration: duration,
+        pausedAt: nil,
+        intervalID: 1,
+        savedRestRemaining: nil,
+        postponeUsedThisCycle: false,
+        unattendedSince: nil,
+        absenceCreditedAt: nil,
+        lastSeen: TimerInstant(date: now, awakeUptime: ProcessInfo.processInfo.systemUptime)
+    )
 
-    let awaitingPresentation = OverlayPresentationState(effectType: .shatter)
-    awaitingPresentation.backgroundImage = backgroundImage
-    awaitingPresentation.phase = .shattered
+    // Postpone has to be allowed for the resting overlay to offer it, and the break stays
+    // short so the button's opening window is still open. Written to a throwaway domain:
+    // the canvas runs against the app's real preferences otherwise, and opening a preview
+    // is not consent to change a setting.
+    let defaults = UserDefaults(suiteName: "dev.lipovoy.shatterbreak.previews") ?? .standard
+    defaults.set(true, forKey: PreferenceKeys.allowPostpone)
+    let state = TimerState(overlays: .disabled, defaults: defaults, showing: plan)
+    state.restDurationSecs = duration
 
-    // resting → Postpone button. Enable postpone and keep the break short so its
-    // opening window is still active even without a running countdown.
-    UserDefaults.standard.set(true, forKey: PreferenceKeys.allowPostpone)
-    let restingState = TimerState()
-    restingState.mode = .resting
-    restingState.restDurationSecs = 30
+    return OverlayView(state: state, presentation: presentation)
+        .frame(width: 480, height: 320)
+}
 
-    // awaiting return → I'm back button
-    let awaitingState = TimerState()
-    awaitingState.mode = .awaitingReturn
+#Preview("Resting Over Frosted Wallpaper") { @MainActor in
+    previewOverlay(phase: .rest, duration: 30)
+}
 
-    return VStack(spacing: 0) {
-        OverlayView(state: restingState, presentation: restingPresentation)
-            .frame(width: 480, height: 320)
-
-        OverlayView(state: awaitingState, presentation: awaitingPresentation)
-            .frame(width: 480, height: 320)
-    }
+#Preview("Awaiting Return Over Frosted Wallpaper") { @MainActor in
+    previewOverlay(phase: .awaitingReturn)
 }

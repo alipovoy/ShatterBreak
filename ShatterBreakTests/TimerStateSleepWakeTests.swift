@@ -181,57 +181,63 @@ struct TimerStateSleepWakeTests {
         )
     }
 
-    @Test("stopping mid-sleep does not strand the asleep flag into the next cycle")
+    @Test("stopping mid-sleep does not strand an absence into the next cycle")
     @MainActor
-    func stopMidSleepDoesNotStrandAsleepFlag() async {
+    func stopMidSleepDoesNotStrandAbsence() async {
         let environment = TestEnvironment()
         let state = environment.makeTimerState()
         state.workDurationSecs = 5
         state.restDurationSecs = 5
 
-        state.start()
-
         let notificationCenter = environment.workspaceNotificationCenter
+        state.start()
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
-        // Stop lands before the matching wake notification arrives, so `sleptAt` is still set
-        // when the cycle resets. It must not survive into the next cycle (issue #87): a leaked
-        // flag would silently block every future transition since nothing else ever clears it.
-        environment.elapseTimeWithoutTick(by: 2)
+        // Stop lands before the wake, so the absence is still open when the cycle resets. It
+        // must not follow the user into the next one, where a leaked eight seconds
+        // would read as a break already taken.
+        environment.elapseTimeWithoutTick(by: 8)
         state.stop()
         #expect(state.mode == .idle, "Stop should return to idle even while a sleep is in flight.")
 
         state.start()
-        await environment.advanceUntil(maxTicks: 6) { state.isResting }
+        #expect(state.timeRemaining == 5, "The new session must start whole, not credited with the old absence.")
 
+        await environment.advanceUntil(maxTicks: 6) { state.isResting }
         #expect(state.isResting, "A fresh cycle must still transition to rest after a mid-sleep stop.")
     }
 
-    @Test("an expiry landing while asleep defers instead of transitioning")
+    @Test("a work countdown that runs out while asleep transitions without waiting for the wake")
     @MainActor
-    func expiryWhileAsleepDefersUntilWake() async {
+    func expiryWhileAsleepResolvesImmediately() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState()
+        let recorder = OverlayRecorder()
+        let state = environment.makeTimerState(overlays: recorder.presenter)
         state.workDurationSecs = 2
         state.restDurationSecs = 5
 
-        state.start()
-
         let notificationCenter = environment.workspaceNotificationCenter
+        state.start()
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
 
-        // Work runs out while the machine is still asleep. The transition is deferred, not
-        // dropped: `handleWake()` owns the decision once the time away is known. Issue #87
-        // is precisely this deferral never receiving its matching wake.
+        // Work runs out while the machine is asleep. The old design deferred the transition
+        // until a wake authorised it, which is why a wake that never came stalled the timer.
+        // Now the reconcile that observes the boundary resolves it.
         await environment.advanceTime(by: 3)
-        #expect(state.mode == .running, "An expiry landing while asleep must defer, not transition.")
+        #expect(state.isResting, "The boundary must resolve when it is observed, not when a notification allows it.")
+        #expect(state.timeRemaining == 2, "The whole absence is credited as rest (5 - 3).")
+
+        // Safety is the executor's job: the plan advances during a dark wake, and only the
+        // presentation waits for a screen.
+        #expect(recorder.showCount == 1, "With a display awake, the break is presented as usual.")
 
         notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
-        #expect(state.isResting, "The deferred transition must resolve once the wake arrives.")
+        #expect(state.isResting, "The wake has nothing left to resolve and must not disturb the break.")
+        #expect(recorder.showCount == 1, "Nor present it a second time.")
     }
 
-    @Test("parking in awaiting-return never strands the asleep flag")
+    @Test("parking in awaiting-return never strands an absence")
     @MainActor
-    func awaitingReturnDoesNotStrandAsleepFlag() async {
+    func awaitingReturnDoesNotStrandAbsence() async {
         let environment = TestEnvironment()
         environment.defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
 
@@ -239,14 +245,14 @@ struct TimerStateSleepWakeTests {
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
+        environment.workspaceNotificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
         state.start()
         await environment.advanceUntil(maxTicks: 4) { state.awaitingReturn }
         #expect(state.awaitingReturn, "Manual mode should park in awaiting-return after the break.")
 
-        // `awaitReturn()` stops sleep/wake observation, so a flag still set here would have
-        // no remaining route to being cleared — issue #87's stranding shape. No current path
-        // reaches this state with it set; the assertion pins that closed so a future caller
-        // cannot reopen it silently (issue #89).
-        #expect(state.sleptAt == nil, "Awaiting return must not hold an asleep timestamp.")
+        // This window can sit for hours. An absence carried into it would credit all of that
+        // as a break the moment the user starts, resetting the session they asked for.
+        state.start()
+        #expect(state.timeRemaining == 1, "The session the user started must begin whole.")
     }
 }

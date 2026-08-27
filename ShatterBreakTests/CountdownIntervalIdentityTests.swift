@@ -5,11 +5,9 @@ import Testing
 
 /// A new countdown interval must be visible to anything rendering the clock.
 ///
-/// The menu-bar label drives its own per-second refresh in a task that ends when the
-/// countdown reaches zero, and only a change in the task's key revives it. Keying that on
-/// `mode` alone was not enough: work auto-resuming after an absence that stood in for the
-/// break leaves the mode at `.running`, so the label kept the finished interval's last
-/// frame on screen while the state machine counted down a fresh session (issue #108).
+/// The label's refresh task ends at zero and only a new key revives it. Keying on `mode`
+/// was not enough: work auto-resuming after an absence leaves it at `.running`, so the
+/// label kept the finished interval's last frame while a fresh session counted down.
 @Suite("Countdown interval identity", .tags(.timerState, .sleepWake), .timeLimit(.minutes(1)))
 struct CountdownIntervalIdentityTests {
     @Test("a fresh session on wake changes the countdown identity even in the same mode")
@@ -24,7 +22,7 @@ struct CountdownIntervalIdentityTests {
 
         state.start()
         await environment.advanceTime(by: 4)
-        let deadlineBeforeSleep = state.countdownDeadline
+        let identityBeforeSleep = state.countdownIntervalID
 
         let notificationCenter = environment.workspaceNotificationCenter
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
@@ -35,7 +33,7 @@ struct CountdownIntervalIdentityTests {
 
         #expect(state.mode == .running, "The scenario needs work running on both sides of the sleep.")
         #expect(
-            state.countdownDeadline != deadlineBeforeSleep,
+            state.countdownIntervalID != identityBeforeSleep,
             "A fresh work session must be a new interval, or the visible clock never restarts."
         )
     }
@@ -58,7 +56,7 @@ struct CountdownIntervalIdentityTests {
 
         #expect(
             observation.fired,
-            "The deadline must be observable, or a view reading the clock cannot know it moved."
+            "The plan must be observable, or a view reading the clock cannot know it moved."
         )
     }
 
@@ -73,15 +71,15 @@ struct CountdownIntervalIdentityTests {
         state.restDurationSecs = 2
 
         state.start()
-        let work = state.countdownDeadline
+        let work = state.countdownIntervalID
 
         await environment.advanceTime(by: 2)
         #expect(state.isResting, "The work session should hand over to the break.")
-        let rest = state.countdownDeadline
+        let rest = state.countdownIntervalID
 
         await environment.advanceTime(by: 2)
         #expect(state.mode == .running, "Auto-start should begin the next work session.")
-        let nextWork = state.countdownDeadline
+        let nextWork = state.countdownIntervalID
 
         #expect(work != rest, "The break is not the work session it followed.")
         #expect(rest != nextWork, "The next work session is not the break it followed.")
