@@ -14,7 +14,7 @@ final class OverlayManager {
 
         /// The freeze-frame taken for each display as the break began, kept for the
         /// break's duration so a display that leaves and returns is restored to the
-        /// desktop it left rather than re-captured (issue #67). Costs nothing extra
+        /// desktop it left rather than re-captured. Costs nothing extra
         /// while a display is present: its overlay is showing this very image.
         var captures: [CGDirectDisplayID: CGImage] = [:]
     }
@@ -78,13 +78,12 @@ final class OverlayManager {
     /// ``EffectType/shatter`` needs Screen Recording permission to capture the screen;
     /// without it the break falls back to ``EffectType/fogged`` — fogged glass over
     /// the live desktop with cracks — instead of an empty shatter with nothing to
-    /// fracture (issue #62). Every other selection is presented as chosen.
+    /// fracture. Every other selection is presented as chosen.
     ///
     /// ``DirectCaptureAccess`` downgrades for a second reason: capturing without a settled
-    /// answer would raise the system's dialog on top of the overlay, which is the ambush
-    /// issue #90 is about. Only ``DirectCaptureAccess/allowed`` proceeds, so a break that
-    /// arrives before the probe has answered renders fogged — the cheaper of the two
-    /// wrong outcomes.
+    /// answer raises the system's dialog on top of the overlay. Only
+    /// ``DirectCaptureAccess/allowed`` proceeds, so a break arriving before the probe has
+    /// answered renders fogged — the cheaper of the two wrong outcomes.
     static func resolveEffectType(
         selected: EffectType,
         hasScreenRecordingPermission: Bool,
@@ -96,6 +95,12 @@ final class OverlayManager {
         }
         return selected
     }
+
+    /// The timer whose break is on screen, or `nil` when nothing is presented.
+    ///
+    /// Exists so that a caller sharing this manager can tell whether the window is still
+    /// the one it put up before taking it down.
+    var presentedState: TimerState? { session?.state }
 
     func showOverlays(state: TimerState, settled: Bool) {
         dismissOverlays()
@@ -136,15 +141,14 @@ final class OverlayManager {
     /// Brings the live overlays back in line with the displays now attached.
     ///
     /// Invoked when the system reports a display-configuration change while a break is
-    /// active (issue #3): a main display unplugged, a clamshell lid opened, or a display
+    /// active: a main display unplugged, a clamshell lid opened, or a display
     /// changing resolution. Each window stays pinned to its own display — overlays are
     /// never moved — so a vanished display's window is torn down, a new display gains its
     /// own overlay (and freeze-frame), and a resized display's window is reframed so its
     /// "I'm back" button stays reachable.
     ///
     /// Both branches draw on the session's retained captures rather than the screen as
-    /// it looks now, so the freeze-frame keeps showing the desktop the break began over
-    /// (issue #67).
+    /// it looks now, so the freeze-frame keeps showing the desktop the break began over.
     func reconcileOverlays() {
         guard let session else { return }
 
@@ -167,7 +171,7 @@ final class OverlayManager {
             // The overlay stretches its freeze-frame to fill the window, so a display
             // that changed shape would distort its own desktop. Re-fit the session's
             // pristine capture — never the cropped image already on screen — to the
-            // new proportions (issue #67).
+            // new proportions.
             if let retained = session.captures[screen.displayID] {
                 overlayStates[screen.displayID]?.backgroundImage = FreezeFrame.fitted(
                     retained,
@@ -182,7 +186,7 @@ final class OverlayManager {
         for screen in plan.added {
             // Settled: the shake and glass sound belong to the moment the break began.
             // A display joining later catches up silently — including one that dropped
-            // off while the screen slept and came back on wake (issue #94).
+            // off while the screen slept and came back on wake.
             presentOverlay(
                 for: screen,
                 state: session.state,
@@ -192,7 +196,7 @@ final class OverlayManager {
 
             // Holding a capture for a display is what marks it as one that left and came
             // back, so it is restored from that capture. Capturing now would freeze
-            // whatever it returned through, typically the lock screen (issue #67). A
+            // whatever it returned through, typically the lock screen. A
             // display genuinely connected mid-break has nothing retained, and captures.
             guard let retained = session.captures[screen.displayID] else {
                 displaysNeedingCapture.insert(screen.displayID)
@@ -224,7 +228,7 @@ final class OverlayManager {
         guard sessionID == activeSessionID else { return }
 
         // Keep the first capture each display produced: it is the one taken as the break
-        // began, and the one a returning display must be restored to (issue #67).
+        // began, and the one a returning display must be restored to.
         session?.captures.merge(images) { retained, _ in retained }
 
         Self.applyCapturedImages(
@@ -305,7 +309,7 @@ final class OverlayManager {
 
     private func makeWindow(frame: CGRect) -> NSWindow {
         // A non-activating panel so overlay button clicks never activate this app
-        // and steal keyboard focus from the app the user was working in (issue #79).
+        // and steal keyboard focus from the app the user was working in.
         let window = OverlayPanel(
             contentRect: frame,
             styleMask: [.borderless, .nonactivatingPanel],

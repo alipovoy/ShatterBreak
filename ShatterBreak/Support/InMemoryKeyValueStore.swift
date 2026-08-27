@@ -1,11 +1,10 @@
 import Foundation
 
-@testable import ShatterBreak
-
 /// A volatile `KeyValueStore`: isolated per instance, never written to disk.
 ///
-/// Replaces the per-test `UserDefaults(suiteName:)` suites, which left a backing `plist`
-/// behind on every run.
+/// For tests, replacing the per-test `UserDefaults(suiteName:)` suites that left a backing
+/// `plist` behind on every run, and for previews, where the canvas would otherwise write the
+/// user's real preferences.
 ///
 /// Coercions mirror `UserDefaults` for the kinds this app stores: durations as `Double`,
 /// flags as `Bool`, enum raw values as `String`.

@@ -10,3 +10,14 @@ struct IconButtonStyle: ButtonStyle {
             .animation(.easeInOut(duration: 0.05), value: configuration.isPressed)
     }
 }
+
+#Preview("IconButtonStyle") {
+    HStack(spacing: 20) {
+        Button("Preferences", systemImage: "gearshape", action: { })
+        Button("About", systemImage: "info.circle", action: { })
+        Button("Statistics", systemImage: "chart.bar", action: { })
+    }
+    .labelStyle(.iconOnly)
+    .buttonStyle(IconButtonStyle())
+    .padding()
+}

@@ -19,9 +19,8 @@ struct OverlayBackgroundView: View {
                 } else if phase == .plain {
                     Color.clear
                 } else {
-                    // Permission was granted but this display's capture failed; fall
-                    // back to the live fogged desktop so the cracks read as
-                    // intentional glass rather than a flat black panel.
+                    // Capture failed for this display; fall back to the fogged desktop so
+                    // the cracks read as glass rather than a flat black panel.
                     FoggedDesktopView()
                 }
             case .fogged:
@@ -35,4 +34,49 @@ struct OverlayBackgroundView: View {
             y: phase == .shatterIntro ? -shakeOffset : 0
         )
     }
+}
+
+/// One effect over the same desktop, labelled, for the comparison preview below.
+private struct EffectSample: View {
+    let effect: EffectType
+    let desktop: CGImage?
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(effect.displayName)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            ZStack {
+                if let desktop {
+                    Image(decorative: desktop, scale: 1).resizable()
+                }
+                OverlayBackgroundView(
+                    effectType: effect,
+                    backgroundImage: desktop,
+                    phase: .shattered,
+                    shakeOffset: 0
+                )
+            }
+            .frame(width: 240, height: 150)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+    }
+}
+
+// The three effects over one desktop, since each is a treatment of the same screen and the
+// question is how much of it survives.
+//
+// Fogged shows its tint without its blur, and no preview can do better: behind-window
+// vibrancy blurs what the window server composites beneath the overlay, which in a preview
+// is nothing.
+#Preview("Break effects") {
+    let desktop = PreviewWallpaper.image
+
+    HStack(spacing: 12) {
+        ForEach(EffectType.allCases) { effect in
+            EffectSample(effect: effect, desktop: desktop)
+        }
+    }
+    .padding()
 }

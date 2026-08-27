@@ -16,8 +16,3 @@ struct WarningLabel: View {
         .foregroundStyle(.orange)
     }
 }
-
-#Preview {
-    WarningLabel(message: .windowsOverlapWarning)
-        .padding()
-}

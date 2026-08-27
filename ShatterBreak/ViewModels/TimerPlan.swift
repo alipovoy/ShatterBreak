@@ -70,6 +70,21 @@ struct TimerPlan: Equatable, Sendable {
         )
     }
 
+    /// A plan already in a phase, for previews wanting a countdown without driving one to
+    /// reach it. Built from ``idle(at:)`` so no field is left describing a cycle that is gone.
+    static func starting(
+        _ phase: Phase,
+        duration: TimeInterval = 300,
+        at instant: TimerInstant = .now
+    ) -> TimerPlan {
+        var plan = TimerPlan.idle(at: instant)
+        plan.phase = phase
+        // Must not build a plan the reducer never would.
+        plan.duration = plan.isCountingDown ? duration : 0
+        plan.intervalID = 1
+        return plan
+    }
+
     /// Whether this phase ran its whole length with the machine unattended, and so must not
     /// be tallied. The phase begun *before* the machine went dark is real work.
     var ranUnattended: Bool {
@@ -109,4 +124,9 @@ struct TimerInstant: Equatable, Sendable {
     var date: Date
     /// `ProcessInfo.systemUptime`: advances only while the machine is running.
     var awakeUptime: TimeInterval
+
+    /// The one place the process clocks are sampled.
+    static var now: TimerInstant {
+        TimerInstant(date: .now, awakeUptime: ProcessInfo.processInfo.systemUptime)
+    }
 }

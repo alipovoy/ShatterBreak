@@ -102,6 +102,9 @@ final class TimerState {
     let statistics: StatisticsStore
 
     let defaults: any KeyValueStore
+    /// Stored, not only captured, so that anything else putting a break on screen goes
+    /// through the same presenter and cannot own a second window.
+    let overlays: OverlayPresenter
 
     let clock: any TimerClock
 
@@ -143,6 +146,7 @@ final class TimerState {
     ) {
         let clock = clock ?? SystemTimerClock()
         self.clock = clock
+        self.overlays = overlays
         self.postponeDurationOverride = postponeDurationSecs
         self.defaults = defaults
         self.statistics = statistics ?? StatisticsStore(defaults: defaults)

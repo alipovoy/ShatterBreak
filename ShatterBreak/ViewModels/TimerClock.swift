@@ -49,9 +49,7 @@ final class SystemTimerClock: TimerClock {
 
     nonisolated init() {}
 
-    var instant: TimerInstant {
-        TimerInstant(date: .now, awakeUptime: ProcessInfo.processInfo.systemUptime)
-    }
+    var instant: TimerInstant { .now }
 
     func schedule(
         nextBoundary: TimeInterval?,

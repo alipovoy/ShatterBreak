@@ -160,30 +160,18 @@ struct OverlayView: View {
 @MainActor
 private func previewOverlay(phase: TimerPlan.Phase, duration: TimeInterval = 300) -> some View {
     let presentation = OverlayPresentationState(effectType: .shatter)
-    presentation.backgroundImage = ImageRenderer(content: PreviewWallpaper()).cgImage
+    presentation.backgroundImage = PreviewWallpaper.image
     presentation.phase = .shattered
 
-    let now = Date.now
-    let plan = TimerPlan(
-        phase: phase,
-        startedAt: now,
-        duration: duration,
-        pausedAt: nil,
-        intervalID: 1,
-        savedRestRemaining: nil,
-        postponeUsedThisCycle: false,
-        unattendedSince: nil,
-        absenceCreditedAt: nil,
-        lastSeen: TimerInstant(date: now, awakeUptime: ProcessInfo.processInfo.systemUptime)
-    )
-
-    // Postpone has to be allowed for the resting overlay to offer it, and the break stays
-    // short so the button's opening window is still open. Written to a throwaway domain:
-    // the canvas runs against the app's real preferences otherwise, and opening a preview
-    // is not consent to change a setting.
-    let defaults = UserDefaults(suiteName: "dev.lipovoy.shatterbreak.previews") ?? .standard
+    // Volatile, so the canvas neither reads nor writes real preferences. Postpone must be
+    // allowed for the overlay to offer it, and the break stays short so its window is open.
+    let defaults = InMemoryKeyValueStore()
     defaults.set(true, forKey: PreferenceKeys.allowPostpone)
-    let state = TimerState(overlays: .disabled, defaults: defaults, showing: plan)
+    let state = TimerState(
+        overlays: .disabled,
+        defaults: defaults,
+        showing: .starting(phase, duration: duration)
+    )
     state.restDurationSecs = duration
 
     return OverlayView(state: state, presentation: presentation)
