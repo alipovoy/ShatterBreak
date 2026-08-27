@@ -2,12 +2,11 @@ import Testing
 
 @testable import ShatterBreak
 
-/// What happens when the user goes away: the rules from #4, #69 and #72, restated against
-/// the reducer.
+/// What happens when the user goes away.
 ///
-/// The policy is carried over unchanged; the input is not. An absence is now *measured*
-/// from the two clocks rather than inferred from a sleep notification that has to arrive,
-/// and be matched by a wake, for anything to happen (#87, #106).
+/// The policy is unchanged; the input is not. An absence is *measured* from the two clocks
+/// rather than inferred from a sleep notification that has to arrive, and be matched by a
+/// wake, for anything to happen.
 @Suite("Timer reducer absences", .tags(.timerState, .sleepWake))
 struct TimerReducerAbsenceTests {
     // MARK: - Absences measured with no notification at all
@@ -47,7 +46,7 @@ struct TimerReducerAbsenceTests {
         driver.sleepMachine(7)
         driver.reconcile()
 
-        // The whole 7s away is credited, not just the 2s past the boundary (#72).
+        // The whole 7s away is credited, not just the 2s past the boundary.
         #expect(driver.phase == .rest, "The absence crossed the work boundary into the break.")
         #expect(driver.remaining == 3, "The break resumes with the whole absence credited as rest.")
         #expect(driver.count(of: .record(.workSessionCompleted)) == 1, "The work session completed off-screen.")
@@ -74,7 +73,7 @@ struct TimerReducerAbsenceTests {
         driver.sleepMachine(3)
         driver.reconcile()
 
-        // One rule for every crossing (#72). The old design branched on `away <=
+        // One rule for every crossing. The old design branched on `away <=
         // workRemaining`, giving a full break at this exact instant and docking one a
         // millisecond either side.
         #expect(driver.phase == .rest, "Work ran out exactly as the absence ended.")
@@ -220,7 +219,7 @@ struct TimerReducerAbsenceTests {
         var driver = ReducerDriver(prefs: .testing(work: 1_500, rest: 300))
         driver.act(.start)
         // The display slept and never woke: the notification arrives, the matching wake
-        // never does. Under the old design this stranded the timer permanently (issue #87).
+        // never does. Under the old design this stranded the timer permanently.
         driver.act(.observedSleep)
         driver.drift(600)
         driver.reconcile()
@@ -306,8 +305,7 @@ struct TimerReducerAbsenceTests {
     }
 }
 
-/// Notifications improve an absence measurement; they never authorise one. That is the
-/// whole of #87, where a wake that never arrived stalled the timer for good.
+/// Notifications improve an absence measurement; they never authorise one.
 @Suite("Timer reducer absence notifications", .tags(.timerState, .sleepWake))
 struct TimerReducerAbsenceNotificationTests {
 

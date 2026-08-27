@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// Read-only by construction: the timer runs on ``TimerState``'s own clock, so a drive loop
 /// that dies here leaves a stale label, not a stalled timer. The two were once confused,
-/// and a dead view loop was indistinguishable from a stuck timer (#108).
+/// and a dead view loop was indistinguishable from a stuck timer.
 ///
 /// One implementation for every countdown on screen; the menu bar, popover and overlay all
 /// used to keep near-copies with their own ideas of when to restart.
@@ -14,7 +14,7 @@ struct CountdownClock<Content: View>: View {
     /// An off-screen popover should not wake the machine to redraw what nobody can see.
     var isActive = true
     /// Sets the cadence: the distance to the next visible change, once a minute in the
-    /// power-save style (#78).
+    /// power-save style.
     var displayStyle: CountdownDisplayStyle = .seconds
     @ViewBuilder var content: (Date) -> Content
 
@@ -28,7 +28,7 @@ struct CountdownClock<Content: View>: View {
     /// Restarts the loop when the interval changes.
     ///
     /// The loop ends at zero, so only a new key revives it. Keyed on anything coarser,
-    /// back-to-back sessions in the same mode leave it dead on the last frame (#108).
+    /// back-to-back sessions in the same mode leave it dead on the last frame.
     private var taskKey: CountdownClockKey {
         CountdownClockKey(
             intervalID: state.countdownIntervalID,

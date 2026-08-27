@@ -9,7 +9,7 @@ enum StatisticsEvent: Equatable {
     case earlyReturn
 }
 
-/// Owns the session-statistics tally (#10).
+/// Owns the session-statistics tally.
 ///
 /// Gated on "Track statistics", read live; disabling stops counting but keeps the values.
 /// A relaunch never resets anything, so a mid-day reboot keeps the day's numbers.

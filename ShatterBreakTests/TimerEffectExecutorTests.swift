@@ -58,7 +58,7 @@ struct TimerEffectExecutorTests {
         display.isAwake = false
         executor.perform([.record(.workSessionCompleted), .showOverlay(.animated)])
 
-        // A DarkWake leaves the display off; shattering there spends the break (#99, #107).
+        // A DarkWake leaves the display off; shattering there spends the break.
         #expect(recorder.shown.isEmpty, "A break must not be presented onto a dark screen.")
         #expect(
             recorder.recorded == [.workSessionCompleted],

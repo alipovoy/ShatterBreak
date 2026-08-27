@@ -3,8 +3,7 @@ import Foundation
 /// Supplies the current moment and asks to be called back to reconcile.
 ///
 /// Note what it does *not* promise: punctuality, or even firing at all. Reconciling is
-/// idempotent, so an early, late or missing callback costs at most a tick — which is why
-/// the old design's stall detection and Resume button have no successor.
+/// idempotent, so an early, late or missing callback costs at most a tick.
 @MainActor
 protocol TimerClock: AnyObject {
     var instant: TimerInstant { get }
@@ -30,12 +29,12 @@ protocol TimerClock: AnyObject {
 /// A punctual boundary timer, plus a coalesced heartbeat behind it.
 ///
 /// - The **boundary timer** is armed for exactly the time left, and is the thing that
-///   historically went missing (#106, #107).
+///   historically went missing.
 /// - The **heartbeat** is the safety net: coarse and tolerant so the system coalesces it,
 ///   and armed only while something is pending, so an idle app schedules nothing.
 ///
-/// A heartbeat alone was rejected — it would park the menu bar at 00:00 for up to half a
-/// minute at every transition (#108). A boundary timer alone is what the app had.
+/// Neither alone: a heartbeat would park the menu bar at 00:00 for up to half a minute at
+/// every transition, and a boundary timer is what went missing in the first place.
 @MainActor
 final class SystemTimerClock: TimerClock {
     /// Long enough to coalesce, short enough that a lost boundary timer is a hiccup.

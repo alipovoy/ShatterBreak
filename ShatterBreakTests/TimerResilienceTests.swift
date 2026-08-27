@@ -19,7 +19,7 @@ struct TimerResilienceTests {
 
         state.start()
         // The callback the old design hung on never arrives; it used to leave the timer at
-        // 00:00 until the user pressed Resume (#106, #107).
+        // 00:00 until the user pressed Resume.
         environment.elapseTimeWithoutTick(by: 45)
         // The heartbeat, arriving whenever it arrives.
         environment.clock.fireReconcile()
@@ -39,7 +39,7 @@ struct TimerResilienceTests {
 
         state.start()
         // Wall time passes while the awake-only clock stands still — evidence that cannot go
-        // missing the way a notification can (#87).
+        // missing the way a notification can.
         environment.sleepMachine(by: 3_600)
         environment.clock.fireReconcile()
 
@@ -84,7 +84,7 @@ struct TimerResilienceTests {
 
         state.start()
         // A DarkWake services background work with the display off; shattering there spends
-        // the break on nobody, which is why automatic recovery was rejected (#99, #107).
+        // the break on nobody, which is why automatic recovery was rejected.
         environment.isDisplayAwake = false
         await environment.advanceTime(by: 2)
 
@@ -121,9 +121,9 @@ struct TimerResilienceTests {
 
 /// The break-end window, when the break itself happened off-screen.
 ///
-/// #76 and #94 are one rule: an elapsed break is announced settled, with no shake and no
-/// sound. The DarkWake gate makes it easy to break, a presentation now being able to
-/// outlive the break it was queued for.
+/// One rule: an elapsed break is announced settled, with no shake and no sound. The DarkWake
+/// gate makes it easy to break, a presentation now being able to outlive the break it was
+/// queued for.
 @Suite("Break-end window after a dark screen", .tags(.timerState, .overlays), .timeLimit(.minutes(1)))
 struct DarkScreenBreakEndTests {
     @Test("a break that elapsed behind a dark screen is announced settled, not shattered")

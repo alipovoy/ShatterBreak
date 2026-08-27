@@ -2,16 +2,16 @@ import Foundation
 
 /// Something the world must do because the plan changed.
 ///
-/// The reducer decides *what*; the executor decides *when it is safe*. That split is what
-/// lets the plan advance during a DarkWake while the overlay waits for a screen (#99, #107).
+/// The reducer decides *what*, the executor *when it is safe* — which is what lets the plan
+/// advance during a DarkWake while the overlay waits for a screen.
 enum TimerEffect: Equatable {
     /// Settle screen-capture consent at the head of a work session, well before a break
-    /// needs it (#90).
+    /// needs it: presentation is instantaneous, a system dialog is not.
     case prepareCapturePermissions
     case showOverlay(OverlayPresentationStyle)
     case dismissOverlay
-    /// A held presentation is now out of date: the break it would announce has ended, so
-    /// present it settled, with no shake and no sound (#76, #94).
+    /// A held presentation is out of date: the break it would announce has ended, so present
+    /// it settled, with no shake and no sound.
     case settleHeldOverlay
     case record(StatisticsEvent)
     /// The stop→start boundary, where the opt-in statistics reset applies.
@@ -41,7 +41,7 @@ struct TimerPreferences: Equatable, Sendable {
     var postponeDuration: TimeInterval
     /// Whether work auto-starts once a break ends.
     var autoStartWork: Bool
-    /// An absence at least this long counts as the break itself (#69). Always passed
-    /// ``restDuration`` today; a parameter so that #71 is a preference read, not a redesign.
+    /// An absence at least this long counts as the break itself. Always passed
+    /// ``restDuration`` today; a parameter so making it configurable stays a one-line change.
     var awayResetThreshold: TimeInterval
 }

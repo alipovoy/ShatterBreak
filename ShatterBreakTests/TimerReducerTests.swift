@@ -70,7 +70,7 @@ struct TimerReducerTests {
         var driver = ReducerDriver(prefs: .testing(work: 3, rest: 60))
         driver.act(.start)
         // A boundary timer that never fired. The machine was awake throughout, so this is a
-        // lost callback, not an absence; it used to strand the timer at 00:00 (#106).
+        // lost callback, not an absence; it used to strand the timer at 00:00.
         driver.drift(45)
         driver.reconcile()
 
@@ -163,7 +163,7 @@ struct TimerReducerTests {
         let nextWork = driver.plan.intervalID
 
         // Views key their refresh loop on this; back-to-back sessions are identical in every
-        // other field, which is how the menu bar came to render a finished one (#108).
+        // other field, which is how the menu bar came to render a finished one.
         #expect(work != rest, "Work and its break must be distinguishable intervals.")
         #expect(rest != nextWork, "A break and the session after it must be distinguishable.")
         #expect(work != nextWork, "Consecutive work sessions must be distinguishable.")

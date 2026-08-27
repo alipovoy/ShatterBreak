@@ -4,9 +4,8 @@ import Foundation
 /// Performs the effects ``TimerReducer`` emits, and decides when it is safe to.
 ///
 /// The split exists because **macOS wakes with the display still dark**, and presenting a
-/// break there burns it against a blank screen — the reason automatic recovery was rejected
-/// in the #99 and #107 reviews. So the plan advances during a DarkWake, while anything
-/// facing the screen waits here, and the state machine stays free of display state.
+/// break there burns it against a blank screen. The plan advances during a DarkWake while
+/// anything facing the screen waits here, keeping display state out of the state machine.
 @MainActor
 final class TimerEffectExecutor {
     /// The world, as closures, mirroring the seams used for screen capture and overlays.
@@ -19,8 +18,8 @@ final class TimerEffectExecutor {
     }
 
     private let handlers: Handlers
-    /// Asked, not remembered: `screensDidWakeNotification` is a prompt to re-check, never
-    /// the truth. A break held behind a notification that never arrives is #87 again.
+    /// Asked, not remembered: `screensDidWakeNotification` is a prompt to re-check, never the
+    /// truth, and a break held behind a notification that never arrives is lost.
     private let isDisplayAwake: @MainActor () -> Bool
 
     /// The one presentation waiting for a screen. Not a queue: a second break replaces the
@@ -59,7 +58,7 @@ final class TimerEffectExecutor {
         switch effect {
         case .prepareCapturePermissions:
             // Not gated: it puts nothing on screen, and holding it back is how consent ends
-            // up being asked for mid-break (#90).
+            // up being asked for mid-break.
             handlers.prepareCapture()
 
         case .showOverlay(let style):

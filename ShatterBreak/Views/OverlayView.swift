@@ -89,7 +89,7 @@ struct OverlayView: View {
     }
 
     /// Shatter stages its own entrance through the shake-and-crack sequence, so it appears
-    /// at full opacity; the other effects fade in rather than snapping on (#62).
+    /// at full opacity; the other effects fade in rather than snapping on.
     private var introOpacity: Double {
         guard presentation.isShatterEffect == false else { return 1 }
         return hasAppeared ? 1 : 0

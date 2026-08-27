@@ -69,7 +69,7 @@ struct ReducerDriver {
 
 extension TimerPreferences {
     /// Short durations so scenarios read in seconds. `awayResetThreshold` tracks
-    /// `restDuration`, as the app passes it today (#71).
+    /// `restDuration`, as the app passes it today.
     static func testing(
         work: TimeInterval = 10,
         rest: TimeInterval = 5,

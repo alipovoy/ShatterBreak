@@ -7,7 +7,7 @@ import Testing
 ///
 /// The label's refresh task ends at zero and only a new key revives it. Keying on `mode`
 /// was not enough: work auto-resuming after an absence leaves it at `.running`, so the
-/// label kept the finished interval's last frame while a fresh session counted down (#108).
+/// label kept the finished interval's last frame while a fresh session counted down.
 @Suite("Countdown interval identity", .tags(.timerState, .sleepWake), .timeLimit(.minutes(1)))
 struct CountdownIntervalIdentityTests {
     @Test("a fresh session on wake changes the countdown identity even in the same mode")

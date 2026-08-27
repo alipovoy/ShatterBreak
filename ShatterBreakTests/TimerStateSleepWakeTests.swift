@@ -193,7 +193,7 @@ struct TimerStateSleepWakeTests {
         state.start()
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
         // Stop lands before the wake, so the absence is still open when the cycle resets. It
-        // must not follow the user into the next one (#87), where a leaked eight seconds
+        // must not follow the user into the next one, where a leaked eight seconds
         // would read as a break already taken.
         environment.elapseTimeWithoutTick(by: 8)
         state.stop()
@@ -220,14 +220,14 @@ struct TimerStateSleepWakeTests {
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
 
         // Work runs out while the machine is asleep. The old design deferred the transition
-        // until a wake authorised it, which is why a wake that never came stalled the timer
-        // (#87). Now the reconcile that observes the boundary resolves it.
+        // until a wake authorised it, which is why a wake that never came stalled the timer.
+        // Now the reconcile that observes the boundary resolves it.
         await environment.advanceTime(by: 3)
         #expect(state.isResting, "The boundary must resolve when it is observed, not when a notification allows it.")
         #expect(state.timeRemaining == 2, "The whole absence is credited as rest (5 - 3).")
 
         // Safety is the executor's job: the plan advances during a dark wake, and only the
-        // presentation waits for a screen (#99, #107).
+        // presentation waits for a screen.
         #expect(recorder.showCount == 1, "With a display awake, the break is presented as usual.")
 
         notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
@@ -251,7 +251,7 @@ struct TimerStateSleepWakeTests {
         #expect(state.awaitingReturn, "Manual mode should park in awaiting-return after the break.")
 
         // This window can sit for hours. An absence carried into it would credit all of that
-        // as a break the moment the user starts, resetting the session they asked for (#89).
+        // as a break the moment the user starts, resetting the session they asked for.
         state.start()
         #expect(state.timeRemaining == 1, "The session the user started must begin whole.")
     }

@@ -3,8 +3,8 @@ import SwiftUI
 /// An observable shell around a plan, a reducer and an effect executor.
 ///
 /// It owns no rules: ``TimerPlan`` says what the timer is and ``TimerReducer`` what it does
-/// next. This type snapshots preferences, hands the reducer a moment, publishes the result
-/// and asks the clock to come back — so state changes in one place, purely (#89).
+/// next. This snapshots preferences, hands the reducer a moment, publishes the result and
+/// asks the clock to come back.
 @MainActor
 @Observable
 final class TimerState {
@@ -73,7 +73,7 @@ final class TimerState {
     /// Identifies the interval on the clock, for views to key their refresh loop on.
     ///
     /// The phase cannot stand in: work auto-resuming after a break leaves it unchanged, so a
-    /// view keyed on phase alone keeps rendering the finished interval (#108).
+    /// view keyed on phase alone keeps rendering the finished interval.
     var countdownIntervalID: Int { plan.intervalID }
 
     /// The remaining time at the clock's current moment.
@@ -98,7 +98,7 @@ final class TimerState {
     /// the app.
     let postponeDurationOverride: Double?
 
-    /// Tallies sessions, breaks, postpones and early returns (#10).
+    /// Tallies sessions, breaks, postpones and early returns.
     let statistics: StatisticsStore
 
     let defaults: any KeyValueStore
@@ -120,17 +120,17 @@ final class TimerState {
             restDuration: restDurationSecs,
             postponeDuration: postponeDurationSecs,
             autoStartWork: autoStartWorkTimer,
-            // Always the break duration for now. Making it configurable is #71, and this
-            // being a parameter from the start is what keeps that a one-line change.
+            // Always the break duration for now; a parameter so making it configurable
+            // stays a one-line change.
             awayResetThreshold: restDurationSecs
         )
     }
 
     // MARK: - Initialization
 
-    /// - Parameter initialPlan: the plan to open on, for previews that need a phase on
-    ///   screen without driving a countdown to reach one. Whole-value at construction, so
-    ///   ``commit(_:)`` remains the only writer of `plan`. Nothing is scheduled for it.
+    /// - Parameter initialPlan: the plan to open on, for previews needing a phase on screen
+    ///   without driving a countdown to reach one. Set whole at construction, so ``commit(_:)``
+    ///   remains the only writer of `plan`. Nothing is scheduled for it.
     init(
         overlays: OverlayPresenter,
         postponeDurationSecs: Double? = nil,
@@ -166,7 +166,7 @@ final class TimerState {
             ?? TimerEffectExecutor(handlers: handlers)
 
         // For the object's whole life, not only while counting: subscribing per countdown is
-        // how a notification came to arrive with nobody listening (#87).
+        // how a notification comes to arrive with nobody listening.
         sleepWakeObserver.startObserving(
             onSleep: { [weak self] in self?.perform(.observedSleep) },
             onWake: { [weak self] in self?.perform(.observedWake) }
@@ -204,11 +204,8 @@ final class TimerState {
     /// The overlay's "I'm back" action.
     func returnToWork() { perform(.returnToWork) }
 
-    /// Starts a work session at launch when the user has opted in.
-    ///
-    /// Guarded to `.idle` so it only fires for a fresh launch and never disrupts an
-    /// already-active cycle if invoked more than once. There is no session to restore: the
-    /// plan is deliberately not persisted, so a relaunch or a crash starts clean.
+    /// Guarded to `.idle` so a second call never disrupts an active cycle. There is no
+    /// session to restore: the plan is deliberately not persisted.
     func autoStartIfEnabled() {
         let enabled = defaults.object(forKey: PreferenceKeys.autoStartOnLaunch) as? Bool
         guard mode == .idle, enabled ?? PreferenceDefaults.autoStartOnLaunch else { return }
@@ -217,8 +214,8 @@ final class TimerState {
 
     // MARK: - Reconciliation
 
-    /// Brings the published state up to date. Safe to call from anywhere, as often as
-    /// anything likes — that is what the reducer's idempotency buys.
+    /// Safe to call from anywhere, as often as anything likes — that is what the reducer's
+    /// idempotency buys.
     func reconcile() {
         commit(TimerReducer.advance(plan, to: clock.instant, prefs: preferences))
         rearm()
