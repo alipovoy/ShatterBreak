@@ -45,17 +45,19 @@ final class BreakEffectTrial {
         end()
     }
 
-    /// There is one break window, so a sample during a real break would replace it.
-    var canStart: Bool {
-        isRunning == false && timer.isResting == false && timer.awaitingReturn == false
-    }
+    var canStart: Bool { isRunning == false && breakWindowIsFree }
 
-    func start() {
+    func start() async {
         guard canStart else { return }
         isRunning = true
 
-        // Show whatever consent a break arriving this second would get.
-        overlays.prepare()
+        // Awaited, unlike the timer's own preparation: the sample is presented in the next
+        // breath, and an unsettled capture consent renders the fallback effect instead of
+        // the one being sampled.
+        await overlays.prepare()
+
+        // A real break may have claimed the window meanwhile, and presenting would take it.
+        guard isRunning, breakWindowIsFree else { return end() }
 
         // A notification centre of its own, which nothing posts to. Wired to the workspace's,
         // a display sleep inside these few seconds would drive the sample's reducer and let it
@@ -113,6 +115,11 @@ final class BreakEffectTrial {
             overlays.dismiss()
         }
         sample = nil
+    }
+
+    /// There is one break window, so a sample during a real break would replace it.
+    private var breakWindowIsFree: Bool {
+        timer.isResting == false && timer.awaitingReturn == false
     }
 
     private var overlays: OverlayPresenter { timer.overlays }

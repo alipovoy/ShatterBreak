@@ -23,7 +23,7 @@ final class ScreenCapturePermissionManager {
     private static let directCaptureDeclinedKey = "com.shatterbreak.directCaptureDeclined"
 
     private var appActiveObserver: AppActiveObserver?
-    private var isConfirmingDirectCapture = false
+    private var confirmation: Task<Void, Never>?
     private var hasRequestedAccessThisLaunch = false
     private let defaults: any KeyValueStore
     private let appNotificationCenter: NotificationCenter
@@ -68,18 +68,22 @@ final class ScreenCapturePermissionManager {
         refresh()
         requestAccessIfNeeded()
 
-        guard hasScreenRecordingAccess,
-              directCaptureAccess != .refused,
-              isConfirmingDirectCapture == false
-        else {
-            return
+        guard hasScreenRecordingAccess, directCaptureAccess != .refused else { return }
+
+        // A probe already out is joined, not skipped: returning early would hand the caller
+        // an answer that has not arrived yet.
+        if let confirmation {
+            return await confirmation.value
         }
 
-        isConfirmingDirectCapture = true
-        let isAllowed = await permissionClient.confirmDirectCaptureAccess()
-        isConfirmingDirectCapture = false
-        directCaptureAccess = isAllowed ? .allowed : .refused
-        defaults.set(isAllowed == false, forKey: Self.directCaptureDeclinedKey)
+        let task = Task {
+            let isAllowed = await permissionClient.confirmDirectCaptureAccess()
+            directCaptureAccess = isAllowed ? .allowed : .refused
+            defaults.set(isAllowed == false, forKey: Self.directCaptureDeclinedKey)
+            confirmation = nil
+        }
+        confirmation = task
+        await task.value
     }
 
     /// Re-opens the system's direct-capture dialog, clearing a remembered decline.

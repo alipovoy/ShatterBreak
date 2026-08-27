@@ -39,11 +39,11 @@ struct BreakEffectTrialTests {
     }
 
     @Test("a sample is presented like a break beginning now")
-    func samplePresentsAnimated() {
+    func samplePresentsAnimated() async {
         let overlays = OverlayRecorder()
         let trial = makeTrial(overlays)
 
-        trial.start()
+        await trial.start()
 
         #expect(overlays.showCount == 1)
         #expect(overlays.lastSettled == false, "The entrance is most of what there is to judge.")
@@ -51,13 +51,60 @@ struct BreakEffectTrialTests {
         #expect(trial.isRunning)
     }
 
+    @Test("a sample waits for capture consent before it is presented")
+    func samplePresentsOnlyOnceConsentIsSettled() async {
+        let overlays = OverlayRecorder()
+        let trial = makeTrial(overlays, duration: .seconds(30))
+        overlays.holdPrepare()
+
+        let starting = Task { await trial.start() }
+        await overlays.prepared(1)
+
+        #expect(overlays.showCount == 0, "An unsettled consent samples the fallback effect.")
+
+        overlays.releasePrepare()
+        await starting.value
+
+        #expect(overlays.showCount == 1)
+        trial.end()
+    }
+
+    @Test("a break falling due while consent settles keeps the screen to itself")
+    func aBreakDuringPreparationCancelsTheSample() async {
+        let overlays = OverlayRecorder()
+        let defaults = InMemoryKeyValueStore()
+        defaults.set(60.0, forKey: PreferenceKeys.workDurationSecs)
+        let clock = ManualTimerClock()
+        let timer = TimerState(overlays: overlays.presenter, defaults: defaults, clock: clock)
+        let trial = BreakEffectTrial(
+            timer: timer,
+            duration: .seconds(30),
+            sampleClock: ManualTimerClock()
+        )
+        overlays.holdPrepare()
+
+        let starting = Task { await trial.start() }
+        await overlays.prepared(1)
+
+        timer.start()
+        clock.advance(by: 60)
+        #expect(timer.isResting)
+        let breakShows = overlays.showCount
+
+        overlays.releasePrepare()
+        await starting.value
+
+        #expect(overlays.showCount == breakShows, "Presenting would have torn the break down.")
+        #expect(trial.isRunning == false)
+    }
+
     @Test("the sample's clock reads like the user's own break")
-    func sampleUsesTheConfiguredRestDuration() throws {
+    func sampleUsesTheConfiguredRestDuration() async throws {
         let defaults = InMemoryKeyValueStore()
         defaults.set(420.0, forKey: PreferenceKeys.restDurationSecs)
         let overlays = OverlayRecorder()
 
-        makeTrial(overlays, defaults: defaults).start()
+        await makeTrial(overlays, defaults: defaults).start()
 
         let sample = try #require(overlays.lastState)
         #expect(sample.isResting)
@@ -65,28 +112,28 @@ struct BreakEffectTrialTests {
     }
 
     @Test("starting again while a sample is up does not stack a second one")
-    func startIsIdempotentWhileRunning() {
+    func startIsIdempotentWhileRunning() async {
         let overlays = OverlayRecorder()
         let trial = makeTrial(overlays)
 
-        trial.start()
-        trial.start()
+        await trial.start()
+        await trial.start()
 
         #expect(overlays.showCount == 1)
     }
 
     @Test("ending dismisses the sample and allows another")
-    func endDismissesAndReleases() {
+    func endDismissesAndReleases() async {
         let overlays = OverlayRecorder()
         let trial = makeTrial(overlays)
 
-        trial.start()
+        await trial.start()
         trial.end()
 
         #expect(overlays.dismissCount == 1)
         #expect(trial.isRunning == false)
 
-        trial.start()
+        await trial.start()
         #expect(overlays.showCount == 2, "A finished sample must not block the next one.")
     }
 
@@ -104,7 +151,7 @@ struct BreakEffectTrialTests {
         let overlays = OverlayRecorder()
         let trial = makeTrial(overlays, duration: .milliseconds(20))
 
-        trial.start()
+        await trial.start()
         try await Task.sleep(for: .milliseconds(200))
 
         #expect(overlays.dismissCount == 1, "Nobody should have to dismiss a sample they asked for.")
@@ -112,37 +159,37 @@ struct BreakEffectTrialTests {
     }
 
     @Test("a sample does not outlive whatever put it up")
-    func discardingTheTrialTakesTheSampleWithIt() {
+    func discardingTheTrialTakesTheSampleWithIt() async {
         let overlays = OverlayRecorder()
 
         // Preferences closing mid-sample, which releases the trial it owns.
         do {
             let trial = makeTrial(overlays)
-            trial.start()
+            await trial.start()
         }
 
         #expect(overlays.dismissCount == 1, "A sample nobody owns is a break screen nobody can dismiss.")
     }
 
     @Test("a sample is refused while a real break owns the screen")
-    func noSampleDuringARealBreak() {
+    func noSampleDuringARealBreak() async {
         let overlays = OverlayRecorder()
         let resting = makeTimer(overlays, showing: .starting(.rest, duration: 300))
         let trial = BreakEffectTrial(timer: resting, duration: .milliseconds(20))
 
         #expect(trial.canStart == false)
-        trial.start()
+        await trial.start()
 
         #expect(overlays.showCount == 0, "There is one break window, and the break already has it.")
     }
 
     @Test("a break falling due mid-sample keeps the screen")
-    func aRealBreakTakesTheWindowFromTheSample() {
+    func aRealBreakTakesTheWindowFromTheSample() async {
         let overlays = OverlayRecorder()
         let timer = makeTimer(overlays)
         let trial = BreakEffectTrial(timer: timer, duration: .milliseconds(20))
 
-        trial.start()
+        await trial.start()
         // Presented through the same presenter, which makes it the window's owner.
         overlays.presenter.show(timer, .animated)
         trial.end()
@@ -152,11 +199,11 @@ struct BreakEffectTrialTests {
     }
 
     @Test("the user's first key or click ends the sample and goes no further")
-    func interruptingTakesTheEventAndTheSample() {
+    func interruptingTakesTheEventAndTheSample() async {
         let overlays = OverlayRecorder()
         let trial = makeTrial(overlays)
 
-        trial.start()
+        await trial.start()
 
         #expect(trial.interrupt(), "The click was meant for the sample, not for what is under it.")
         #expect(trial.isRunning == false)
@@ -164,12 +211,12 @@ struct BreakEffectTrialTests {
     }
 
     @Test("a click meant for a real break is not eaten by a finished sample")
-    func interruptingPassesOnEventsThatBelongToARealBreak() {
+    func interruptingPassesOnEventsThatBelongToARealBreak() async {
         let overlays = OverlayRecorder()
         let timer = makeTimer(overlays)
         let trial = BreakEffectTrial(timer: timer, duration: .seconds(30), sampleClock: ManualTimerClock())
 
-        trial.start()
+        await trial.start()
         overlays.presenter.show(timer, .animated)
 
         #expect(trial.interrupt() == false, "That key press was the user answering their break.")
@@ -178,11 +225,11 @@ struct BreakEffectTrialTests {
     }
 
     @Test("a sample is deaf to the machine sleeping")
-    func sampleDoesNotObserveWorkspaceNotifications() {
+    func sampleDoesNotObserveWorkspaceNotifications() async {
         let overlays = OverlayRecorder()
         // Held, not discarded: a released trial dismisses its own sample from `deinit`.
         let trial = makeTrial(overlays, duration: .seconds(30))
-        trial.start()
+        await trial.start()
 
         // The sample shares the app's presenter, so a reducer running inside it could take
         // the break window down with it.
@@ -201,13 +248,13 @@ struct BreakEffectTrialTests {
     }
 
     @Test("nothing a sample does is counted")
-    func sampleNeverTouchesTheRealTally() throws {
+    func sampleNeverTouchesTheRealTally() async throws {
         let defaults = InMemoryKeyValueStore()
         defaults.set(true, forKey: PreferenceKeys.trackStatistics)
         defaults.set(true, forKey: PreferenceKeys.allowPostpone)
         let overlays = OverlayRecorder()
 
-        makeTrial(overlays, defaults: defaults).start()
+        await makeTrial(overlays, defaults: defaults).start()
         let sample = try #require(overlays.lastState)
         sample.postpone()
 
