@@ -141,9 +141,33 @@ struct TimerStateStatisticsTests {
         #expect(state.statistics.current.breaksCompleted == 1, "The routine return should not count another break.")
     }
 
-    @Test("an absence that serves as the break counts neither work nor break")
+    @Test("an absence that serves as the break is tallied as one, end to end")
     @MainActor
-    func absenceAsBreakCountsNeither() async {
+    func absenceAsBreakCountsTheBreak() async {
+        let environment = TestEnvironment()
+        let state = makeTrackedState(environment)
+        state.workDurationSecs = 10
+        state.restDurationSecs = 3
+
+        state.start()
+        // At the desk for a break's worth of work, then away for longer than a break.
+        await environment.advanceTime(ticks: 4)
+        let notificationCenter = environment.workspaceNotificationCenter
+        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        environment.elapseTimeWithoutTick(by: 4)
+        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+
+        #expect(state.mode == .running, "Auto mode should begin a fresh session after the absence.")
+        #expect(state.statistics.current.breaksCompleted == 1, "The absence was the break, and reaches the store.")
+        #expect(
+            state.statistics.current.workSessionsCompleted == 0,
+            "The work countdown never finished at the desk, so no session completed."
+        )
+    }
+
+    @Test("an absence that begins before any work is done counts neither")
+    @MainActor
+    func absenceBeforeAnyWorkCountsNeither() async {
         let environment = TestEnvironment()
         let state = makeTrackedState(environment)
         state.workDurationSecs = 10
@@ -152,13 +176,12 @@ struct TimerStateStatisticsTests {
         state.start()
         let notificationCenter = environment.workspaceNotificationCenter
         notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
-        // Away at least a full break while mid-work: the absence replaces the break.
         environment.elapseTimeWithoutTick(by: 4)
         notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
 
         #expect(state.mode == .running, "Auto mode should begin a fresh session after the absence.")
         #expect(state.statistics.current.workSessionsCompleted == 0, "The work countdown never finished.")
-        #expect(state.statistics.current.breaksCompleted == 0, "No on-screen break ran.")
+        #expect(state.statistics.current.breaksCompleted == 0, "Nobody was here long enough to earn a break.")
     }
 
     @Test("an absence spilling into the break counts the work session; the resumed break counts on completion")

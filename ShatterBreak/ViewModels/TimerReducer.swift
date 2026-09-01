@@ -37,7 +37,7 @@ enum TimerReducer {
             // Before the boundary check: a long enough absence settles the cycle whether or
             // not the countdown ran out while the user was away.
             if absence > 0, absence >= prefs.awayResetThreshold {
-                let tally = absenceTally(plan, at: instant, absence: absence)
+                let tally = absenceTally(plan, at: instant, prefs: prefs, absence: absence)
                 let (next, effects) = finishBreak(
                     plan.spendingAbsence(at: instant),
                     at: instant,
@@ -63,27 +63,6 @@ enum TimerReducer {
             )
             return untallied((next, [.record(.breakCompleted)] + effects), if: unattendedCycle)
         }
-    }
-
-    /// What a cycle settled by an absence is owed in the tally (issue #111): the break, which
-    /// the absence *was*, and the work session if its countdown also ran out.
-    ///
-    /// Both turn on whether anyone was here for part of the phase — an absence covering the
-    /// whole of it is the empty room restarting itself, not a break someone took. That test
-    /// is the absence against the elapsed phase, not against its duration: a lunch outlasting
-    /// one work period is still a break earned by the morning that preceded it.
-    ///
-    /// A postponed session was counted when it first entered rest, so only its break is left
-    /// to record.
-    private static func absenceTally(
-        _ plan: TimerPlan,
-        at instant: TimerInstant,
-        absence: TimeInterval
-    ) -> [TimerEffect] {
-        let elapsed = instant.date.timeIntervalSince(plan.startedAt)
-        guard absence > 0, absence < elapsed else { return [] }
-        let completedWork = plan.phase == .work && plan.rawRemaining(at: instant.date) <= 0
-        return (completedWork ? [.record(.workSessionCompleted)] : []) + [.record(.breakCompleted)]
     }
 
     /// Drops the statistics of a crossing made in an empty room, matching the away-reset
@@ -291,7 +270,7 @@ enum TimerReducer {
         // break was served by the absence and is owed the same tally (issue #111).
         guard breakRemaining > 0 else {
             let (next, effects) = finishBreak(plan, at: instant, prefs: prefs, presenting: true)
-            return (next, absenceTally(plan, at: instant, absence: absence) + effects)
+            return (next, absenceTally(plan, at: instant, prefs: prefs, absence: absence) + effects)
         }
 
         // A resumed postponed break was already counted when it first entered rest.
@@ -355,6 +334,31 @@ enum TimerReducer {
         plan.lastSeen = instant
         plan.intervalID += 1
         return plan
+    }
+}
+
+private extension TimerReducer {
+    /// The tally a cycle settled by an absence is owed (issue #111): the break the absence
+    /// stood in for, and nothing else.
+    ///
+    /// No work session. One finished at the desk is already counted by the boundary it
+    /// crossed, so the only session this could add is a countdown the wall clock ran out on
+    /// with nobody there — a minute of work before a closed lid is not a session worked.
+    ///
+    /// The break goes only to a session someone sat through for a break's worth before
+    /// leaving. Below that there is no telling a walk away from the seconds of running time
+    /// between two stretches of sleep, which would otherwise bank a break a night at a time.
+    /// Attended time reads negative for a session restarted in the dark, which the same floor
+    /// turns away.
+    static func absenceTally(
+        _ plan: TimerPlan,
+        at instant: TimerInstant,
+        prefs: TimerPreferences,
+        absence: TimeInterval
+    ) -> [TimerEffect] {
+        let attended = instant.date.timeIntervalSince(plan.startedAt) - absence
+        guard absence > 0, attended >= prefs.restDuration else { return [] }
+        return [.record(.breakCompleted)]
     }
 }
 

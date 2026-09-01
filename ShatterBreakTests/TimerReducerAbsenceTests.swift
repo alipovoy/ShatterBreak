@@ -33,12 +33,12 @@ struct TimerReducerAbsenceTests {
         #expect(driver.phase == .work, "An absence that served as the break resumes work (issue #69).")
         #expect(driver.remaining == 10, "The session is fresh, not the stale one the user walked away from.")
         #expect(
-            driver.count(of: .record(.workSessionCompleted)) == 1,
-            "The countdown ran out during the absence, so the session completed (issue #111)."
-        )
-        #expect(
             driver.count(of: .record(.breakCompleted)) == 1,
             "The absence is the break: the route that serves one must tally one (issue #111)."
+        )
+        #expect(
+            driver.count(of: .record(.workSessionCompleted)) == 0,
+            "A countdown the absence ran out is not a session worked; only the boundary counts those."
         )
     }
 
@@ -194,98 +194,6 @@ struct TimerReducerAbsenceTests {
         #expect(driver.lastEffects.isEmpty, "A paused timer owes the world nothing.")
     }
 
-    // MARK: - The tally an absence earns (issue #111)
-
-    @Test("walking away mid-session counts the break it served, but not the session")
-    func absenceMidSessionCountsTheBreakOnly() {
-        var driver = ReducerDriver(prefs: .testing(work: 100, rest: 5))
-        driver.act(.start)
-        driver.run(10)
-        driver.sleepMachine(20)
-        driver.reconcile()
-
-        #expect(driver.phase == .work, "The absence served as the break, so a fresh session starts.")
-        #expect(driver.count(of: .record(.breakCompleted)) == 1, "The twenty seconds away were a break taken.")
-        #expect(
-            driver.count(of: .record(.workSessionCompleted)) == 0,
-            "Ten seconds of a hundred is not a session completed; only the countdown running out is."
-        )
-    }
-
-    @Test("a lunch longer than the work period still counts the morning that earned it")
-    func absenceOutlastingTheWorkPeriodCountsTheSession() {
-        var driver = ReducerDriver(prefs: .testing(work: 1_800, rest: 300))
-        driver.act(.start)
-        driver.run(1_500)
-        // An hour away: longer than the whole work period, but not longer than the session
-        // that has been running since the user sat down.
-        driver.sleepMachine(3_600)
-        driver.reconcile()
-
-        #expect(
-            driver.count(of: .record(.workSessionCompleted)) == 1,
-            "Judging presence by the absence against the phase's *duration* would drop this session."
-        )
-        #expect(driver.count(of: .record(.breakCompleted)) == 1, "The lunch was the break.")
-    }
-
-    @Test("a break served by an absence during postponed work counts the break alone")
-    func absenceDuringPostponedWorkCountsTheBreakOnly() {
-        var driver = ReducerDriver(prefs: .testing(work: 8, rest: 5, postpone: 4))
-        driver.act(.start)
-        driver.run(8)
-        driver.act(.postpone)
-        driver.run(2)
-        driver.sleepMachine(6)
-        driver.reconcile()
-
-        #expect(driver.phase == .work, "The absence covered the postponed break, so a fresh session starts.")
-        #expect(driver.count(of: .record(.breakCompleted)) == 1, "The break the user put off was finally taken.")
-        #expect(
-            driver.count(of: .record(.workSessionCompleted)) == 1,
-            "The session counted when it first entered rest; the postponed remainder must not count another."
-        )
-    }
-
-    @Test("an absence too short to reset still counts the postponed break it covered")
-    func absenceCoveringSavedBreakCountsIt() {
-        var driver = ReducerDriver(prefs: .testing(work: 1, rest: 10, postpone: 5))
-        driver.act(.start)
-        driver.run(1)
-        driver.run(8)
-        // 2s of break left when the postpone starts.
-        driver.act(.postpone)
-        driver.run(2)
-        // 4s away: under the 10s away-reset threshold, so this crosses the postponed-work
-        // boundary rather than resetting — and covers the whole 2s remainder on the way.
-        driver.sleepMachine(4)
-        driver.reconcile()
-
-        #expect(driver.phase == .work, "The saved break the absence covered leaves nothing to resume.")
-        #expect(
-            driver.count(of: .record(.breakCompleted)) == 1,
-            "A break served by an absence counts on this route too, not only past the threshold (issue #111)."
-        )
-        #expect(
-            driver.count(of: .record(.workSessionCompleted)) == 1,
-            "The session counted when it first entered rest; the covered remainder must not count another."
-        )
-    }
-
-    @Test("an absence covering a whole session counts nothing, however it was measured")
-    func absenceCoveringTheWholePhaseCountsNothing() {
-        var driver = ReducerDriver(prefs: .testing(work: 1_500, rest: 300))
-        driver.act(.start)
-        // Away from the moment the session began, with no sleep notification to mark it: the
-        // empty room restarting itself, which `ranUnattended` alone would not catch.
-        driver.sleepMachine(3_600)
-        driver.reconcile()
-
-        #expect(driver.phase == .work, "The session still restarts; only the tally is withheld.")
-        #expect(driver.count(of: .record(.workSessionCompleted)) == 0, "Nobody worked a second of it.")
-        #expect(driver.count(of: .record(.breakCompleted)) == 0, "Nor was there anyone to take the break.")
-    }
-
     // MARK: - The catch-up trap
 
     @Test("a three-hour absence resolves once, not once per cycle it spans")
@@ -385,7 +293,7 @@ struct TimerReducerAbsenceTests {
         )
         #expect(
             driver.count(of: .record(.breakCompleted)) == 0,
-            "One absence, one decision: the wake must not re-tally a break the crossings already resolved."
+            "Nobody was at the machine for any of this, so no break was taken to count."
         )
     }
 
