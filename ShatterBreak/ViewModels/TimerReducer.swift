@@ -81,7 +81,7 @@ enum TimerReducer {
         absence: TimeInterval
     ) -> [TimerEffect] {
         let elapsed = instant.date.timeIntervalSince(plan.startedAt)
-        guard absence < elapsed else { return [] }
+        guard absence > 0, absence < elapsed else { return [] }
         let completedWork = plan.phase == .work && plan.rawRemaining(at: instant.date) <= 0
         return (completedWork ? [.record(.workSessionCompleted)] : []) + [.record(.breakCompleted)]
     }
@@ -287,9 +287,11 @@ enum TimerReducer {
         let breakRemaining = breakDuration - absence
 
         // Only reachable when a postpone left less than a full break and the absence covered
-        // it; a regular break is guarded by the away-reset rule above.
+        // it; a regular break is guarded by the away-reset rule above. Short as it was, that
+        // break was served by the absence and is owed the same tally (issue #111).
         guard breakRemaining > 0 else {
-            return finishBreak(plan, at: instant, prefs: prefs, presenting: true)
+            let (next, effects) = finishBreak(plan, at: instant, prefs: prefs, presenting: true)
+            return (next, absenceTally(plan, at: instant, absence: absence) + effects)
         }
 
         // A resumed postponed break was already counted when it first entered rest.

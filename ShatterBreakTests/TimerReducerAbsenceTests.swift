@@ -247,6 +247,31 @@ struct TimerReducerAbsenceTests {
         )
     }
 
+    @Test("an absence too short to reset still counts the postponed break it covered")
+    func absenceCoveringSavedBreakCountsIt() {
+        var driver = ReducerDriver(prefs: .testing(work: 1, rest: 10, postpone: 5))
+        driver.act(.start)
+        driver.run(1)
+        driver.run(8)
+        // 2s of break left when the postpone starts.
+        driver.act(.postpone)
+        driver.run(2)
+        // 4s away: under the 10s away-reset threshold, so this crosses the postponed-work
+        // boundary rather than resetting — and covers the whole 2s remainder on the way.
+        driver.sleepMachine(4)
+        driver.reconcile()
+
+        #expect(driver.phase == .work, "The saved break the absence covered leaves nothing to resume.")
+        #expect(
+            driver.count(of: .record(.breakCompleted)) == 1,
+            "A break served by an absence counts on this route too, not only past the threshold (issue #111)."
+        )
+        #expect(
+            driver.count(of: .record(.workSessionCompleted)) == 1,
+            "The session counted when it first entered rest; the covered remainder must not count another."
+        )
+    }
+
     @Test("an absence covering a whole session counts nothing, however it was measured")
     func absenceCoveringTheWholePhaseCountsNothing() {
         var driver = ReducerDriver(prefs: .testing(work: 1_500, rest: 300))
