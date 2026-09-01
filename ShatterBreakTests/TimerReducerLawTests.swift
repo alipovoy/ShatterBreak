@@ -100,12 +100,16 @@ struct TimerReducerLawTests {
     func advanceCrossesAtMostOneBoundary() {
         for scenario in scenarios(seed: 0x5EED_0004, count: 800) {
             let (_, effects) = TimerReducer.advance(scenario.plan, to: scenario.instant, prefs: scenario.prefs)
-            let completions = effects.filter { $0 == .record(.workSessionCompleted) || $0 == .record(.breakCompleted) }
+            // Per kind, not in total: an absence standing in for the break settles a whole
+            // cycle at once, so one session *and* one break is a correct reconcile (issue
+            // #111). Two of either would be the replay this rules out.
+            let sessions = effects.filter { $0 == .record(.workSessionCompleted) }
+            let breaks = effects.filter { $0 == .record(.breakCompleted) }
 
             // Rules out a `while remaining <= 0 { cross() }` loop replaying a three-hour
             // sleep as four cycles and four overlays.
             #expect(
-                completions.count <= 1,
+                sessions.count <= 1 && breaks.count <= 1,
                 "A single reconcile must never bank more than one completion — \(scenario.description)"
             )
             #expect(

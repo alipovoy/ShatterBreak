@@ -37,7 +37,14 @@ enum TimerReducer {
             // Before the boundary check: a long enough absence settles the cycle whether or
             // not the countdown ran out while the user was away.
             if absence > 0, absence >= prefs.awayResetThreshold {
-                return finishBreak(plan.spendingAbsence(at: instant), at: instant, prefs: prefs, presenting: true)
+                let tally = absenceTally(plan, at: instant, absence: absence)
+                let (next, effects) = finishBreak(
+                    plan.spendingAbsence(at: instant),
+                    at: instant,
+                    prefs: prefs,
+                    presenting: true
+                )
+                return untallied((next, tally + effects), if: unattendedCycle)
             }
             guard plan.rawRemaining(at: instant.date) <= 0 else { return (plan, []) }
             return untallied(
@@ -58,8 +65,29 @@ enum TimerReducer {
         }
     }
 
+    /// What a cycle settled by an absence is owed in the tally (issue #111): the break, which
+    /// the absence *was*, and the work session if its countdown also ran out.
+    ///
+    /// Both turn on whether anyone was here for part of the phase — an absence covering the
+    /// whole of it is the empty room restarting itself, not a break someone took. That test
+    /// is the absence against the elapsed phase, not against its duration: a lunch outlasting
+    /// one work period is still a break earned by the morning that preceded it.
+    ///
+    /// A postponed session was counted when it first entered rest, so only its break is left
+    /// to record.
+    private static func absenceTally(
+        _ plan: TimerPlan,
+        at instant: TimerInstant,
+        absence: TimeInterval
+    ) -> [TimerEffect] {
+        let elapsed = instant.date.timeIntervalSince(plan.startedAt)
+        guard absence < elapsed else { return [] }
+        let completedWork = plan.phase == .work && plan.rawRemaining(at: instant.date) <= 0
+        return (completedWork ? [.record(.workSessionCompleted)] : []) + [.record(.breakCompleted)]
+    }
+
     /// Drops the statistics of a crossing made in an empty room, matching the away-reset
-    /// route above, which records nothing at all.
+    /// route above, which counts nothing it cannot show someone was here for.
     ///
     /// Only the tally: the transition and its overlay still happen, since a lost wake must
     /// never leave the timer parked.
