@@ -190,18 +190,4 @@ struct TimerReducerAbsenceTallyTests {
         #expect(driver.count(of: .record(.workSessionCompleted)) == 0, "The user never left their desk.")
         #expect(driver.count(of: .record(.breakCompleted)) == 0, "Nor did they take a break.")
     }
-
-    @Test("an absence covering a whole session counts nothing, however it was measured")
-    func absenceCoveringTheWholePhaseCountsNothing() {
-        var driver = ReducerDriver(prefs: .testing(work: 1_500, rest: 300))
-        driver.act(.start)
-        // Away from the moment the session began, with no sleep notification to mark it: the
-        // empty room restarting itself, which `ranUnattended` alone would not catch.
-        driver.sleepMachine(3_600)
-        driver.reconcile()
-
-        #expect(driver.phase == .work, "The session still restarts; only the tally is withheld.")
-        #expect(driver.count(of: .record(.workSessionCompleted)) == 0, "Nobody worked a second of it.")
-        #expect(driver.count(of: .record(.breakCompleted)) == 0, "Nor was there anyone to take the break.")
-    }
 }

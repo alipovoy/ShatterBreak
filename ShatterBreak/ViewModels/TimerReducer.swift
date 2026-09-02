@@ -37,14 +37,10 @@ enum TimerReducer {
             // Before the boundary check: a long enough absence settles the cycle whether or
             // not the countdown ran out while the user was away.
             if absence > 0, absence >= prefs.awayResetThreshold {
-                let tally = absenceTally(plan, at: instant, prefs: prefs, absence: absence)
-                let (next, effects) = finishBreak(
-                    plan.spendingAbsence(at: instant),
-                    at: instant,
-                    prefs: prefs,
-                    presenting: true
+                return untallied(
+                    settleByAbsence(plan.spendingAbsence(at: instant), at: instant, prefs: prefs, absence: absence),
+                    if: unattendedCycle
                 )
-                return untallied((next, tally + effects), if: unattendedCycle)
             }
             guard plan.rawRemaining(at: instant.date) <= 0 else { return (plan, []) }
             return untallied(
@@ -266,11 +262,9 @@ enum TimerReducer {
         let breakRemaining = breakDuration - absence
 
         // Only reachable when a postpone left less than a full break and the absence covered
-        // it; a regular break is guarded by the away-reset rule above. Short as it was, that
-        // break was served by the absence and is owed the same tally (issue #111).
+        // it; a regular break is guarded by the away-reset rule above.
         guard breakRemaining > 0 else {
-            let (next, effects) = finishBreak(plan, at: instant, prefs: prefs, presenting: true)
-            return (next, absenceTally(plan, at: instant, prefs: prefs, absence: absence) + effects)
+            return settleByAbsence(plan, at: instant, prefs: prefs, absence: absence)
         }
 
         // A resumed postponed break was already counted when it first entered rest.
@@ -338,8 +332,8 @@ enum TimerReducer {
 }
 
 private extension TimerReducer {
-    /// The tally a cycle settled by an absence is owed (issue #111): the break the absence
-    /// stood in for, and nothing else.
+    /// A break the user's absence stood in for: the same finish, plus the tally that route is
+    /// owed (issue #111).
     ///
     /// No work session. One finished at the desk is already counted by the boundary it
     /// crossed, so the only session this could add is a countdown the wall clock ran out on
@@ -352,16 +346,17 @@ private extension TimerReducer {
     /// turns away.
     ///
     /// Postponed work is exempt: its break was earned before the postpone moved `startedAt`.
-    static func absenceTally(
+    static func settleByAbsence(
         _ plan: TimerPlan,
         at instant: TimerInstant,
         prefs: TimerPreferences,
         absence: TimeInterval
-    ) -> [TimerEffect] {
+    ) -> (TimerPlan, [TimerEffect]) {
         let attended = instant.date.timeIntervalSince(plan.startedAt) - absence
         let earned = plan.phase == .postponedWork || attended >= prefs.restDuration
-        guard absence > 0, earned else { return [] }
-        return [.record(.breakCompleted)]
+        let tally: [TimerEffect] = absence > 0 && earned ? [.record(.breakCompleted)] : []
+        let (next, effects) = finishBreak(plan, at: instant, prefs: prefs, presenting: true)
+        return (next, tally + effects)
     }
 }
 
