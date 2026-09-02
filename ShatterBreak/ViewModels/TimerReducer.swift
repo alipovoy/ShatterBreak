@@ -37,7 +37,10 @@ enum TimerReducer {
             // Before the boundary check: a long enough absence settles the cycle whether or
             // not the countdown ran out while the user was away.
             if absence > 0, absence >= prefs.awayResetThreshold {
-                return finishBreak(plan.spendingAbsence(at: instant), at: instant, prefs: prefs, presenting: true)
+                return untallied(
+                    settleByAbsence(plan.spendingAbsence(at: instant), at: instant, prefs: prefs, absence: absence),
+                    if: unattendedCycle
+                )
             }
             guard plan.rawRemaining(at: instant.date) <= 0 else { return (plan, []) }
             return untallied(
@@ -59,7 +62,7 @@ enum TimerReducer {
     }
 
     /// Drops the statistics of a crossing made in an empty room, matching the away-reset
-    /// route above, which records nothing at all.
+    /// route above, which counts nothing it cannot show someone was here for.
     ///
     /// Only the tally: the transition and its overlay still happen, since a lost wake must
     /// never leave the timer parked.
@@ -261,7 +264,7 @@ enum TimerReducer {
         // Only reachable when a postpone left less than a full break and the absence covered
         // it; a regular break is guarded by the away-reset rule above.
         guard breakRemaining > 0 else {
-            return finishBreak(plan, at: instant, prefs: prefs, presenting: true)
+            return settleByAbsence(plan, at: instant, prefs: prefs, absence: absence)
         }
 
         // A resumed postponed break was already counted when it first entered rest.
@@ -325,6 +328,35 @@ enum TimerReducer {
         plan.lastSeen = instant
         plan.intervalID += 1
         return plan
+    }
+}
+
+private extension TimerReducer {
+    /// A break the user's absence stood in for: the same finish, plus the tally that route is
+    /// owed (issue #111).
+    ///
+    /// No work session. One finished at the desk is already counted by the boundary it
+    /// crossed, so the only session this could add is a countdown the wall clock ran out on
+    /// with nobody there — a minute of work before a closed lid is not a session worked.
+    ///
+    /// The break goes only to a session someone sat through for a break's worth before
+    /// leaving. Below that there is no telling a walk away from the seconds of running time
+    /// between two stretches of sleep, which would otherwise bank a break a night at a time.
+    /// Attended time reads negative for a session restarted in the dark, which the same floor
+    /// turns away.
+    ///
+    /// Postponed work is exempt: its break was earned before the postpone moved `startedAt`.
+    static func settleByAbsence(
+        _ plan: TimerPlan,
+        at instant: TimerInstant,
+        prefs: TimerPreferences,
+        absence: TimeInterval
+    ) -> (TimerPlan, [TimerEffect]) {
+        let attended = instant.date.timeIntervalSince(plan.startedAt) - absence
+        let earned = plan.phase == .postponedWork || attended >= prefs.restDuration
+        let tally: [TimerEffect] = absence > 0 && earned ? [.record(.breakCompleted)] : []
+        let (next, effects) = finishBreak(plan, at: instant, prefs: prefs, presenting: true)
+        return (next, tally + effects)
     }
 }
 

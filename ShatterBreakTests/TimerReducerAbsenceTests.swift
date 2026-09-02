@@ -26,17 +26,20 @@ struct TimerReducerAbsenceTests {
     func longAbsenceStartsFreshSession() {
         var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5))
         driver.act(.start)
-        driver.run(4)
+        driver.run(5)
         driver.sleepMachine(6)
         driver.reconcile()
 
         #expect(driver.phase == .work, "An absence that served as the break resumes work (issue #69).")
         #expect(driver.remaining == 10, "The session is fresh, not the stale one the user walked away from.")
         #expect(
-            driver.count(of: .record(.workSessionCompleted)) == 0,
-            "The work countdown never finished, so nothing was completed to count."
+            driver.count(of: .record(.breakCompleted)) == 1,
+            "The absence is the break: the route that serves one must tally one (issue #111)."
         )
-        #expect(driver.count(of: .record(.breakCompleted)) == 0, "No on-screen break ran.")
+        #expect(
+            driver.count(of: .record(.workSessionCompleted)) == 0,
+            "A countdown the absence ran out is not a session worked; only the boundary counts those."
+        )
     }
 
     @Test("an absence spilling from work into the break resumes it prorated, crediting the whole absence")
@@ -287,6 +290,10 @@ struct TimerReducerAbsenceTests {
         #expect(
             driver.lastEffects.contains(.prepareCapturePermissions),
             "The session they actually return to settles the consent its break will need (issue #90)."
+        )
+        #expect(
+            driver.count(of: .record(.breakCompleted)) == 0,
+            "Nobody was at the machine for any of this, so no break was taken to count."
         )
     }
 
