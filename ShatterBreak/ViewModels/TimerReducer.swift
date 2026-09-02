@@ -350,6 +350,8 @@ private extension TimerReducer {
     /// between two stretches of sleep, which would otherwise bank a break a night at a time.
     /// Attended time reads negative for a session restarted in the dark, which the same floor
     /// turns away.
+    ///
+    /// Postponed work is exempt: its break was earned before the postpone moved `startedAt`.
     static func absenceTally(
         _ plan: TimerPlan,
         at instant: TimerInstant,
@@ -357,7 +359,8 @@ private extension TimerReducer {
         absence: TimeInterval
     ) -> [TimerEffect] {
         let attended = instant.date.timeIntervalSince(plan.startedAt) - absence
-        guard absence > 0, attended >= prefs.restDuration else { return [] }
+        let earned = plan.phase == .postponedWork || attended >= prefs.restDuration
+        guard absence > 0, earned else { return [] }
         return [.record(.breakCompleted)]
     }
 }

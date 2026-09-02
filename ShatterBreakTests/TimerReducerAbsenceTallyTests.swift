@@ -9,9 +9,9 @@ import Testing
 /// was counted by the boundary it crossed, so anything counted here would be a countdown the
 /// wall clock ran out on with nobody in the room.
 ///
-/// The break is credited only to a session someone sat through for a break's worth first.
-/// Everything in "Absences that earn nothing" is a way the machine can look busy while the
-/// room is empty, and the floor is what tells them apart.
+/// The break is credited only to a session someone sat through for a break's worth first —
+/// unless a postpone already earned it. Everything in "Absences that earn nothing" is a way
+/// the machine can look busy while the room is empty, and the floor is what tells them apart.
 @Suite("Timer reducer absence tallies", .tags(.timerState, .sleepWake))
 struct TimerReducerAbsenceTallyTests {
     // MARK: - Breaks an absence earns
@@ -65,6 +65,27 @@ struct TimerReducerAbsenceTallyTests {
         #expect(
             driver.count(of: .record(.workSessionCompleted)) == 1,
             "The session counted when it first entered rest; the postponed remainder must not count another."
+        )
+    }
+
+    @Test("leaving the moment a break is postponed still counts it")
+    func absenceRightAfterAPostponeCountsTheBreak() {
+        var driver = ReducerDriver(prefs: .testing(work: 100, rest: 10, postpone: 20))
+        driver.act(.start)
+        driver.run(100)
+        driver.act(.postpone)
+        // A second at the desk: under the floor this absence would face in `.work`.
+        driver.run(1)
+        driver.sleepMachine(15)
+        driver.reconcile()
+
+        #expect(
+            driver.count(of: .record(.breakCompleted)) == 1,
+            "The postponed break was earned by the session that reached it, not by the reprieve."
+        )
+        #expect(
+            driver.count(of: .record(.workSessionCompleted)) == 1,
+            "Only the session that entered rest; the reprieve must not count a second."
         )
     }
 
