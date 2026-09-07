@@ -175,12 +175,18 @@ final class OverlayManager {
     ///
     /// Both branches draw on the session's retained captures rather than the screen as
     /// it looks now, so the freeze-frame keeps showing the desktop the break began over.
+    ///
+    /// Planned against every attached display, not only the awake ones: a display that is
+    /// merely asleep must not read as "removed" the next time some *other* display's
+    /// reconfiguration triggers this — its window stays put, undisturbed, until it wakes.
+    /// Only rejoining (``OverlayReconciliation/Plan/added``) is gated on being awake, so a
+    /// still-asleep display already known to be attached is left for a later reconcile.
     func reconcileOverlays() {
         guard let session else { return }
 
         let plan = OverlayReconciliation.plan(
             currentWindows: windows.mapValues(\.frame),
-            availableScreens: awakeScreens()
+            availableScreens: captureClient.availableScreens()
         )
 
         guard plan.isEmpty == false else { return }
@@ -206,10 +212,11 @@ final class OverlayManager {
             }
         }
 
-        guard plan.added.isEmpty == false else { return }
+        let awakeAdditions = plan.added.filter { isDisplayAwake($0.displayID) }
+        guard awakeAdditions.isEmpty == false else { return }
 
         var displaysNeedingCapture: Set<CGDirectDisplayID> = []
-        for screen in plan.added {
+        for screen in awakeAdditions {
             // Settled: the shake and glass sound belong to the moment the break began.
             // A display joining later catches up silently — including one that dropped
             // off while the screen slept and came back on wake.
