@@ -131,9 +131,14 @@ final class TimerState {
 
     // MARK: - Initialization
 
-    /// - Parameter initialPlan: the plan to open on, for previews needing a phase on screen
-    ///   without driving a countdown to reach one. Set whole at construction, so ``commit(_:)``
-    ///   remains the only writer of `plan`. Nothing is scheduled for it.
+    /// - Parameters:
+    ///   - isDisplayAwake: `nil` in the app, where the executor's gate instead asks
+    ///     `overlays.hasAwakeScreen` — the same set of screens a break would actually be
+    ///     drawn on. Tests override it directly to drive the gate without a real
+    ///     ``OverlayPresenter``.
+    ///   - initialPlan: the plan to open on, for previews needing a phase on screen
+    ///     without driving a countdown to reach one. Set whole at construction, so
+    ///     ``commit(_:)`` remains the only writer of `plan`. Nothing is scheduled for it.
     init(
         overlays: OverlayPresenter,
         postponeDurationSecs: Double? = nil,
@@ -166,8 +171,10 @@ final class TimerState {
             record: { [unowned self] in self.statistics.record($0) },
             resetStatisticsForNewSession: { [unowned self] in self.statistics.resetForNewSessionIfEnabled() }
         )
-        self.executor = isDisplayAwake.map { TimerEffectExecutor(handlers: handlers, isDisplayAwake: $0) }
-            ?? TimerEffectExecutor(handlers: handlers)
+        self.executor = TimerEffectExecutor(
+            handlers: handlers,
+            isDisplayAwake: isDisplayAwake ?? overlays.hasAwakeScreen
+        )
 
         // For the object's whole life, not only while counting: subscribing per countdown is
         // how a notification comes to arrive with nobody listening.

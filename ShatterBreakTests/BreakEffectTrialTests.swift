@@ -183,6 +183,21 @@ struct BreakEffectTrialTests {
         #expect(overlays.showCount == 0, "There is one break window, and the break already has it.")
     }
 
+    @Test("a sample never starts with no display to draw it on")
+    func noSampleWithNoAwakeScreen() async {
+        let overlays = OverlayRecorder()
+        overlays.hasAwakeScreen = false
+        let trial = makeTrial(overlays)
+
+        await trial.start()
+
+        #expect(overlays.showCount == 0, "Presenting to no screen would register as running with nothing on it.")
+        #expect(
+            trial.isRunning == false,
+            "Left running, the next click or keypress anywhere in the app would be swallowed for nothing."
+        )
+    }
+
     @Test("a break falling due mid-sample keeps the screen")
     func aRealBreakTakesTheWindowFromTheSample() async {
         let overlays = OverlayRecorder()

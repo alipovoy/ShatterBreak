@@ -18,6 +18,9 @@ final class OverlayRecorder {
     private(set) var lastState: TimerState?
     /// What is on screen now, for callers that check whether the window is still theirs.
     private(set) var presented: TimerState?
+    /// Backs ``OverlayPresenter/hasAwakeScreen``, the DarkWake gate `TimerState` asks when
+    /// no test override is supplied. `true` unless a test needs a break to defer.
+    var hasAwakeScreen = true
 
     private var prepareGate: CheckedContinuation<Void, Never>?
     private var holdsPrepare = false
@@ -59,7 +62,8 @@ final class OverlayRecorder {
                 self.dismissCount += 1
                 self.presented = nil
             },
-            presenting: { self.presented }
+            presenting: { self.presented },
+            hasAwakeScreen: { self.hasAwakeScreen }
         )
     }
 }

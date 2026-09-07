@@ -118,4 +118,37 @@ struct TimerStateOverlayTests {
         state.start()
         #expect(recorder.dismissCount == 1, "Starting work from awaiting return should dismiss the overlay once.")
     }
+
+    @Test("with no test override, the DarkWake gate asks the overlay presenter")
+    @MainActor
+    func gateFallsBackToOverlayPresenterWhenNoOverrideGiven() async {
+        let environment = TestEnvironment()
+        let defaults = environment.defaults
+        defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
+
+        let recorder = OverlayRecorder()
+        // Simulates a display OverlayManager would actually draw on being lit even though
+        // the executor's old gate asked only the main display. No `isDisplayAwake`
+        // override, so the executor must fall back to this.
+        recorder.hasAwakeScreen = false
+        let state = TimerState(
+            overlays: recorder.presenter,
+            defaults: defaults,
+            clock: environment.clock,
+            workspaceNotificationCenter: environment.workspaceNotificationCenter
+        )
+        state.workDurationSecs = 1
+        state.restDurationSecs = 1
+
+        state.start()
+        await environment.advanceTime()
+
+        #expect(state.isResting, "The plan advances regardless of the screen.")
+        #expect(recorder.showCount == 0, "No awake screen to draw on, so the break must wait.")
+
+        recorder.hasAwakeScreen = true
+        environment.clock.fireReconcile()
+
+        #expect(recorder.showCount == 1, "Once a screen the presenter would draw on is lit, the held break shows.")
+    }
 }
