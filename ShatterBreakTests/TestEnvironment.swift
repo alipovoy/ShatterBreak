@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 @testable import ShatterBreak
@@ -45,13 +46,18 @@ final class TestEnvironment {
     func makeOverlayManager(
         captureClient: ScreenCaptureClient = .live,
         notificationCenter: NotificationCenter = NotificationCenter(),
-        directCaptureAccess: @escaping @MainActor () -> DirectCaptureAccess = { .unknown }
+        directCaptureAccess: @escaping @MainActor () -> DirectCaptureAccess = { .unknown },
+        isDisplayAwake: @escaping @MainActor (CGDirectDisplayID) -> Bool = { _ in true }
     ) -> OverlayManager {
         OverlayManager(
             defaults: defaults,
             captureClient: captureClient,
             notificationCenter: notificationCenter,
-            directCaptureAccess: directCaptureAccess
+            // Shared with the screen-parameter observer: tests post both display-reconfiguration
+            // and sleep/wake notifications on the one center they hold a reference to.
+            workspaceNotificationCenter: notificationCenter,
+            directCaptureAccess: directCaptureAccess,
+            isDisplayAwake: isDisplayAwake
         )
     }
 

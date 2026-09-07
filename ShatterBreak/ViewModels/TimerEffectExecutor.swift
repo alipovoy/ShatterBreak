@@ -1,4 +1,3 @@
-import CoreGraphics
 import Foundation
 
 /// Performs the effects ``TimerReducer`` emits, and decides when it is safe to.
@@ -20,6 +19,9 @@ final class TimerEffectExecutor {
     private let handlers: Handlers
     /// Asked, not remembered: `screensDidWakeNotification` is a prompt to re-check, never the
     /// truth, and a break held behind a notification that never arrives is lost.
+    ///
+    /// Whether *any* attached display is awake, not only the main one — a break is only
+    /// spent on nobody when every screen is dark (issue #110).
     private let isDisplayAwake: @MainActor () -> Bool
 
     /// The one presentation waiting for a screen. Not a queue: a second break replaces the
@@ -28,7 +30,7 @@ final class TimerEffectExecutor {
 
     init(
         handlers: Handlers,
-        isDisplayAwake: @escaping @MainActor () -> Bool = { CGDisplayIsAsleep(CGMainDisplayID()) == 0 }
+        isDisplayAwake: @escaping @MainActor () -> Bool
     ) {
         self.handlers = handlers
         self.isDisplayAwake = isDisplayAwake

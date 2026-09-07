@@ -30,26 +30,47 @@ final class OverlayManager {
     private let defaults: any KeyValueStore
     private let captureClient: ScreenCaptureClient
     private let screenObserver: ScreenParametersObserver
+    private let sleepWakeObserver: SleepWakeObserver
     private let directCaptureAccess: @MainActor () -> DirectCaptureAccess
+    /// Per-display, unlike ``TimerEffectExecutor``'s gate: that one only needs to know
+    /// whether *some* screen counts, this one decides which screens get a window.
+    private let isDisplayAwake: @MainActor (CGDirectDisplayID) -> Bool
 
-    /// - Parameter directCaptureAccess: the app's latest reading of macOS's direct-capture
-    ///   consent, supplied by ``OverlayPresenter/live(defaults:)``. Defaults to
-    ///   ``DirectCaptureAccess/unknown``, so a caller that never wires it up falls back to
-    ///   fogged rather than putting a system dialog over the break.
+    /// - Parameters:
+    ///   - directCaptureAccess: the app's latest reading of macOS's direct-capture
+    ///     consent, supplied by ``OverlayPresenter/live(defaults:)``. Defaults to
+    ///     ``DirectCaptureAccess/unknown``, so a caller that never wires it up falls back to
+    ///     fogged rather than putting a system dialog over the break.
+    ///   - isDisplayAwake: whether a given display is currently lit. Defaults to the real
+    ///     `CGDisplayIsAsleep` check; a display answering `false` gets no overlay window
+    ///     until it wakes (issue #110).
     init(
         defaults: any KeyValueStore = UserDefaults.standard,
         captureClient: ScreenCaptureClient = .live,
         notificationCenter: NotificationCenter = .default,
-        directCaptureAccess: @escaping @MainActor () -> DirectCaptureAccess = { .unknown }
+        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
+        directCaptureAccess: @escaping @MainActor () -> DirectCaptureAccess = { .unknown },
+        isDisplayAwake: @escaping @MainActor (CGDirectDisplayID) -> Bool = { CGDisplayIsAsleep($0) == 0 }
     ) {
         self.defaults = defaults
         self.captureClient = captureClient
         self.screenObserver = ScreenParametersObserver(notificationCenter: notificationCenter)
+        self.sleepWakeObserver = SleepWakeObserver(notificationCenter: workspaceNotificationCenter)
         self.directCaptureAccess = directCaptureAccess
+        self.isDisplayAwake = isDisplayAwake
 
         screenObserver.startObserving { [weak self] in
             self?.reconcileOverlays()
         }
+
+        // A display already presenting needs no help from sleeping; whatever is on its
+        // window server buffer persists until it wakes. A display skipped at
+        // ``showOverlays(state:settled:)`` because it was asleep has no window at all,
+        // though, and nothing else prompts a recheck once it lights back up.
+        sleepWakeObserver.startObserving(
+            onSleep: {},
+            onWake: { [weak self] in self?.reconcileOverlays() }
+        )
     }
 
     /// The effect to present, derived from the user's preference. Defaults to
@@ -102,6 +123,11 @@ final class OverlayManager {
     /// the one it put up before taking it down.
     var presentedState: TimerState? { session?.state }
 
+    /// The displays overlays may actually be drawn on: attached and lit (issue #110).
+    func awakeScreens() -> [ScreenInfo] {
+        captureClient.availableScreens().filter { isDisplayAwake($0.displayID) }
+    }
+
     func showOverlays(state: TimerState, settled: Bool) {
         dismissOverlays()
 
@@ -114,7 +140,7 @@ final class OverlayManager {
         activeSessionID = sessionID
         session = ActiveSession(id: sessionID, state: state, effectType: effectType)
 
-        for screen in captureClient.availableScreens() {
+        for screen in awakeScreens() {
             presentOverlay(for: screen, state: state, effectType: effectType, settled: settled)
         }
 
@@ -154,7 +180,7 @@ final class OverlayManager {
 
         let plan = OverlayReconciliation.plan(
             currentWindows: windows.mapValues(\.frame),
-            availableScreens: captureClient.availableScreens()
+            availableScreens: awakeScreens()
         )
 
         guard plan.isEmpty == false else { return }

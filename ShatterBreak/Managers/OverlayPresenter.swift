@@ -18,6 +18,12 @@ struct OverlayPresenter {
     /// The timer whose break is on screen, so that anything sharing this presenter can ask
     /// whether the window is still its own before taking it down.
     var presenting: @MainActor () -> TimerState? = { nil }
+    /// Whether there is a display ``show`` would actually draw an overlay on right now.
+    ///
+    /// Backs ``TimerEffectExecutor``'s DarkWake gate, so it defers a break only when
+    /// presenting it would land on nobody — the same set of screens ``show`` itself
+    /// presents on, not a single display asked on the executor's behalf (issue #110).
+    var hasAwakeScreen: @MainActor () -> Bool = { true }
 }
 
 extension OverlayPresenter {
@@ -38,7 +44,8 @@ extension OverlayPresenter {
             },
             show: { manager.showOverlays(state: $0, settled: $1 == .settled) },
             dismiss: { manager.dismissOverlays() },
-            presenting: { manager.presentedState }
+            presenting: { manager.presentedState },
+            hasAwakeScreen: { manager.awakeScreens().isEmpty == false }
         )
     }
 
