@@ -3,8 +3,8 @@ import Testing
 
 @testable import ShatterBreak
 
-/// Covers per-display awake gating (issue #110): a break must not be drawn onto a
-/// display that is asleep, and a display asleep at break start must join once it wakes.
+/// Covers per-display awake gating: a break must not be drawn onto a display that is
+/// asleep, and a display asleep at break start must join once it wakes.
 @Suite("OverlayManager display-awake gating", .tags(.overlays))
 @MainActor
 struct OverlayManagerDisplayAwakeTests {

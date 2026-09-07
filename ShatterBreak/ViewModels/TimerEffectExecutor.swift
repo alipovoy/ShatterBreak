@@ -21,7 +21,7 @@ final class TimerEffectExecutor {
     /// truth, and a break held behind a notification that never arrives is lost.
     ///
     /// Whether *any* attached display is awake, not only the main one — a break is only
-    /// spent on nobody when every screen is dark (issue #110).
+    /// spent on nobody when every screen is dark.
     private let isDisplayAwake: @MainActor () -> Bool
 
     /// The one presentation waiting for a screen. Not a queue: a second break replaces the

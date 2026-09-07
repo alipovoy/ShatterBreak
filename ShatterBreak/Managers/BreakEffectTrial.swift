@@ -57,7 +57,9 @@ final class BreakEffectTrial {
         await overlays.prepare()
 
         // A real break may have claimed the window meanwhile, and presenting would take it.
-        guard isRunning, breakWindowIsFree else { return end() }
+        // Every display asleep leaves `show` presenting nothing while still registering as
+        // "ours" — that would swallow the next click or keypress with no window on screen.
+        guard isRunning, breakWindowIsFree, overlays.hasAwakeScreen() else { return end() }
 
         // A notification centre of its own, which nothing posts to. Wired to the workspace's,
         // a display sleep inside these few seconds would drive the sample's reducer and let it

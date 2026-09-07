@@ -22,7 +22,7 @@ struct OverlayPresenter {
     ///
     /// Backs ``TimerEffectExecutor``'s DarkWake gate, so it defers a break only when
     /// presenting it would land on nobody — the same set of screens ``show`` itself
-    /// presents on, not a single display asked on the executor's behalf (issue #110).
+    /// presents on, not a single display asked on the executor's behalf.
     var hasAwakeScreen: @MainActor () -> Bool = { true }
 }
 

@@ -119,7 +119,7 @@ struct TimerStateOverlayTests {
         #expect(recorder.dismissCount == 1, "Starting work from awaiting return should dismiss the overlay once.")
     }
 
-    @Test("with no test override, the DarkWake gate asks the overlay presenter (issue #110)")
+    @Test("with no test override, the DarkWake gate asks the overlay presenter")
     @MainActor
     func gateFallsBackToOverlayPresenterWhenNoOverrideGiven() async {
         let environment = TestEnvironment()
@@ -128,8 +128,8 @@ struct TimerStateOverlayTests {
 
         let recorder = OverlayRecorder()
         // Simulates a display OverlayManager would actually draw on being lit even though
-        // the executor's old gate asked only the main display — the mismatch issue #110
-        // is about. No `isDisplayAwake` override, so the executor must fall back to this.
+        // the executor's old gate asked only the main display. No `isDisplayAwake`
+        // override, so the executor must fall back to this.
         recorder.hasAwakeScreen = false
         let state = TimerState(
             overlays: recorder.presenter,

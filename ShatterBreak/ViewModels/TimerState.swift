@@ -173,7 +173,7 @@ final class TimerState {
         )
         self.executor = TimerEffectExecutor(
             handlers: handlers,
-            isDisplayAwake: isDisplayAwake ?? { overlays.hasAwakeScreen() }
+            isDisplayAwake: isDisplayAwake ?? overlays.hasAwakeScreen
         )
 
         // For the object's whole life, not only while counting: subscribing per countdown is

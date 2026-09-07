@@ -43,7 +43,7 @@ final class OverlayManager {
     ///     fogged rather than putting a system dialog over the break.
     ///   - isDisplayAwake: whether a given display is currently lit. Defaults to the real
     ///     `CGDisplayIsAsleep` check; a display answering `false` gets no overlay window
-    ///     until it wakes (issue #110).
+    ///     until it wakes.
     init(
         defaults: any KeyValueStore = UserDefaults.standard,
         captureClient: ScreenCaptureClient = .live,
@@ -123,7 +123,7 @@ final class OverlayManager {
     /// the one it put up before taking it down.
     var presentedState: TimerState? { session?.state }
 
-    /// The displays overlays may actually be drawn on: attached and lit (issue #110).
+    /// The displays overlays may actually be drawn on: attached and lit.
     func awakeScreens() -> [ScreenInfo] {
         captureClient.availableScreens().filter { isDisplayAwake($0.displayID) }
     }
