@@ -2,20 +2,23 @@
 
 ShatterBreak is a native macOS menu bar app for structured focus and break cycles.
 
-It runs as a menu bar utility, lets you start a focus session, and then interrupts you with fullscreen break overlays when the work timer ends. The app supports a screenshot-based "shatter" effect, a simpler dark overlay mode, optional postpone, manual return after a break, and sleep/wake-aware timer behavior.
+It runs as a menu bar utility, lets you start a focus session, and then interrupts you with fullscreen break overlays when the work timer ends. The app supports a screenshot-based "shatter" effect plus two simpler overlay modes, optional postpone and early return, manual or automatic restart after a break, and sleep/wake-aware timer behavior.
 
 ## Overview
 ShatterBreak is built as a small macOS utility with a strong focus on system integration:
 
 * menu bar-first workflow
 * fullscreen break overlays on all connected displays
-* optional screenshot-based shatter effect using ScreenCaptureKit
+* three break effects: screenshot-based `Shatter` (ScreenCaptureKit), `Fogged` (live desktop, no capture), and `Dimmed`
+* a "Try It" preview in Preferences that runs a real 5-second sample break, so effects are compared live rather than as static thumbnails
 * soft overlay mode that keeps the menu bar reachable
 * hard overlay mode that covers the menu bar
 * configurable work and rest durations
-* optional postpone during breaks
+* optional postpone during breaks, and optional early return near the end of one
 * automatic or manual restart after breaks
-* optional timer text in the menu bar
+* optional timer text in the menu bar (off, minutes, or seconds)
+* opt-in session statistics (work sessions, breaks, postpones, early returns)
+* VoiceOver labels on the break overlay and menu bar, with Dynamic Type on the countdowns
 * sleep/wake handling for active timers
 
 ## Requirements
@@ -113,18 +116,22 @@ and offers both ways out — ask macOS again, or select `Fogged` for good.
 5. During a break you can:
    * wait for the break to finish
    * use `Postpone` if that option is enabled and still available for the current cycle
+   * end it early with `I'm back` if early return is enabled and you're within its closing window
    * return manually with `I'm back` if manual restart mode is enabled
-6. Use `Preferences` to change the visual effect, enable soft overlay, allow postpone, and control menu bar timer display.
+6. Use `Preferences` to change the visual effect (with a live "Try It" preview), enable soft overlay, allow postpone or early return, and control menu bar timer display and session statistics.
 
 ## Preferences
 The current app supports these settings:
 
 * `Play Sound`
-* `Effect Type`: `Shatter` or `Overlay`
+* `Effect Type`: `Shatter`, `Fogged`, or `Dimmed` — with a "Try It" button that runs a real sample break
 * `Soft Overlay (allows menu bar access)`
-* `Allow Postpone`
+* `Allow Postpone` (duration and how long into the break it stays offered)
+* `Allow Early Return` (how close to the break's end the option appears)
 * `Start work after break ends`: `Automatic` or `Manual`
-* `Show timer in menu bar`
+* `Auto-start work on launch`
+* `Show timer in menu bar`: `Off`, `Minutes`, or `Seconds`
+* `Track statistics` (with reset-on-start and a collapsible tally)
 
 ## Project Notes
 
