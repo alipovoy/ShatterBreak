@@ -11,6 +11,7 @@ struct OverlayView: View {
 
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
+    @ScaledMetric(relativeTo: .largeTitle) private var countdownFontSize: CGFloat = 80
 
     private enum Shake {
         static let distance: CGFloat = 10
@@ -47,9 +48,10 @@ struct OverlayView: View {
                             .shadow(color: .black, radius: 5)
 
                         CountdownLabel(state: state, at: referenceDate)
-                            .font(.system(size: 80, weight: .bold, design: .monospaced))
+                            .font(.system(size: countdownFontSize, weight: .bold, design: .monospaced))
                             .foregroundStyle(.white)
                             .shadow(color: .black, radius: 5)
+                            .accessibilityLabel(accessibleRemaining(at: referenceDate))
 
                         if state.showsPostponeButton(at: referenceDate) {
                             Button {
@@ -58,6 +60,7 @@ struct OverlayView: View {
                                 Text(.postpone)
                             }
                             .buttonStyle(OverlayActionButtonStyle())
+                            .accessibilityHint(Text(.postponeAccessibilityHint))
                         }
 
                         if state.showsReturnButton(at: referenceDate) {
@@ -67,6 +70,7 @@ struct OverlayView: View {
                                 Text(.imBack)
                             }
                             .buttonStyle(OverlayActionButtonStyle())
+                            .accessibilityHint(Text(.imBackAccessibilityHint))
                         }
                     }
                 }
@@ -78,6 +82,12 @@ struct OverlayView: View {
             await handlePhase()
         }
         .onAppear { hasAppeared = true }
+    }
+
+    /// Spoken form of the countdown for VoiceOver, since "24:31" reads as digits and a colon.
+    private func accessibleRemaining(at referenceDate: Date) -> String {
+        Duration.seconds(state.timeRemaining(at: referenceDate))
+            .formatted(.units(allowed: [.minutes, .seconds], width: .wide))
     }
 
     private var showsForegroundContent: Bool {

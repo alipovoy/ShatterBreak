@@ -4,19 +4,21 @@ struct TimerDisplayView: View {
     let state: TimerState
     let isActive: Bool
 
+    @ScaledMetric(relativeTo: .largeTitle) private var fontSize: CGFloat = 48
+
     var body: some View {
         Group {
             if state.isRunning || state.isPaused {
                 CountdownTextView(state: state, isActive: isActive)
-                    .font(.system(size: 48, weight: .light, design: .monospaced))
+                    .font(.system(size: fontSize, weight: .light, design: .monospaced))
                     .foregroundStyle(state.isResting ? .secondary : .primary)
             } else {
                 Text(.ready)
-                    .font(.system(size: 48, weight: .light))
+                    .font(.system(size: fontSize, weight: .light))
                     .foregroundStyle(.secondary)
             }
         }
-        .frame(height: 60)
+        .frame(minHeight: 60)
     }
 }
 
