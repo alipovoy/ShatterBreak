@@ -19,6 +19,7 @@ struct ShatterBreakApp: App {
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "app.badge.clock")
+                    .accessibilityLabel(Text(menuBarAccessibilityLabel))
 
                 if timerState.shouldShowTimeInMenuBar,
                    let displayStyle = menuBarTimerStyle.countdownDisplayStyle {
@@ -47,6 +48,15 @@ struct ShatterBreakApp: App {
                 .moveToActiveSpace()
         }
         .windowResizability(.contentSize)
+    }
+
+    private var menuBarAccessibilityLabel: LocalizedStringResource {
+        switch timerState.mode {
+        case .idle: .menuBarAccessibilityIdle
+        case .running, .postponedWork: .menuBarAccessibilityRunning
+        case .paused: .menuBarAccessibilityPaused
+        case .resting, .awaitingReturn: .menuBarAccessibilityResting
+        }
     }
 }
 

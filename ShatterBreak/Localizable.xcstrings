@@ -812,6 +812,78 @@
           }
         }
       }
+    },
+    "postponeAccessibilityHint": {
+      "comment": "VoiceOver hint for the overlay's Postpone button.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delays this break."
+          }
+        }
+      }
+    },
+    "imBackAccessibilityHint": {
+      "comment": "VoiceOver hint for the overlay's I'm back button.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ends the break and resumes work."
+          }
+        }
+      }
+    },
+    "menuBarAccessibilityIdle": {
+      "comment": "VoiceOver label for the menu bar status item when no timer is running.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ShatterBreak, idle"
+          }
+        }
+      }
+    },
+    "menuBarAccessibilityRunning": {
+      "comment": "VoiceOver label for the menu bar status item during a work session.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ShatterBreak, working"
+          }
+        }
+      }
+    },
+    "menuBarAccessibilityPaused": {
+      "comment": "VoiceOver label for the menu bar status item while the timer is paused.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ShatterBreak, paused"
+          }
+        }
+      }
+    },
+    "menuBarAccessibilityResting": {
+      "comment": "VoiceOver label for the menu bar status item during a break.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ShatterBreak, on a break"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
