@@ -49,6 +49,7 @@ struct TimerReducerLawTests {
             intervalID: index,
             savedRestRemaining: Bool.random(using: &rng) ? Double.random(in: 0...rest, using: &rng) : nil,
             postponeUsedThisCycle: Bool.random(using: &rng),
+            sessionCredited: Bool.random(using: &rng),
             unattendedSince: Bool.random(using: &rng)
                 ? origin.addingTimeInterval(-Double.random(in: 0...3_600, using: &rng))
                 : nil,
@@ -62,7 +63,8 @@ struct TimerReducerLawTests {
             restDuration: rest,
             postponeDuration: Double.random(in: 60...600, using: &rng),
             autoStartWork: Bool.random(using: &rng),
-            awayResetThreshold: rest
+            awayResetThreshold: rest,
+            sessionLead: Bool.random(using: &rng) ? Double.random(in: 0...600, using: &rng) : 0
         )
         return Scenario(
             plan: plan,

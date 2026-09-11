@@ -36,6 +36,11 @@ struct TimerPlan: Equatable, Sendable {
     /// new cycle's break restores it.
     var postponeUsedThisCycle: Bool
 
+    /// The session credit is spent this cycle (issue #71). Deliberately a flag and not a
+    /// phase, for the reason ``pausedAt`` is not one: a counted work session is still work,
+    /// and callers switching on the phase should not have to know otherwise.
+    var sessionCredited: Bool
+
     /// When the machine last reported going unattended (system or display sleep).
     ///
     /// An *input* to measuring the absence, never a gate on transitions: the old asleep flag
@@ -64,6 +69,7 @@ struct TimerPlan: Equatable, Sendable {
             intervalID: 0,
             savedRestRemaining: nil,
             postponeUsedThisCycle: false,
+            sessionCredited: false,
             unattendedSince: nil,
             absenceCreditedAt: nil,
             lastSeen: instant
