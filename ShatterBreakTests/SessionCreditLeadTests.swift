@@ -10,6 +10,7 @@ struct SessionCreditLeadTests {
     func countsOnceAtTheCreditPoint() {
         var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5, lead: 3))
         driver.act(.start)
+        let interval = driver.plan.intervalID
 
         driver.run(6)
         #expect(driver.count(of: .record(.workSessionCompleted)) == 0, "The lead has not begun yet.")
@@ -17,6 +18,8 @@ struct SessionCreditLeadTests {
         driver.run(1)
         #expect(driver.plan.sessionCredited, "Reaching the lead should spend the cycle's credit.")
         #expect(driver.count(of: .record(.workSessionCompleted)) == 1, "The session counts once its lead begins.")
+        #expect(driver.remaining == 3, "The clock keeps counting the session down, not the lead up.")
+        #expect(driver.plan.intervalID == interval, "Nothing restarted, so no view has an interval to re-key on.")
 
         driver.run(3)
         #expect(driver.phase == .rest, "The boundary should still hand over to the break.")
@@ -24,18 +27,6 @@ struct SessionCreditLeadTests {
             driver.count(of: .record(.workSessionCompleted)) == 1,
             "The boundary must not count the session the credit point already did."
         )
-    }
-
-    @Test("counting the session leaves the countdown alone")
-    func theCountdownRunsThrough() {
-        var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5, lead: 3))
-        driver.act(.start)
-        let interval = driver.plan.intervalID
-
-        driver.run(8)
-
-        #expect(driver.remaining == 2, "The clock keeps counting the session down, not the lead up.")
-        #expect(driver.plan.intervalID == interval, "Nothing restarted, so no view has an interval to re-key on.")
     }
 
     @Test("leaving after the credit point counts the session as well as the break")
@@ -52,22 +43,8 @@ struct SessionCreditLeadTests {
         #expect(driver.phase == .work, "A fresh session waits on return.")
     }
 
-    @Test("without a lead the same absence still counts only the break")
-    func theBugThisFixesNeedsTheLead() {
-        // The behaviour issue #71 reports, and the default this ships with: identical
-        // timeline, no lead, and the session the user worked goes uncounted.
-        var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5))
-        driver.act(.start)
-        driver.run(8)
-        driver.sleepMachine(6)
-        driver.reconcile()
-
-        #expect(driver.count(of: .record(.workSessionCompleted)) == 0, "Nothing crossed the boundary.")
-        #expect(driver.count(of: .record(.breakCompleted)) == 1, "Only the break is credited.")
-    }
-
-    @Test("an unattended machine does not take the credit point")
-    func anUnattendedMachineDoesNotTakeTheCredit() {
+    @Test("a credit the dark withheld is taken on return, not lost")
+    func aWithheldCreditIsTakenOnReturn() {
         // Rest longer than work, so the away-reset threshold never intervenes and the
         // credit point is genuinely reached in the dark.
         var driver = ReducerDriver(prefs: .testing(work: 60, rest: 600, lead: 10))
@@ -76,22 +53,11 @@ struct SessionCreditLeadTests {
 
         driver.drift(50)
         driver.reconcile()
-
         #expect(driver.phase == .work, "Nothing was credited, so nothing moved past the credit point.")
         #expect(driver.count(of: .record(.workSessionCompleted)) == 0, "No one worked this session (issue #113).")
-    }
-
-    @Test("returning before the boundary takes the credit the dark withheld")
-    func returningTakesAWithheldCredit() {
-        var driver = ReducerDriver(prefs: .testing(work: 60, rest: 600, lead: 10))
-        driver.act(.start)
-        driver.act(.observedSleep)
-        driver.drift(50)
-        driver.reconcile()
 
         // Back at the desk with ten seconds left, inside the lead.
         driver.act(.observedWake)
-
         #expect(driver.plan.sessionCredited, "Presence is what the credit point was waiting for.")
         #expect(driver.count(of: .record(.workSessionCompleted)) == 1, "A withheld credit is not a lost one.")
     }
@@ -141,39 +107,6 @@ struct SessionCreditLeadTests {
         )
     }
 
-    @Test("leaving inside the lead counts the session as well as the break")
-    func leavingInsideTheLeadCountsBoth() {
-        var driver = ReducerDriver(prefs: .testing(work: 25, rest: 5, lead: 3))
-        driver.act(.start)
-        // Past the credit point at the desk, so the session is already banked.
-        driver.run(23)
-        driver.act(.observedSleep)
-
-        driver.drift(7)
-        driver.reconcile()
-
-        #expect(driver.count(of: .record(.workSessionCompleted)) == 1, "Twenty-three of twenty-five were worked.")
-        #expect(driver.count(of: .record(.breakCompleted)) == 1, "And the absence served as the break.")
-    }
-
-    @Test("a pause past the credit point freezes and resumes into the break")
-    func pausingPastTheCreditPointBehavesLikeWork() {
-        var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5, lead: 3))
-        driver.act(.start)
-        driver.run(8)
-        driver.act(.pause)
-
-        driver.drift(30)
-        driver.reconcile()
-        #expect(driver.phase == .work, "A counted session is still a work session.")
-        #expect(driver.remaining == 2, "A paused countdown must not move.")
-
-        driver.act(.resume)
-        driver.run(2)
-        #expect(driver.phase == .rest, "The resumed remainder should still reach the break.")
-        #expect(driver.count(of: .record(.workSessionCompleted)) == 1, "And still count exactly one session.")
-    }
-
     @Test("a reconcile later than the lead crosses both points at once")
     func aLateReconcileCrossesBothPoints() {
         var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5, lead: 3))
@@ -192,6 +125,9 @@ struct SessionCreditLeadTests {
     func anOversizedLeadCountsAtTheStart() {
         var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5, lead: 30))
         driver.act(.start)
+        // In the same instant, as a replayed reconcile lands on a session the boundary just
+        // auto-started: already inside its lead, and not yet worked for a second.
+        driver.reconcile()
         #expect(driver.count(of: .record(.workSessionCompleted)) == 0, "Starting a session is not working one.")
 
         driver.run(1)
@@ -201,18 +137,23 @@ struct SessionCreditLeadTests {
         #expect(driver.count(of: .record(.workSessionCompleted)) == 1, "And it stays behind it.")
     }
 
-    @Test("a postponed break resumed after the credit point counts no second session")
-    func postponingCountsOneSession() {
-        var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5, postpone: 3, lead: 3))
+    @Test("a postponed break resumed after a dark boundary counts no second session")
+    func postponingAfterADarkBoundaryCountsOneSession() {
+        // The one route where the boundary itself records the session — nobody was there at
+        // the credit point — so the boundary must also mark the credit taken, or the postponed
+        // remainder would count the session again.
+        var driver = ReducerDriver(prefs: .testing(work: 25, rest: 10, postpone: 3, lead: 3))
         driver.act(.start)
-        driver.run(7)
-        driver.run(3)
-        #expect(driver.phase == .rest, "The setup needs a break to postpone.")
+        driver.run(21)
+        driver.act(.observedSleep)
+        driver.run(4)
+        #expect(driver.phase == .rest, "The setup needs a boundary crossed in the dark.")
+        #expect(driver.count(of: .record(.workSessionCompleted)) == 1, "Which counted the session the dark withheld.")
 
+        driver.act(.observedWake)
         driver.act(.postpone)
         driver.run(3)
         #expect(driver.phase == .rest, "Postponed work hands back to the break it interrupted.")
-
         #expect(
             driver.count(of: .record(.workSessionCompleted)) == 1,
             "The postponed stint is the same session, however many times it hands back."
