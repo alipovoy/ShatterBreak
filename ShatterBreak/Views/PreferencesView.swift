@@ -88,14 +88,16 @@ private struct GeneralSettingsTab: View {
             }
 
             Section(.statistics) {
+                // This and the two lead controls below re-arm the running session: the credit
+                // point is a scheduled moment, and tracking gates it as much as its own switch.
                 Toggle(.trackStatisticsToggle, isOn: $trackStatistics)
                     .help(Text(.trackStatisticsHelp))
+                    .onChange(of: trackStatistics) { state.reconcile() }
 
                 if trackStatistics {
                     Toggle(.resetStatisticsOnStartToggle, isOn: $resetStatisticsOnStart)
                         .help(Text(.resetStatisticsOnStartHelp))
 
-                    // Both re-arm the running session: the credit point is a scheduled moment.
                     Toggle(.countSessionEarlyToggle, isOn: $countSessionEarly)
                         .help(Text(.countSessionEarlyHelp))
                         .onChange(of: countSessionEarly) { state.reconcile() }

@@ -50,11 +50,11 @@ struct TimerPlan: Equatable, Sendable {
     var unattendedSince: Date?
 
     /// How much of ``unattendedSince`` is already resolved into a transition, without which
-    /// the same absence is credited at every heartbeat past the threshold.
+    /// the same absence settles the cycle again at every heartbeat past the threshold.
     ///
     /// Separate from ``unattendedSince`` rather than advancing it: the user's actual return
     /// is owed a decision about the *whole* absence.
-    var absenceCreditedAt: Date?
+    var absenceResolvedAt: Date?
 
     /// The gap between two of these, against the awake-only clock, is what proves the machine
     /// slept — no notification required.
@@ -71,7 +71,7 @@ struct TimerPlan: Equatable, Sendable {
             postponeUsedThisCycle: false,
             sessionCredited: false,
             unattendedSince: nil,
-            absenceCreditedAt: nil,
+            absenceResolvedAt: nil,
             lastSeen: instant
         )
     }

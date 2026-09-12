@@ -53,7 +53,7 @@ struct TimerReducerLawTests {
             unattendedSince: Bool.random(using: &rng)
                 ? origin.addingTimeInterval(-Double.random(in: 0...3_600, using: &rng))
                 : nil,
-            absenceCreditedAt: Bool.random(using: &rng)
+            absenceResolvedAt: Bool.random(using: &rng)
                 ? origin.addingTimeInterval(-Double.random(in: 0...600, using: &rng))
                 : nil,
             lastSeen: lastSeen

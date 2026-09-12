@@ -268,8 +268,8 @@ final class TimerState {
     /// The caller's last step rather than part of ``commit(_:)``: ``perform(_:)`` commits
     /// twice, and a boundary computed from the plan in between is never reachable.
     ///
-    /// Handed the caller's `prefs` rather than reading them again: a second snapshot could
-    /// disagree with the one the reducer just ran on, arming the clock for a plan nobody made.
+    /// Handed the `prefs` the reducer ran on rather than reading them again, so the plan and
+    /// the clock armed for it come from one snapshot.
     private func rearm(_ prefs: TimerPreferences) {
         let boundary = TimerReducer.nextTransition(plan, at: clock.instant.date, prefs: prefs)
         // A break waiting for a screen has no countdown left, but still needs a retry.

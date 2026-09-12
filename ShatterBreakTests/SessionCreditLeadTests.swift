@@ -118,6 +118,29 @@ struct SessionCreditLeadTests {
         #expect(driver.count(of: .record(.breakCompleted)) == 1, "The absence served as the break.")
     }
 
+    @Test("the boundary still counts a session the dark withheld at its credit point")
+    func theBoundaryCountsAWithheldSession() {
+        // The second chance the strict guard leaves open: gone before the lead began, but by
+        // less than a break, so the boundary arrives with the absence short of the away-reset
+        // — where the session counted before the lead existed.
+        var driver = ReducerDriver(prefs: .testing(work: 25, rest: 5, lead: 3))
+        driver.act(.start)
+        driver.run(21)
+        driver.act(.observedSleep)
+
+        // The credit point at 22 passes in the dark.
+        driver.run(1)
+        #expect(driver.plan.sessionCredited == false, "Nobody was there to take the credit.")
+        #expect(driver.count(of: .record(.workSessionCompleted)) == 0, "So it is withheld, not lost.")
+
+        driver.run(3)
+        #expect(driver.phase == .rest, "Four seconds away is short of a break, so the boundary begins one.")
+        #expect(
+            driver.count(of: .record(.workSessionCompleted)) == 1,
+            "The boundary judges an uncredited session exactly as it did before the lead."
+        )
+    }
+
     @Test("leaving inside the lead counts the session as well as the break")
     func leavingInsideTheLeadCountsBoth() {
         var driver = ReducerDriver(prefs: .testing(work: 25, rest: 5, lead: 3))

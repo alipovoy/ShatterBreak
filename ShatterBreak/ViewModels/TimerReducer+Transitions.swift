@@ -124,7 +124,7 @@ extension TimerReducer {
         plan.pausedAt = nil
         plan.savedRestRemaining = nil
         plan.unattendedSince = nil
-        plan.absenceCreditedAt = nil
+        plan.absenceResolvedAt = nil
         plan.lastSeen = instant
         plan.intervalID += 1
         return plan

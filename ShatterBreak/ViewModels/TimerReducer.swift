@@ -38,7 +38,7 @@ enum TimerReducer {
             // not the countdown ran out while the user was away.
             if absence > 0, absence >= prefs.awayResetThreshold {
                 return untallied(
-                    settleByAbsence(plan.spendingAbsence(at: instant), at: instant, prefs: prefs, absence: absence),
+                    settleByAbsence(plan.resolvingAbsence(at: instant), at: instant, prefs: prefs, absence: absence),
                     if: unattendedCycle
                 )
             }
@@ -58,13 +58,13 @@ enum TimerReducer {
                remaining <= creditLead(prefs) {
                 plan.sessionCredited = true
                 tally = [.record(.workSessionCompleted)]
-                // No `spendingAbsence`: narrowing an absence here would stop it ever reaching
+                // No `resolvingAbsence`: narrowing an absence here would stop it ever reaching
                 // the away-reset.
             }
 
             guard remaining <= 0 else { return (plan, tally) }
             let (next, effects) = crossWorkBoundary(
-                plan.spendingAbsence(at: instant),
+                plan.resolvingAbsence(at: instant),
                 at: instant,
                 prefs: prefs,
                 absence: absence
@@ -75,7 +75,7 @@ enum TimerReducer {
             // Time away *is* break taken, so sleep never pauses a break.
             guard plan.rawRemaining(at: instant.date) <= 0 else { return (plan, []) }
             let (next, effects) = finishBreak(
-                plan.spendingAbsence(at: instant),
+                plan.resolvingAbsence(at: instant),
                 at: instant,
                 prefs: prefs,
                 presenting: false
@@ -104,11 +104,11 @@ enum TimerReducer {
         let wallGap = instant.date.timeIntervalSince(plan.lastSeen.date)
         let awakeGap = instant.awakeUptime - plan.lastSeen.awakeUptime
         let slept = max(0, wallGap - awakeGap)
-        // From wherever this absence was last credited, so a still-unattended machine is not
-        // told the same thing twice. The credit point narrows an absence already in flight;
+        // From wherever this absence was last resolved, so a still-unattended machine is not
+        // told the same thing twice. A resolution narrows an absence already in flight;
         // alone it is no evidence of one.
         let noted = plan.unattendedSince.map { start in
-            max(0, instant.date.timeIntervalSince(max(start, plan.absenceCreditedAt ?? start)))
+            max(0, instant.date.timeIntervalSince(max(start, plan.absenceResolvedAt ?? start)))
         } ?? 0
         return max(slept, noted)
     }
@@ -161,7 +161,7 @@ enum TimerReducer {
         var plan = plan
         if action != .observedSleep && action != .observedWake {
             plan.unattendedSince = nil
-            plan.absenceCreditedAt = nil
+            plan.absenceResolvedAt = nil
         }
 
         switch action {
@@ -195,7 +195,7 @@ enum TimerReducer {
     }
 
     /// Measured here rather than by ``measuredAbsence(_:at:)``, which sees only the
-    /// uncredited remainder: a session that restarted in the dark is not the fresh one the
+    /// unresolved remainder: a session that restarted in the dark is not the fresh one the
     /// user is owed on returning.
     private static func returned(
         _ plan: TimerPlan,
@@ -207,7 +207,7 @@ enum TimerReducer {
         // Before reconciling, so a session this starts counts as attended and settles the
         // consent its break will need.
         plan.unattendedSince = nil
-        plan.absenceCreditedAt = nil
+        plan.absenceResolvedAt = nil
         return advance(plan, to: instant, prefs: prefs, creditingAbsence: absence)
     }
 
@@ -269,10 +269,10 @@ private extension TimerPlan {
     /// Without this a still-unattended machine re-resolves the same absence at every
     /// heartbeat and idempotency does not hold. `unattendedSince` stays: the user's actual
     /// return is owed a decision about the whole absence.
-    func spendingAbsence(at instant: TimerInstant) -> TimerPlan {
+    func resolvingAbsence(at instant: TimerInstant) -> TimerPlan {
         guard unattendedSince != nil else { return self }
         var plan = self
-        plan.absenceCreditedAt = instant.date
+        plan.absenceResolvedAt = instant.date
         return plan
     }
 }
