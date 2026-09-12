@@ -44,4 +44,8 @@ struct TimerPreferences: Equatable, Sendable {
     /// An absence at least this long counts as the break itself. Always passed
     /// ``restDuration`` today; a parameter so making it configurable stays a one-line change.
     var awayResetThreshold: TimeInterval
+    /// How long before a work session ends it is counted as worked, so leaving in the closing
+    /// minutes no longer costs the session. Zero, the default, counts at the boundary itself
+    /// and is exactly the behaviour that shipped before it existed (issue #71).
+    var sessionLead: TimeInterval
 }

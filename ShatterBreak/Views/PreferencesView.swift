@@ -18,7 +18,7 @@ struct PreferencesView: View {
         TabView(selection: $selectedTab) {
             Tab(value: SettingsTab.general) {
                 if selectedTab == .general {
-                    GeneralSettingsTab()
+                    GeneralSettingsTab(state: state)
                 }
             } label: {
                 Label { Text(.settingsTabGeneral) } icon: { Image(systemName: "gearshape") }
@@ -56,6 +56,10 @@ private enum SettingsTab: Hashable {
 // MARK: - General
 
 private struct GeneralSettingsTab: View {
+    /// For the work duration the lead is measured against, live so the warning reacts to
+    /// edits made in the menu.
+    let state: TimerState
+
     @AppStorage(PreferenceKeys.autoStartOnLaunch)
     private var autoStartOnLaunch = PreferenceDefaults.autoStartOnLaunch
     @AppStorage(PreferenceKeys.menuBarTimerStyle)
@@ -64,6 +68,10 @@ private struct GeneralSettingsTab: View {
     private var trackStatistics = PreferenceDefaults.trackStatistics
     @AppStorage(PreferenceKeys.resetStatisticsOnStart)
     private var resetStatisticsOnStart = PreferenceDefaults.resetStatisticsOnStart
+    @AppStorage(PreferenceKeys.countSessionEarly)
+    private var countSessionEarly = PreferenceDefaults.countSessionEarly
+    @AppStorage(PreferenceKeys.sessionLeadSecs)
+    private var sessionLeadSecs = PreferenceDefaults.sessionLeadSecs
 
     var body: some View {
         Form {
@@ -80,12 +88,37 @@ private struct GeneralSettingsTab: View {
             }
 
             Section(.statistics) {
+                // This and the two lead controls below re-arm the running session: the credit
+                // point is a scheduled moment, and tracking gates it as much as its own switch.
                 Toggle(.trackStatisticsToggle, isOn: $trackStatistics)
                     .help(Text(.trackStatisticsHelp))
+                    .onChange(of: trackStatistics) { state.reconcile() }
 
                 if trackStatistics {
                     Toggle(.resetStatisticsOnStartToggle, isOn: $resetStatisticsOnStart)
                         .help(Text(.resetStatisticsOnStartHelp))
+
+                    Toggle(.countSessionEarlyToggle, isOn: $countSessionEarly)
+                        .help(Text(.countSessionEarlyHelp))
+                        .onChange(of: countSessionEarly) { state.reconcile() }
+
+                    if countSessionEarly {
+                        DurationFieldView(
+                            title: .sessionLeadLabel,
+                            value: $sessionLeadSecs,
+                            min: DurationBounds.minimumSecs,
+                            max: DurationBounds.sessionLeadMaximumSecs
+                        )
+                        .help(Text(.sessionLeadHelp))
+                        .onChange(of: sessionLeadSecs) { state.reconcile() }
+
+                        // Not `>`: a lead equal to the work duration already counts the
+                        // session at the first tick after Start.
+                        if sessionLeadSecs >= state.workDurationSecs {
+                            WarningLabel(message: .sessionLeadExceedsWorkWarning)
+                                .readingWidth()
+                        }
+                    }
                 }
             }
         }
@@ -282,6 +315,20 @@ private extension View {
             .scrollDisabled(true)
             .fixedSize(horizontal: false, vertical: true)
     }
+}
+
+#Preview("General with an oversized lead") { @MainActor in
+    // A lead longer than the work session, so the warning renders under the field that
+    // caused it.
+    let defaults = UserDefaults.preview("sessionLead")
+    defaults.set(true, forKey: PreferenceKeys.trackStatistics)
+    defaults.set(true, forKey: PreferenceKeys.countSessionEarly)
+    defaults.set(600, forKey: PreferenceKeys.sessionLeadSecs)
+    defaults.set(300, forKey: PreferenceKeys.workDurationSecs)
+
+    return GeneralSettingsTab(state: TimerState(overlays: .disabled, defaults: defaults))
+        .defaultAppStorage(defaults)
+        .frame(width: 480)
 }
 
 #Preview("Settings") { @MainActor in

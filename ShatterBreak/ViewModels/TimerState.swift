@@ -125,8 +125,22 @@ final class TimerState {
             autoStartWork: autoStartWorkTimer,
             // Always the break duration for now; a parameter so making it configurable
             // stays a one-line change.
-            awayResetThreshold: restDurationSecs
+            awayResetThreshold: restDurationSecs,
+            sessionLead: sessionLeadSecs
         )
+    }
+
+    /// Zero unless asked for, which is what leaves a session counting at its boundary.
+    ///
+    /// Gated on tracking too, and not only because the switch lives in that section: a lead
+    /// running while nothing is counted would spend the credit invisibly, so turning tracking
+    /// on mid-session would lose the session it used to gain.
+    private var sessionLeadSecs: Double {
+        guard statistics.isTrackingEnabled,
+              (defaults.object(forKey: PreferenceKeys.countSessionEarly) as? Bool)
+                  ?? PreferenceDefaults.countSessionEarly else { return 0 }
+        return defaults.duration(forKey: PreferenceKeys.sessionLeadSecs,
+                                 default: PreferenceDefaults.sessionLeadSecs)
     }
 
     // MARK: - Initialization
@@ -228,8 +242,9 @@ final class TimerState {
     /// Safe to call from anywhere, as often as anything likes — that is what the reducer's
     /// idempotency buys.
     func reconcile() {
-        commit(TimerReducer.advance(plan, to: clock.instant, prefs: preferences))
-        rearm()
+        let prefs = preferences
+        commit(TimerReducer.advance(plan, to: clock.instant, prefs: prefs))
+        rearm(prefs)
     }
 
     private func perform(_ action: TimerAction) {
@@ -240,7 +255,7 @@ final class TimerState {
             commit(TimerReducer.advance(plan, to: instant, prefs: prefs))
         }
         commit(TimerReducer.apply(action, to: plan, at: instant, prefs: prefs))
-        rearm()
+        rearm(prefs)
     }
 
     private func commit(_ result: (TimerPlan, [TimerEffect])) {
@@ -252,10 +267,11 @@ final class TimerState {
 
     /// The caller's last step rather than part of ``commit(_:)``: ``perform(_:)`` commits
     /// twice, and a boundary computed from the plan in between is never reachable.
-    private func rearm() {
-        let boundary = plan.isCountingDown
-            ? max(0, plan.rawRemaining(at: clock.instant.date))
-            : nil
+    ///
+    /// Handed the `prefs` the reducer ran on rather than reading them again, so the plan and
+    /// the clock armed for it come from one snapshot.
+    private func rearm(_ prefs: TimerPreferences) {
+        let boundary = TimerReducer.nextTransition(plan, at: clock.instant.date, prefs: prefs)
         // A break waiting for a screen has no countdown left, but still needs a retry.
         let pending = boundary != nil || executor.deferredPresentation != nil
         clock.schedule(nextBoundary: boundary, heartbeat: pending) { [weak self] in

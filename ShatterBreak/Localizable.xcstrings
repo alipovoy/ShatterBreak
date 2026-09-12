@@ -133,6 +133,30 @@
         }
       }
     },
+    "countSessionEarlyHelp": {
+      "comment": "Help text for the Count Sessions Early toggle.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Count a work session as worked shortly before it ends, so stepping away in its closing minutes still counts it."
+          }
+        }
+      }
+    },
+    "countSessionEarlyToggle": {
+      "comment": "Toggle that counts a work session shortly before it ends.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Count Sessions Early"
+          }
+        }
+      }
+    },
     "directCaptureConfirmAction": {
       "extractionState": "manual",
       "localizations": {
@@ -521,6 +545,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Resume"
+          }
+        }
+      }
+    },
+    "sessionLeadExceedsWorkWarning": {
+      "comment": "Warning when the session lead is longer than a work session.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Session lead is longer than a work session; every session counts as soon as it starts."
+          }
+        }
+      }
+    },
+    "sessionLeadHelp": {
+      "comment": "Help text for the session-lead field.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How long before a work session ends it counts as worked."
+          }
+        }
+      }
+    },
+    "sessionLeadLabel": {
+      "comment": "Label for the field setting how early a work session counts.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Count session before end"
           }
         }
       }

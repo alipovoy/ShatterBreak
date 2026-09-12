@@ -69,19 +69,22 @@ struct ReducerDriver {
 
 extension TimerPreferences {
     /// Short durations so scenarios read in seconds. `awayResetThreshold` tracks
-    /// `restDuration`, as the app passes it today.
+    /// `restDuration`, as the app passes it today; `lead` defaults to the app's zero, so a
+    /// scenario that does not ask for one behaves as it did before the lead existed.
     static func testing(
         work: TimeInterval = 10,
         rest: TimeInterval = 5,
         postpone: TimeInterval = 3,
-        autoStartWork: Bool = true
+        autoStartWork: Bool = true,
+        lead: TimeInterval = 0
     ) -> TimerPreferences {
         TimerPreferences(
             workDuration: work,
             restDuration: rest,
             postponeDuration: postpone,
             autoStartWork: autoStartWork,
-            awayResetThreshold: rest
+            awayResetThreshold: rest,
+            sessionLead: lead
         )
     }
 }

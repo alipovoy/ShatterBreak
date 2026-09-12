@@ -23,4 +23,7 @@ enum DurationBounds {
 
     /// Largest lead before a break ends that the "I'm back" button appears.
     static let earlyReturnLeadMaximumSecs: Double = 600
+
+    /// Largest lead before a work session ends that it is counted as worked.
+    static let sessionLeadMaximumSecs: Double = 600
 }
