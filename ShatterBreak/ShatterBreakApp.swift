@@ -62,7 +62,13 @@ struct ShatterBreakApp: App {
 
 extension EnvironmentValues {
     // Use the shared manager so missing injection does not silently create fresh state.
-    @Entry var permissions: ScreenCapturePermissionManager = MainActor.assumeIsolated {
-        ScreenCapturePermissionManager.shared
-    }
+    @Entry var permissions: ScreenCapturePermissionManager = .environmentDefault
+}
+
+// Stored, not written inline as the `@Entry` default: that default is re-evaluated on
+// every access, so Xcode 27 flags a class-typed one whatever the expression returns —
+// it cannot see that this closure hands back the one shared instance. A `let` also
+// settles the main-actor hop once instead of on every read.
+extension ScreenCapturePermissionManager {
+    nonisolated fileprivate static let environmentDefault = MainActor.assumeIsolated { shared }
 }
