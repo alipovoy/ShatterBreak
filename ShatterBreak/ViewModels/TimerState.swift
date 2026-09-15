@@ -297,8 +297,9 @@ final class TimerState {
         let displayInterval = Int(ceil(max(0, interval)))
         let minutes = displayInterval / 60
         let seconds = displayInterval % 60
-        let minutesStr = minutes.formatted(.number.precision(.integerLength(2...2)))
-        let secondsStr = seconds.formatted(.number.precision(.integerLength(2...2)))
+        // A closed `integerLength` range caps as well as pads, truncating minutes past 99.
+        let minutesStr = minutes.formatted(.number.precision(.integerLength(2...)))
+        let secondsStr = seconds.formatted(.number.precision(.integerLength(2...)))
         return "\(minutesStr):\(secondsStr)"
     }
 }
