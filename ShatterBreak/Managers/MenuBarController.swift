@@ -63,7 +63,6 @@ final class MenuBarController: NSObject {
     }
 
     isolated deinit {
-        refreshTask?.cancel()
         if let styleObserver {
             notificationCenter.removeObserver(styleObserver)
         }
