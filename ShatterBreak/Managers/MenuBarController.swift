@@ -12,7 +12,7 @@ final class MenuBarController: NSObject {
     private let state: TimerState
     private let defaults: any KeyValueStore
     private let notificationCenter: NotificationCenter
-    let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let popover = NSPopover()
 
     /// Built from the menu bar's own point size, read before anything overrides
@@ -63,9 +63,11 @@ final class MenuBarController: NSObject {
     }
 
     isolated deinit {
+        refreshTask?.cancel()
         if let styleObserver {
             notificationCenter.removeObserver(styleObserver)
         }
+        NSStatusBar.system.removeStatusItem(statusItem)
     }
 
     // MARK: - Popover
@@ -87,19 +89,19 @@ final class MenuBarController: NSObject {
 
     // MARK: - Refresh
 
-    private func restart() {
-        refreshTask?.cancel()
-        refreshTask = Task { [weak self] in await self?.drive() }
-    }
-
+    /// Holds no strong `self` across the await, which is what leaves `deinit` reachable
+    /// while the loop sleeps — and so leaves the status item releasable.
+    ///
     /// Configures inside the task rather than at the call site: the two must read the same
     /// mode, and by the time the task body runs the state that triggered it may have moved on.
-    private func drive() async {
-        configure()
-
-        guard let style = displayStyle else { return }
-        await style.driveCountdown(for: state) { [weak self] referenceDate in
-            self?.render(at: referenceDate)
+    private func restart() {
+        refreshTask?.cancel()
+        refreshTask = Task { [weak self, state] in
+            self?.configure()
+            guard let style = self?.displayStyle else { return }
+            await style.driveCountdown(for: state) { [weak self] referenceDate in
+                self?.render(at: referenceDate)
+            }
         }
     }
 
@@ -131,6 +133,13 @@ final class MenuBarController: NSObject {
     }
 
     // MARK: - Drawing
+
+    /// What the item currently shows, for tests: the width it is pinned to, and the string
+    /// drawn beside the icon.
+    var pinnedLength: CGFloat { statusItem.length }
+    var countdownText: String {
+        statusItem.button?.attributedTitle.string.trimmingCharacters(in: .whitespaces) ?? ""
+    }
 
     private var displayStyle: CountdownDisplayStyle? {
         guard state.shouldShowTimeInMenuBar else { return nil }

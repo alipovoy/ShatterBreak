@@ -122,7 +122,8 @@ final class TestEnvironment {
     /// main-actor object — lands a turn or more after the call that scheduled it.
     @MainActor
     func waitUntil(_ condition: () -> Bool) async {
-        for _ in 0..<200 where condition() == false {
+        for _ in 0..<200 {
+            if condition() { return }
             try? await Task.sleep(for: .milliseconds(5))
         }
     }

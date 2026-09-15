@@ -100,9 +100,12 @@ extension CountdownDisplayStyle {
     ///
     /// The menu bar item and the on-screen countdowns share this so the cadence — and the
     /// power-save style's once-a-minute wake — is decided in one place.
+    ///
+    /// Moments come from the timer's own clock, never the wall clock: reading `Date.now`
+    /// against a plan the clock started puts the two on different timelines.
     @MainActor
     func driveCountdown(for state: TimerState, onTick: (Date) -> Void) async {
-        var referenceDate = Date.now
+        var referenceDate = state.clock.instant.date
         onTick(referenceDate)
 
         guard state.isRunning else { return }
@@ -120,7 +123,7 @@ extension CountdownDisplayStyle {
                 return
             }
 
-            referenceDate = .now
+            referenceDate = state.clock.instant.date
             onTick(referenceDate)
         }
     }
