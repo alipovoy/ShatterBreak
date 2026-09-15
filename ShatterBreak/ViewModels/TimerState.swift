@@ -76,6 +76,10 @@ final class TimerState {
     /// view keyed on phase alone keeps rendering the finished interval.
     var countdownIntervalID: Int { plan.intervalID }
 
+    /// The length of the interval now on the clock — the postpone delay while a postpone is
+    /// in flight, not the work duration.
+    var countdownDuration: TimeInterval { plan.duration }
+
     /// The remaining time at the clock's current moment.
     var timeRemaining: TimeInterval { plan.remaining(at: clock.instant.date) }
 

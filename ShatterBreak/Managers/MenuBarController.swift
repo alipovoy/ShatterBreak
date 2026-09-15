@@ -11,7 +11,8 @@ import SwiftUI
 final class MenuBarController: NSObject {
     private let state: TimerState
     private let defaults: any KeyValueStore
-    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let notificationCenter: NotificationCenter
+    let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let popover = NSPopover()
 
     /// Built from the menu bar's own point size, read before anything overrides
@@ -19,11 +20,17 @@ final class MenuBarController: NSObject {
     private let titleAttributes: [NSAttributedString.Key: Any]
 
     private var refreshTask: Task<Void, Never>?
+    private var styleObserver: (any NSObjectProtocol)?
     private var timerStyle: MenuBarTimerStyle
 
-    init(state: TimerState, defaults: any KeyValueStore = UserDefaults.standard) {
+    init(
+        state: TimerState,
+        defaults: any KeyValueStore = UserDefaults.standard,
+        notificationCenter: NotificationCenter = .default
+    ) {
         self.state = state
         self.defaults = defaults
+        self.notificationCenter = notificationCenter
         self.timerStyle = defaults.value(
             forKey: PreferenceKeys.menuBarTimerStyle,
             default: PreferenceDefaults.menuBarTimerStyle
@@ -43,7 +50,7 @@ final class MenuBarController: NSObject {
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(rootView: MenuView(state: state))
 
-        NotificationCenter.default.addObserver(
+        styleObserver = notificationCenter.addObserver(
             forName: UserDefaults.didChangeNotification,
             object: nil,
             queue: .main
@@ -53,6 +60,13 @@ final class MenuBarController: NSObject {
 
         observeState()
         restart()
+    }
+
+    isolated deinit {
+        refreshTask?.cancel()
+        if let styleObserver {
+            notificationCenter.removeObserver(styleObserver)
+        }
     }
 
     // MARK: - Popover
@@ -85,7 +99,7 @@ final class MenuBarController: NSObject {
         configure()
 
         guard let style = displayStyle else { return }
-        await driveCountdown(state: state, displayStyle: style) { [weak self] referenceDate in
+        await style.driveCountdown(for: state) { [weak self] referenceDate in
             self?.render(at: referenceDate)
         }
     }
@@ -97,7 +111,6 @@ final class MenuBarController: NSObject {
         withObservationTracking {
             _ = state.mode
             _ = state.countdownIntervalID
-            _ = state.workDurationSecs
         } onChange: { [weak self] in
             Task { @MainActor in
                 self?.observeState()
@@ -139,7 +152,7 @@ final class MenuBarController: NSObject {
         }
 
         button.imagePosition = .imageLeading
-        statusItem.length = length(fitting: style.widthCandidates(overDuration: state.workDurationSecs), on: button)
+        statusItem.length = length(fitting: style.widthCandidates(overDuration: state.countdownDuration), on: button)
     }
 
     private func render(at referenceDate: Date) {

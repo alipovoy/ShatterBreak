@@ -7,6 +7,7 @@ final class TestEnvironment {
     let defaults: any KeyValueStore = InMemoryKeyValueStore()
     let workspaceNotificationCenter = NotificationCenter()
     let appNotificationCenter = NotificationCenter()
+    let defaultsNotificationCenter = NotificationCenter()
     private var cachedClock: ManualTimerClock?
     /// Lit unless a DarkWake-gating test says otherwise, so overlay assertions stay about
     /// the state machine.
@@ -97,6 +98,39 @@ final class TestEnvironment {
         for _ in 0..<maxTicks where condition() == false {
             await advanceTime(by: interval)
         }
+    }
+
+    @MainActor
+    func makeMenuBarController(state: TimerState) -> MenuBarController {
+        MenuBarController(
+            state: state,
+            defaults: defaults,
+            notificationCenter: defaultsNotificationCenter
+        )
+    }
+
+    /// Writes the style and announces it the way `UserDefaults` would, which is the only
+    /// signal ``MenuBarController`` has: the preference is written by `@AppStorage`, not
+    /// through the timer.
+    @MainActor
+    func setMenuBarTimerStyle(_ style: MenuBarTimerStyle) {
+        defaults.set(style.rawValue, forKey: PreferenceKeys.menuBarTimerStyle)
+        defaultsNotificationCenter.post(name: UserDefaults.didChangeNotification, object: nil)
+    }
+
+    /// Work posted to the main queue — a notification observer, a `Task` spawned from a
+    /// main-actor object — lands a turn or more after the call that scheduled it.
+    @MainActor
+    func waitUntil(_ condition: () -> Bool) async {
+        for _ in 0..<200 where condition() == false {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+    }
+
+    /// For asserting that something did *not* happen, where there is no condition to poll.
+    @MainActor
+    func settle() async {
+        try? await Task.sleep(for: .milliseconds(50))
     }
 
     @MainActor
