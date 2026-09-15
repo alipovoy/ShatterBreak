@@ -3,60 +3,48 @@ import SwiftUI
 @main
 @MainActor
 struct ShatterBreakApp: App {
-    // State is initialized on MainActor since App is @MainActor
-    @State private var timerState = TimerState()
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var permissions = ScreenCapturePermissionManager.shared
-    @AppStorage(PreferenceKeys.menuBarTimerStyle)
-    private var menuBarTimerStyle = PreferenceDefaults.menuBarTimerStyle
 
     // No scene requests screen-capture permission on appearance: opening the menu or
     // Preferences says nothing about whether a capture is imminent, and asking there
     // prompted users who had chosen Fogged or Dimmed. Every request now follows an action
     // meaning "I want Shatter to work" — see `ScreenCaptureConsentView`.
+    //
+    // The status item is not a scene: `MenuBarExtra` discards font and layout modifiers on
+    // its label, so the countdown could not hold a width. `MenuBarController` owns it.
     var body: some Scene {
-        MenuBarExtra {
-            MenuView(state: timerState)
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "app.badge.clock")
-                    .accessibilityLabel(Text(menuBarAccessibilityLabel))
-
-                if timerState.shouldShowTimeInMenuBar,
-                   let displayStyle = menuBarTimerStyle.countdownDisplayStyle {
-                    CountdownTextView(state: timerState, displayStyle: displayStyle)
-                        .font(.system(.body, design: .monospaced))
-                }
-            }
-            // The label is always rendered, so this fires once at launch — unlike the
-            // menu content, which is built lazily when the user opens the menu.
-            .task { timerState.autoStartIfEnabled() }
-        }
-        .menuBarExtraStyle(.window)
-
         // A plain Window rather than a Settings scene: TabView renders here with the
         // capsule-toolbar tabs, and Xcode previews match the app exactly. The scene's
         // usual perk (a standard ⌘, shortcut) has no menu bar to live in anyway.
         Window(.preferences, id: "preferences") {
-            PreferencesView(state: timerState)
+            PreferencesView(state: delegate.timerState)
                 .environment(\.permissions, permissions)
                 .moveToActiveSpace()
         }
         .windowResizability(.contentSize)
+        // The default presents whichever scene is declared first.
+        .defaultLaunchBehavior(.suppressed)
 
         Window(.about, id: "about") {
             AboutView()
                 .moveToActiveSpace()
         }
         .windowResizability(.contentSize)
+        .defaultLaunchBehavior(.suppressed)
     }
+}
 
-    private var menuBarAccessibilityLabel: LocalizedStringResource {
-        switch timerState.mode {
-        case .idle: .menuBarAccessibilityIdle
-        case .running, .postponedWork: .menuBarAccessibilityRunning
-        case .paused: .menuBarAccessibilityPaused
-        case .resting, .awaitingReturn: .menuBarAccessibilityResting
-        }
+/// An accessory app with no `MenuBarExtra` shows nothing at launch, so there is no view
+/// lifecycle to hang the status item or the auto-start on.
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    let timerState = TimerState()
+    private var menuBar: MenuBarController?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        menuBar = MenuBarController(state: timerState, defaults: timerState.defaults)
+        timerState.autoStartIfEnabled()
     }
 }
 

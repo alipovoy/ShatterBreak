@@ -40,25 +40,12 @@ struct CountdownClock<Content: View>: View {
 
     @MainActor
     private func drive() async {
-        referenceDate = .now
-
-        guard isActive, state.isRunning else { return }
-
-        while Task.isCancelled == false {
-            let remaining = state.timeRemaining(at: referenceDate)
-            guard remaining > 0 else { return }
-
-            do {
-                try await Task.sleep(
-                    for: displayStyle.nextRefreshDelay(forRemaining: remaining),
-                    tolerance: displayStyle.refreshTolerance(forRemaining: remaining)
-                )
-            } catch {
-                return
-            }
-
+        guard isActive else {
             referenceDate = .now
+            return
         }
+
+        await driveCountdown(state: state, displayStyle: displayStyle) { referenceDate = $0 }
     }
 }
 
@@ -67,4 +54,38 @@ private struct CountdownClockKey: Equatable {
     let mode: TimerState.Mode
     let isActive: Bool
     let displayStyle: CountdownDisplayStyle
+}
+
+/// Calls `onTick` with now, then with each later moment the countdown's text can differ
+/// from the one before, until the interval runs out or the task is cancelled.
+///
+/// The menu bar item and the on-screen countdowns share this so the cadence — and the
+/// power-save style's once-a-minute wake — is decided in one place.
+@MainActor
+func driveCountdown(
+    state: TimerState,
+    displayStyle: CountdownDisplayStyle,
+    onTick: (Date) -> Void
+) async {
+    var referenceDate = Date.now
+    onTick(referenceDate)
+
+    guard state.isRunning else { return }
+
+    while Task.isCancelled == false {
+        let remaining = state.timeRemaining(at: referenceDate)
+        guard remaining > 0 else { return }
+
+        do {
+            try await Task.sleep(
+                for: displayStyle.nextRefreshDelay(forRemaining: remaining),
+                tolerance: displayStyle.refreshTolerance(forRemaining: remaining)
+            )
+        } catch {
+            return
+        }
+
+        referenceDate = .now
+        onTick(referenceDate)
+    }
 }

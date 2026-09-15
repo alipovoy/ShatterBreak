@@ -112,8 +112,10 @@ final class TimerState {
     private var executor: TimerEffectExecutor!
 
     private var autoStartWorkTimer: Bool {
-        (defaults.string(forKey: PreferenceKeys.workStartMode)
-            .flatMap { WorkStartMode(rawValue: $0) } ?? PreferenceDefaults.workStartMode) == .automatic
+        defaults.value(
+            forKey: PreferenceKeys.workStartMode,
+            default: PreferenceDefaults.workStartMode
+        ) == .automatic
     }
 
     /// Read at the moment the reducer runs, so Preferences edits apply mid-session.

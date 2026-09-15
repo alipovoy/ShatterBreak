@@ -50,6 +50,27 @@ enum CountdownDisplayStyle: Equatable {
         }
     }
 
+    /// The strings that bound how wide this style can render while counting `duration`
+    /// down to zero.
+    ///
+    /// Later values never need more digits than the first, so the start bounds the whole
+    /// countdown — except in `minutes`, where the final-minute handoff to MM:SS outgrows
+    /// any minute count.
+    func widthCandidates(
+        overDuration duration: TimeInterval,
+        locale: Locale = .autoupdatingCurrent
+    ) -> [String] {
+        switch self {
+        case .seconds:
+            return [text(forRemaining: duration, locale: locale)]
+        case .minutes:
+            return [
+                text(forRemaining: duration, locale: locale),
+                text(forRemaining: Self.finalCountdownThreshold, locale: locale)
+            ]
+        }
+    }
+
     /// The slack the next refresh can absorb. Minute-level sleeps accept several
     /// seconds so the system can coalesce timers (the energy win this style
     /// exists for); per-second ticks stay tight to keep the countdown smooth.

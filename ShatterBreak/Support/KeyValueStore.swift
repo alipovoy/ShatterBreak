@@ -25,4 +25,11 @@ extension KeyValueStore {
         let stored = double(forKey: key)
         return stored > 0 ? stored : defaultValue
     }
+
+    /// A preference stored as an enum's raw value, or `defaultValue` when unset or
+    /// unrecognized — so a corrupt stored string falls back rather than being trusted.
+    func value<V: RawRepresentable>(forKey key: String, default defaultValue: V) -> V
+    where V.RawValue == String {
+        string(forKey: key).flatMap(V.init(rawValue:)) ?? defaultValue
+    }
 }
