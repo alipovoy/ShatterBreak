@@ -14,15 +14,12 @@ struct OverlayManagerDisplayAwakeTests {
     @Test("a break skips a window for a display that is asleep")
     func sleepingDisplayGetsNoWindow() {
         let environment = TestEnvironment()
-        var asleep: Set<CGDirectDisplayID> = [primaryDisplay]
+        environment.asleepDisplays = [primaryDisplay]
         let screens = StubScreens([
             StubScreens.display(primaryDisplay),
             StubScreens.display(secondaryDisplay, x: 1)
         ])
-        let manager = environment.makeOverlayManager(
-            captureClient: screens.captureClient,
-            isDisplayAwake: { asleep.contains($0) == false }
-        )
+        let manager = environment.makeOverlayManager(captureClient: screens.captureClient)
         defer { manager.dismissOverlays() }
 
         #expect(manager.awakeScreens().map(\.displayID) == [secondaryDisplay])
@@ -32,7 +29,7 @@ struct OverlayManagerDisplayAwakeTests {
         #expect(manager.overlayStates[primaryDisplay] == nil, "The asleep display must get no overlay window.")
         #expect(manager.overlayStates[secondaryDisplay] != nil, "The awake display still gets its overlay.")
 
-        asleep.insert(secondaryDisplay)
+        environment.asleepDisplays.insert(secondaryDisplay)
         #expect(manager.awakeScreens().isEmpty, "Once every display is asleep, none is presentable.")
     }
 
@@ -40,22 +37,21 @@ struct OverlayManagerDisplayAwakeTests {
     func sleepingDisplayJoinsOnWake() {
         let environment = TestEnvironment()
         let center = NotificationCenter()
-        var asleep: Set<CGDirectDisplayID> = [secondaryDisplay]
+        environment.asleepDisplays = [secondaryDisplay]
         let screens = StubScreens([
             StubScreens.display(primaryDisplay),
             StubScreens.display(secondaryDisplay, x: 1)
         ])
         let manager = environment.makeOverlayManager(
             captureClient: screens.captureClient,
-            notificationCenter: center,
-            isDisplayAwake: { asleep.contains($0) == false }
+            notificationCenter: center
         )
         defer { manager.dismissOverlays() }
 
         manager.showOverlays(state: environment.makeTimerState(), settled: false)
         #expect(manager.overlayStates[secondaryDisplay] == nil, "Asleep at break start, so no window yet.")
 
-        asleep.remove(secondaryDisplay)
+        environment.asleepDisplays.remove(secondaryDisplay)
         center.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
 
         #expect(
@@ -91,15 +87,13 @@ struct OverlayManagerDisplayAwakeTests {
     func sleepingDisplayIsNotTornDownByAnUnrelatedReconfiguration() {
         let environment = TestEnvironment()
         let center = NotificationCenter()
-        var asleep: Set<CGDirectDisplayID> = []
         let screens = StubScreens([
             StubScreens.display(primaryDisplay),
             StubScreens.display(secondaryDisplay, x: 1)
         ])
         let manager = environment.makeOverlayManager(
             captureClient: screens.captureClient,
-            notificationCenter: center,
-            isDisplayAwake: { asleep.contains($0) == false }
+            notificationCenter: center
         )
         defer { manager.dismissOverlays() }
 
@@ -107,7 +101,7 @@ struct OverlayManagerDisplayAwakeTests {
 
         // The primary sleeps; some unrelated reconfiguration (e.g. a third display
         // arriving) fires the same notification reconcileOverlays() also answers to.
-        asleep.insert(primaryDisplay)
+        environment.asleepDisplays.insert(primaryDisplay)
         center.post(name: NSApplication.didChangeScreenParametersNotification, object: nil)
 
         #expect(

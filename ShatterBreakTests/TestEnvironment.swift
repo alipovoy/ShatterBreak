@@ -13,6 +13,11 @@ final class TestEnvironment {
     @MainActor
     var isDisplayAwake = true
 
+    /// Empty unless a gating test sleeps one. Held here rather than in a captured local so
+    /// a test can sleep or wake a display after the manager already holds the closure.
+    @MainActor
+    var asleepDisplays: Set<CGDirectDisplayID> = []
+
     @MainActor
     var clock: ManualTimerClock {
         if let cachedClock {
@@ -46,8 +51,7 @@ final class TestEnvironment {
     func makeOverlayManager(
         captureClient: ScreenCaptureClient = .live,
         notificationCenter: NotificationCenter = NotificationCenter(),
-        directCaptureAccess: @escaping @MainActor () -> DirectCaptureAccess = { .unknown },
-        isDisplayAwake: @escaping @MainActor (CGDirectDisplayID) -> Bool = { _ in true }
+        directCaptureAccess: @escaping @MainActor () -> DirectCaptureAccess = { .unknown }
     ) -> OverlayManager {
         OverlayManager(
             defaults: defaults,
@@ -57,7 +61,7 @@ final class TestEnvironment {
             // and sleep/wake notifications on the one center they hold a reference to.
             workspaceNotificationCenter: notificationCenter,
             directCaptureAccess: directCaptureAccess,
-            isDisplayAwake: isDisplayAwake
+            isDisplayAwake: { [unowned self] in asleepDisplays.contains($0) == false }
         )
     }
 
