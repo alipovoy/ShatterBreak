@@ -109,9 +109,8 @@ final class TestEnvironment {
         )
     }
 
-    /// Writes the style and announces it the way `UserDefaults` would, which is the only
-    /// signal ``MenuBarController`` has: the preference is written by `@AppStorage`, not
-    /// through the timer.
+    /// The preference is written by `@AppStorage`, not through the timer, so the posted
+    /// notification is the only signal ``MenuBarController`` gets.
     @MainActor
     func setMenuBarTimerStyle(_ style: MenuBarTimerStyle) {
         defaults.set(style.rawValue, forKey: PreferenceKeys.menuBarTimerStyle)
@@ -119,10 +118,11 @@ final class TestEnvironment {
     }
 
     /// Work posted to the main queue — a notification observer, a `Task` spawned from a
-    /// main-actor object — lands a turn or more after the call that scheduled it.
+    /// main-actor object — lands a turn or more after the call that scheduled it, and a
+    /// countdown's own sleep is a second long.
     @MainActor
-    func waitUntil(attempts: Int = 200, _ condition: () -> Bool) async {
-        for _ in 0..<attempts {
+    func waitUntil(_ condition: () -> Bool) async {
+        for _ in 0..<600 {
             if condition() { return }
             try? await Task.sleep(for: .milliseconds(5))
         }

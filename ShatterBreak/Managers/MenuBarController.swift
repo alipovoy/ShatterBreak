@@ -89,8 +89,8 @@ final class MenuBarController: NSObject {
 
     // MARK: - Refresh
 
-    /// Holds no strong `self` across the await, which is what leaves `deinit` reachable
-    /// while the loop sleeps — and so leaves the status item releasable.
+    /// Captures no strong `self` across the await, which is what keeps `deinit` reachable
+    /// while the loop sleeps — and so lets the status item go.
     ///
     /// Configures inside the task rather than at the call site: the two must read the same
     /// mode, and by the time the task body runs the state that triggered it may have moved on.
@@ -134,8 +134,7 @@ final class MenuBarController: NSObject {
 
     // MARK: - Drawing
 
-    /// What the item currently shows, for tests: the width it is pinned to, and the string
-    /// drawn beside the icon.
+    /// Read-only seams, so a test can assert on the item without holding the AppKit object.
     var pinnedLength: CGFloat { statusItem.length }
     var countdownText: String {
         statusItem.button?.attributedTitle.string.trimmingCharacters(in: .whitespaces) ?? ""

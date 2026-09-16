@@ -3,9 +3,8 @@ import Testing
 
 @testable import ShatterBreak
 
-/// Covers what the status item now does for itself — react to a preference written
-/// elsewhere, follow the phase on the clock, draw against that clock, and give the item
-/// back — because none of it reaches the status item through SwiftUI any more.
+/// The status item reacts to a preference written elsewhere, to the phase on the clock and
+/// to being released — none of which reaches it through SwiftUI any more.
 @Suite("Menu bar controller", .tags(.timerState), .timeLimit(.minutes(1)))
 struct MenuBarControllerTests {
     @Test("A style written to the store re-pins the item")
@@ -13,7 +12,6 @@ struct MenuBarControllerTests {
     func styleChangeRepinsTheItem() async {
         let environment = TestEnvironment()
         let state = environment.makeTimerState()
-        state.workDurationSecs = 1500
         let controller = environment.makeMenuBarController(state: state)
 
         state.start()
@@ -59,9 +57,8 @@ struct MenuBarControllerTests {
         )
     }
 
-    /// Asserts on a minute the countdown has already spent, not on the one it starts at:
-    /// measuring the width leaves the widest candidate — "25:00" here — sitting in the
-    /// button, so a fixture asserting the starting minute cannot tell a render from residue.
+    /// Asserts on a minute already spent: measuring the width leaves the widest candidate
+    /// ("25:00") in the button, so the starting minute cannot tell a render from residue.
     @Test("The countdown is drawn against the timer's clock")
     @MainActor
     func countdownRendersAgainstTheTimersClock() async {
@@ -74,13 +71,10 @@ struct MenuBarControllerTests {
         state.start()
         await environment.advanceTime(by: 60)
 
-        await environment.waitUntil(attempts: 600) { controller.countdownText == "24:00" }
+        await environment.waitUntil { controller.countdownText == "24:00" }
         #expect(
             controller.countdownText == "24:00",
-            """
-            A wall-clock reference date measures a plan the test clock started in 1970 as long \
-            expired; a countdown that never renders leaves the measured "25:00" behind.
-            """
+            "A wall-clock reference date reads 00:00; a countdown that never renders reads 25:00."
         )
     }
 
@@ -90,7 +84,6 @@ struct MenuBarControllerTests {
         let environment = TestEnvironment()
         environment.setMenuBarTimerStyle(.seconds)
         let state = environment.makeTimerState()
-        state.workDurationSecs = 1500
         weak var released: MenuBarController?
 
         do {
