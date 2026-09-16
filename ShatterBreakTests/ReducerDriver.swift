@@ -10,6 +10,8 @@ import Foundation
 struct ReducerDriver {
     private(set) var plan: TimerPlan
     private(set) var effects: [TimerEffect] = []
+    /// One reducer call's effects, not one batch: `TimerState` performs the reconcile's and
+    /// the action's together, which this driver deliberately keeps apart.
     private(set) var lastEffects: [TimerEffect] = []
 
     var prefs: TimerPreferences

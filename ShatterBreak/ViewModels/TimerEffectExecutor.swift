@@ -24,10 +24,11 @@ final class TimerEffectExecutor {
     /// spent on nobody when every screen is dark.
     private let isDisplayAwake: @MainActor () -> Bool
 
-    /// The break this batch will present, once ``flushIfPossible()`` finds it a screen. Not
+    /// The break this batch will present, once ``flushIfPossible()`` finds it a screen —
+    /// every presentation waits here, not only the ones a dark screen held up. Not
     /// a queue: a second break replaces the first, since showing both would present a break
     /// the user already slept through — and a dismissal empties it outright.
-    private(set) var deferredPresentation: OverlayPresentationStyle?
+    private(set) var pendingPresentation: OverlayPresentationStyle?
 
     init(
         handlers: Handlers,
@@ -52,10 +53,10 @@ final class TimerEffectExecutor {
 
     /// Presents the batch's surviving break, if there is a screen to present it on.
     func flushIfPossible() {
-        guard let deferred = deferredPresentation, isDisplayAwake() else { return }
+        guard let pending = pendingPresentation, isDisplayAwake() else { return }
 
-        deferredPresentation = nil
-        handlers.showOverlay(deferred)
+        pendingPresentation = nil
+        handlers.showOverlay(pending)
     }
 
     private func perform(_ effect: TimerEffect) {
@@ -69,17 +70,17 @@ final class TimerEffectExecutor {
             // Never presented from here, however lit the display: a break the rest of the
             // batch dismisses or settles must not reach the screen first (issue #112). The
             // slot also supersedes anything waiting, which is by definition out of date.
-            deferredPresentation = style
+            pendingPresentation = style
 
         case .dismissOverlay:
             // A dismissed break must not appear when the display comes back.
-            deferredPresentation = nil
+            pendingPresentation = nil
             handlers.dismissOverlay()
 
         case .settleHeldOverlay:
             // Nothing is on screen to correct; this only demotes what is still waiting.
-            guard deferredPresentation != nil else { return }
-            deferredPresentation = .settled
+            guard pendingPresentation != nil else { return }
+            pendingPresentation = .settled
 
         case .record(let event):
             handlers.record(event)

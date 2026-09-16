@@ -278,7 +278,7 @@ final class TimerState {
         executor.perform(result.1)
         let boundary = TimerReducer.nextTransition(plan, at: clock.instant.date, prefs: prefs)
         // A break waiting for a screen has no countdown left, but still needs a retry.
-        let pending = boundary != nil || executor.deferredPresentation != nil
+        let pending = boundary != nil || executor.pendingPresentation != nil
         clock.schedule(nextBoundary: boundary, heartbeat: pending) { [weak self] in
             self?.reconcile()
         }
