@@ -76,6 +76,10 @@ final class TimerState {
     /// view keyed on phase alone keeps rendering the finished interval.
     var countdownIntervalID: Int { plan.intervalID }
 
+    /// The length of the interval now on the clock — the postpone delay while a postpone is
+    /// in flight, not the work duration.
+    var countdownDuration: TimeInterval { plan.duration }
+
     /// The remaining time at the clock's current moment.
     var timeRemaining: TimeInterval { plan.remaining(at: clock.instant.date) }
 
@@ -112,8 +116,10 @@ final class TimerState {
     private var executor: TimerEffectExecutor!
 
     private var autoStartWorkTimer: Bool {
-        (defaults.string(forKey: PreferenceKeys.workStartMode)
-            .flatMap { WorkStartMode(rawValue: $0) } ?? PreferenceDefaults.workStartMode) == .automatic
+        defaults.value(
+            forKey: PreferenceKeys.workStartMode,
+            default: PreferenceDefaults.workStartMode
+        ) == .automatic
     }
 
     /// Read at the moment the reducer runs, so Preferences edits apply mid-session.
@@ -295,8 +301,9 @@ final class TimerState {
         let displayInterval = Int(ceil(max(0, interval)))
         let minutes = displayInterval / 60
         let seconds = displayInterval % 60
-        let minutesStr = minutes.formatted(.number.precision(.integerLength(2...2)))
-        let secondsStr = seconds.formatted(.number.precision(.integerLength(2...2)))
+        // A closed `integerLength` range caps as well as pads, truncating minutes past 99.
+        let minutesStr = minutes.formatted(.number.precision(.integerLength(2...)))
+        let secondsStr = seconds.formatted(.number.precision(.integerLength(2...)))
         return "\(minutesStr):\(secondsStr)"
     }
 }

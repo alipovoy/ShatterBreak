@@ -150,6 +150,9 @@ struct DurationFormatTests {
     @Test("clock formatting uses MM:SS without capping minutes")
     func clockUsesUncappedMinutes() {
         #expect(DurationFormat.clock(3900) == "65:00", "Clock formatting should keep raw minutes for editing.")
+        #expect(DurationFormat.clock(6000) == "100:00", "Clock formatting should not drop the hundreds digit.")
+        #expect(DurationFormat.clock(6900) == "115:00", "Clock formatting should keep minutes above 99 intact.")
+        #expect(DurationFormat.clock(7200) == "120:00", "The work maximum should survive formatting.")
     }
 
     @Test("friendly formatting uses a reader-friendly style above an hour")

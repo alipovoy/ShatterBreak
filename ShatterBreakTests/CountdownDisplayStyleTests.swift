@@ -19,6 +19,13 @@ struct CountdownDisplayStyleTests {
         #expect(CountdownDisplayStyle.seconds.text(forRemaining: 59.4, locale: english) == "01:00")
     }
 
+    @Test("Seconds style keeps minutes above 99 whole")
+    func secondsStyleDoesNotTruncateLongSessions() {
+        #expect(CountdownDisplayStyle.seconds.text(forRemaining: 6000, locale: english) == "100:00")
+        #expect(CountdownDisplayStyle.seconds.text(forRemaining: 6900, locale: english) == "115:00")
+        #expect(CountdownDisplayStyle.seconds.text(forRemaining: 7200, locale: english) == "120:00")
+    }
+
     @Test("Minutes style rounds whole minutes up, matching the MM:SS ceiling")
     func minutesStyleRoundsUp() {
         #expect(CountdownDisplayStyle.minutes.text(forRemaining: 1500, locale: english) == "25m")
@@ -32,6 +39,29 @@ struct CountdownDisplayStyleTests {
         #expect(CountdownDisplayStyle.minutes.text(forRemaining: 60, locale: english) == "01:00")
         #expect(CountdownDisplayStyle.minutes.text(forRemaining: 12.3, locale: english) == "00:13")
         #expect(CountdownDisplayStyle.minutes.text(forRemaining: 0, locale: english) == "00:00")
+    }
+
+    // MARK: - Width candidates
+
+    @Test("Seconds style is bounded by the string it starts on")
+    func secondsStyleWidthCandidatesCoverTheWholeCountdown() {
+        #expect(
+            CountdownDisplayStyle.seconds.widthCandidates(overDuration: 5400, locale: english) == ["90:00"]
+        )
+        #expect(
+            CountdownDisplayStyle.seconds.widthCandidates(overDuration: 1500, locale: english) == ["25:00"]
+        )
+        #expect(
+            CountdownDisplayStyle.seconds.widthCandidates(overDuration: 6900, locale: english) == ["115:00"]
+        )
+    }
+
+    @Test("Minutes style also offers the final-minute MM:SS, which outgrows any minute count")
+    func minutesStyleWidthCandidatesIncludeTheHandoff() {
+        #expect(
+            CountdownDisplayStyle.minutes.widthCandidates(overDuration: 1500, locale: english)
+                == ["25m", "01:00"]
+        )
     }
 
     // MARK: - Refresh cadence

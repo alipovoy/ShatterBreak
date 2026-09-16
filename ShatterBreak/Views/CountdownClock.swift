@@ -40,25 +40,12 @@ struct CountdownClock<Content: View>: View {
 
     @MainActor
     private func drive() async {
-        referenceDate = .now
-
-        guard isActive, state.isRunning else { return }
-
-        while Task.isCancelled == false {
-            let remaining = state.timeRemaining(at: referenceDate)
-            guard remaining > 0 else { return }
-
-            do {
-                try await Task.sleep(
-                    for: displayStyle.nextRefreshDelay(forRemaining: remaining),
-                    tolerance: displayStyle.refreshTolerance(forRemaining: remaining)
-                )
-            } catch {
-                return
-            }
-
-            referenceDate = .now
+        guard isActive else {
+            referenceDate = state.clock.instant.date
+            return
         }
+
+        await displayStyle.driveCountdown(for: state) { referenceDate = $0 }
     }
 }
 

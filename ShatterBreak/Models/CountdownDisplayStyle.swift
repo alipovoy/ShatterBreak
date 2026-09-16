@@ -50,6 +50,27 @@ enum CountdownDisplayStyle: Equatable {
         }
     }
 
+    /// The strings that bound how wide this style can render while counting `duration`
+    /// down to zero.
+    ///
+    /// Later values never need more digits than the first, so the start bounds the whole
+    /// countdown — except in `minutes`, where the final-minute handoff to MM:SS outgrows
+    /// any minute count.
+    func widthCandidates(
+        overDuration duration: TimeInterval,
+        locale: Locale = .autoupdatingCurrent
+    ) -> [String] {
+        switch self {
+        case .seconds:
+            return [text(forRemaining: duration, locale: locale)]
+        case .minutes:
+            return [
+                text(forRemaining: duration, locale: locale),
+                text(forRemaining: Self.finalCountdownThreshold, locale: locale)
+            ]
+        }
+    }
+
     /// The slack the next refresh can absorb. Minute-level sleeps accept several
     /// seconds so the system can coalesce timers (the energy win this style
     /// exists for); per-second ticks stay tight to keep the countdown smooth.
@@ -70,5 +91,40 @@ enum CountdownDisplayStyle: Equatable {
     ) -> Duration {
         let toBoundary = remaining.truncatingRemainder(dividingBy: boundary)
         return .seconds(toBoundary > 0 ? toBoundary : boundary)
+    }
+}
+
+extension CountdownDisplayStyle {
+    /// Calls `onTick` with now, then with each later moment the countdown's text can differ
+    /// from the one before, until the interval runs out or the task is cancelled.
+    ///
+    /// The menu bar item and the on-screen countdowns share this so the cadence — and the
+    /// power-save style's once-a-minute wake — is decided in one place.
+    ///
+    /// Moments come from the timer's own clock, never the wall clock: reading `Date.now`
+    /// against a plan the clock started puts the two on different timelines.
+    @MainActor
+    func driveCountdown(for state: TimerState, onTick: (Date) -> Void) async {
+        var referenceDate = state.clock.instant.date
+        onTick(referenceDate)
+
+        guard state.isRunning else { return }
+
+        while Task.isCancelled == false {
+            let remaining = state.timeRemaining(at: referenceDate)
+            guard remaining > 0 else { return }
+
+            do {
+                try await Task.sleep(
+                    for: nextRefreshDelay(forRemaining: remaining),
+                    tolerance: refreshTolerance(forRemaining: remaining)
+                )
+            } catch {
+                return
+            }
+
+            referenceDate = state.clock.instant.date
+            onTick(referenceDate)
+        }
     }
 }

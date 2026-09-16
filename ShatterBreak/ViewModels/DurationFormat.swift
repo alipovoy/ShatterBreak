@@ -81,8 +81,9 @@ enum DurationFormat {
 
     // MARK: - Parsing helpers
 
+    /// A closed range here caps as well as pads, truncating past 99.
     private static func zeroPadded(_ value: Int) -> String {
-        value.formatted(.number.precision(.integerLength(2...2)))
+        value.formatted(.number.precision(.integerLength(2...)))
     }
 
     private static func parsedComponentSeconds(from input: String) -> Double? {

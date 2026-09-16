@@ -76,8 +76,7 @@ final class OverlayManager {
     /// The effect to present, derived from the user's preference. Defaults to
     /// `.shatter` when the stored value is missing or unrecognized.
     var selectedEffectType: EffectType {
-        defaults.string(forKey: PreferenceKeys.effectType)
-            .flatMap(EffectType.init(rawValue:)) ?? PreferenceDefaults.effectType
+        defaults.value(forKey: PreferenceKeys.effectType, default: PreferenceDefaults.effectType)
     }
 
     /// Whether overlays use the softer, below-menu-bar window level. Defaults to
