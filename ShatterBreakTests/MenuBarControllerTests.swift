@@ -59,6 +59,9 @@ struct MenuBarControllerTests {
         )
     }
 
+    /// Asserts on a minute the countdown has already spent, not on the one it starts at:
+    /// measuring the width leaves the widest candidate — "25:00" here — sitting in the
+    /// button, so a fixture asserting the starting minute cannot tell a render from residue.
     @Test("The countdown is drawn against the timer's clock")
     @MainActor
     func countdownRendersAgainstTheTimersClock() async {
@@ -69,10 +72,15 @@ struct MenuBarControllerTests {
         let controller = environment.makeMenuBarController(state: state)
 
         state.start()
-        await environment.waitUntil { controller.countdownText.isEmpty == false }
+        await environment.advanceTime(by: 60)
+
+        await environment.waitUntil(attempts: 600) { controller.countdownText == "24:00" }
         #expect(
-            controller.countdownText == "25:00",
-            "A wall-clock reference date would measure a plan the test clock started in 1970 as long expired."
+            controller.countdownText == "24:00",
+            """
+            A wall-clock reference date measures a plan the test clock started in 1970 as long \
+            expired; a countdown that never renders leaves the measured "25:00" behind.
+            """
         )
     }
 

@@ -121,8 +121,8 @@ final class TestEnvironment {
     /// Work posted to the main queue — a notification observer, a `Task` spawned from a
     /// main-actor object — lands a turn or more after the call that scheduled it.
     @MainActor
-    func waitUntil(_ condition: () -> Bool) async {
-        for _ in 0..<200 {
+    func waitUntil(attempts: Int = 200, _ condition: () -> Bool) async {
+        for _ in 0..<attempts {
             if condition() { return }
             try? await Task.sleep(for: .milliseconds(5))
         }
