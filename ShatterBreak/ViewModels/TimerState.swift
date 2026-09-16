@@ -158,7 +158,7 @@ final class TimerState {
     ///     ``OverlayPresenter``.
     ///   - initialPlan: the plan to open on, for previews needing a phase on screen
     ///     without driving a countdown to reach one. Set whole at construction, so
-    ///     ``commit(_:)`` remains the only writer of `plan`. Nothing is scheduled for it.
+    ///     ``commit(_:_:)`` remains the only writer of `plan`. Nothing is scheduled for it.
     init(
         overlays: OverlayPresenter,
         postponeDurationSecs: Double? = nil,
@@ -249,34 +249,33 @@ final class TimerState {
     /// idempotency buys.
     func reconcile() {
         let prefs = preferences
-        commit(TimerReducer.advance(plan, to: clock.instant, prefs: prefs))
-        rearm(prefs)
+        commit(TimerReducer.advance(plan, to: clock.instant, prefs: prefs), prefs)
     }
 
+    /// The reconciled plan stays a local: committing it would perform the reconcile's effects
+    /// before the action is even applied, presenting a break the action then dismisses
+    /// (issue #112).
     private func perform(_ action: TimerAction) {
         let instant = clock.instant
         let prefs = preferences
         // Act on a current plan, never a stale one.
-        if TimerReducer.reconcilesInternally(action) == false {
-            commit(TimerReducer.advance(plan, to: instant, prefs: prefs))
-        }
-        commit(TimerReducer.apply(action, to: plan, at: instant, prefs: prefs))
-        rearm(prefs)
+        let (current, reconciled) = TimerReducer.reconcilesInternally(action)
+            ? (plan, [])
+            : TimerReducer.advance(plan, to: instant, prefs: prefs)
+        let (next, applied) = TimerReducer.apply(action, to: current, at: instant, prefs: prefs)
+        commit((next, reconciled + applied), prefs)
     }
 
-    private func commit(_ result: (TimerPlan, [TimerEffect])) {
-        plan = result.0
-        // Called even with nothing to do: this is also where anything held back from a dark
-        // screen is retried.
-        executor.perform(result.1)
-    }
-
-    /// The caller's last step rather than part of ``commit(_:)``: ``perform(_:)`` commits
-    /// twice, and a boundary computed from the plan in between is never reachable.
+    /// The one writer of `plan`, and the one batch handed to the executor per turn.
+    ///
+    /// Performed even with nothing to do: an empty batch still flushes anything a dark
+    /// screen held back.
     ///
     /// Handed the `prefs` the reducer ran on rather than reading them again, so the plan and
     /// the clock armed for it come from one snapshot.
-    private func rearm(_ prefs: TimerPreferences) {
+    private func commit(_ result: (TimerPlan, [TimerEffect]), _ prefs: TimerPreferences) {
+        plan = result.0
+        executor.perform(result.1)
         let boundary = TimerReducer.nextTransition(plan, at: clock.instant.date, prefs: prefs)
         // A break waiting for a screen has no countdown left, but still needs a retry.
         let pending = boundary != nil || executor.deferredPresentation != nil
