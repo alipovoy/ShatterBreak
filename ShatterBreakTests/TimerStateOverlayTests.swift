@@ -151,4 +151,44 @@ struct TimerStateOverlayTests {
 
         #expect(recorder.showCount == 1, "Once a screen the presenter would draw on is lit, the held break shows.")
     }
+
+    @Test("a stop that lands on an unreconciled boundary never puts the break on screen")
+    @MainActor
+    func stopAcrossAMissedBoundaryPresentsNothing() {
+        let environment = TestEnvironment()
+        let recorder = OverlayRecorder()
+        let state = environment.makeTimerState(overlays: recorder.presenter)
+        state.workDurationSecs = 60
+        state.restDurationSecs = 60
+
+        state.start()
+        environment.elapseTimeWithoutTick(by: 61)
+        state.stop()
+
+        #expect(recorder.showCount == 0, "A break built and torn down in one turn is work spent on nothing.")
+        #expect(state.isRunning == false)
+    }
+
+    @Test("a stop on a display that just woke never flushes the break it is dismissing")
+    @MainActor
+    func stopOnAWokenDisplayDoesNotFlushTheHeldBreak() {
+        let environment = TestEnvironment()
+        let recorder = OverlayRecorder()
+        let state = environment.makeTimerState(overlays: recorder.presenter)
+        state.workDurationSecs = 60
+        state.restDurationSecs = 60
+
+        environment.isDisplayAwake = false
+        state.start()
+        environment.clock.advance(by: 61)
+        #expect(recorder.showCount == 0, "A dark display holds the break back.")
+
+        // The old shape performed the reconcile's effects before the action's, so the retry
+        // flushed the break the action was about to dismiss.
+        environment.isDisplayAwake = true
+        state.stop()
+
+        #expect(recorder.showCount == 0, "The dismissal must reach the executor before the retry does.")
+        #expect(state.isRunning == false)
+    }
 }

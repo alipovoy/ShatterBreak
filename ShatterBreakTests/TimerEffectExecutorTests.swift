@@ -35,9 +35,9 @@ struct TimerEffectExecutorTests {
         TimerEffectExecutor(handlers: recorder.handlers, isDisplayAwake: { display.isAwake })
     }
 
-    @Test("effects reach the world in the order the reducer emitted them")
+    @Test("every effect in a batch reaches the world")
     @MainActor
-    func effectsAreForwardedInOrder() {
+    func everyEffectIsForwarded() {
         let recorder = EffectRecorder()
         let executor = makeExecutor(recorder, display: StubDisplay())
 
@@ -142,6 +142,52 @@ struct TimerEffectExecutorTests {
 
         #expect(recorder.shown.isEmpty, "A break the same batch dismisses must never reach the screen.")
         #expect(recorder.dismissCount == 1, "The dismissal itself still goes through.")
+    }
+
+    @Test("a dismissal later in the batch keeps a lit-display presentation off the screen")
+    @MainActor
+    func batchDismissalCancelsALitPresentation() {
+        let recorder = EffectRecorder()
+        let display = StubDisplay()
+        let executor = makeExecutor(recorder, display: display)
+
+        // The reconcile's break and the action's dismissal, arriving together (issue #112).
+        display.isAwake = true
+        executor.perform([.showOverlay(.animated), .record(.breakCompleted), .dismissOverlay])
+
+        #expect(recorder.shown.isEmpty, "A break the batch dismisses is never worth building.")
+        #expect(recorder.dismissCount == 1)
+        #expect(recorder.recorded == [.breakCompleted], "The rest of the batch is untouched.")
+    }
+
+    @Test("a dismissal earlier in the batch leaves the presentation after it alone")
+    @MainActor
+    func batchDismissalBeforeAPresentationStillShows() {
+        let recorder = EffectRecorder()
+        let display = StubDisplay()
+        let executor = makeExecutor(recorder, display: display)
+
+        display.isAwake = true
+        executor.perform([.dismissOverlay, .showOverlay(.animated)])
+
+        #expect(recorder.shown == [.animated])
+        #expect(recorder.dismissCount == 1)
+    }
+
+    @Test("a settle later in the batch demotes a lit-display presentation rather than racing it")
+    @MainActor
+    func batchSettleDemotesALitPresentation() {
+        let recorder = EffectRecorder()
+        let display = StubDisplay()
+        let executor = makeExecutor(recorder, display: display)
+
+        display.isAwake = true
+        executor.perform([.showOverlay(.animated), .settleHeldOverlay])
+
+        #expect(
+            recorder.shown == [.settled],
+            "The batch says the break is already over, so its shake and chime must not play."
+        )
     }
 
     @Test("a presentation in the same batch supersedes a held one even on a lit display")

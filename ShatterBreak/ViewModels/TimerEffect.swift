@@ -8,6 +8,8 @@ enum TimerEffect: Equatable {
     /// Settle screen-capture consent at the head of a work session, well before a break
     /// needs it: presentation is instantaneous, a system dialog is not.
     case prepareCapturePermissions
+    /// Position in a batch buys nothing: the executor holds every presentation and makes it
+    /// last, so a later `dismissOverlay` or `settleHeldOverlay` still has its say (issue #112).
     case showOverlay(OverlayPresentationStyle)
     case dismissOverlay
     /// A held presentation is out of date: the break it would announce has ended, so present

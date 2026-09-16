@@ -24,9 +24,11 @@ final class TimerEffectExecutor {
     /// spent on nobody when every screen is dark.
     private let isDisplayAwake: @MainActor () -> Bool
 
-    /// The one presentation waiting for a screen. Not a queue: a second break replaces the
-    /// first, since showing both would present a break the user already slept through.
-    private(set) var deferredPresentation: OverlayPresentationStyle?
+    /// The break this batch will present, once ``flushIfPossible()`` finds it a screen —
+    /// every presentation waits here, not only the ones a dark screen held up. Not
+    /// a queue: a second break replaces the first, since showing both would present a break
+    /// the user already slept through — and a dismissal empties it outright.
+    private(set) var pendingPresentation: OverlayPresentationStyle?
 
     init(
         handlers: Handlers,
@@ -36,11 +38,12 @@ final class TimerEffectExecutor {
         self.isDisplayAwake = isDisplayAwake
     }
 
-    /// Performs `effects`, then retries anything still waiting for a screen.
+    /// Performs `effects`, then resolves whatever presentation the batch left standing.
     ///
-    /// The retry comes *last*: flushing first would resolve a held presentation against a
-    /// plan the same batch is about to invalidate. An empty array is fine — every reconcile
-    /// is also a retry, which is what backstops a wake notification that never comes.
+    /// The flush comes *last* so the batch is read whole: a break the same batch goes on to
+    /// dismiss never reaches the screen, and a held one is not resolved against a plan those
+    /// effects are about to invalidate (issue #112). An empty array is fine — every reconcile
+    /// is also a flush, which is what backstops a wake notification that never comes.
     func perform(_ effects: [TimerEffect]) {
         for effect in effects {
             perform(effect)
@@ -48,12 +51,12 @@ final class TimerEffectExecutor {
         flushIfPossible()
     }
 
-    /// Presents anything held back, if there is now a screen to present it on.
+    /// Presents the batch's surviving break, if there is a screen to present it on.
     func flushIfPossible() {
-        guard let deferred = deferredPresentation, isDisplayAwake() else { return }
+        guard let pending = pendingPresentation, isDisplayAwake() else { return }
 
-        deferredPresentation = nil
-        handlers.showOverlay(deferred)
+        pendingPresentation = nil
+        handlers.showOverlay(pending)
     }
 
     private func perform(_ effect: TimerEffect) {
@@ -64,23 +67,20 @@ final class TimerEffectExecutor {
             handlers.prepareCapture()
 
         case .showOverlay(let style):
-            // Supersedes anything waiting: the held one is by definition out of date.
-            deferredPresentation = nil
-            guard isDisplayAwake() else {
-                deferredPresentation = style
-                return
-            }
-            handlers.showOverlay(style)
+            // Never presented from here, however lit the display: a break the rest of the
+            // batch dismisses or settles must not reach the screen first (issue #112). The
+            // slot also supersedes anything waiting, which is by definition out of date.
+            pendingPresentation = style
 
         case .dismissOverlay:
             // A dismissed break must not appear when the display comes back.
-            deferredPresentation = nil
+            pendingPresentation = nil
             handlers.dismissOverlay()
 
         case .settleHeldOverlay:
             // Nothing is on screen to correct; this only demotes what is still waiting.
-            guard deferredPresentation != nil else { return }
-            deferredPresentation = .settled
+            guard pendingPresentation != nil else { return }
+            pendingPresentation = .settled
 
         case .record(let event):
             handlers.record(event)
