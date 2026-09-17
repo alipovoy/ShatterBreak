@@ -132,36 +132,6 @@ struct MenuBarControllerTests {
         )
     }
 
-    @Test(
-        "A click opens the menu unless one is genuinely up",
-        arguments: [
-            MenuBarClickCase(intendedOpen: false, popoverIsShown: false, opens: true, note: "Nothing up."),
-            MenuBarClickCase(intendedOpen: true, popoverIsShown: true, opens: false, note: "A menu is up."),
-            MenuBarClickCase(
-                intendedOpen: false,
-                popoverIsShown: true,
-                opens: true,
-                note: "The second of two quick clicks: the first one's menu is still animating out."
-            ),
-            MenuBarClickCase(
-                intendedOpen: true,
-                popoverIsShown: false,
-                opens: true,
-                note: "A show asked for while the last menu was still closing: one is on its way up."
-            )
-        ]
-    )
-    @MainActor
-    func aClickOpensUnlessAMenuIsUp(_ testCase: MenuBarClickCase) {
-        #expect(
-            MenuBarController.clickOpensMenu(
-                intendedOpen: testCase.intendedOpen,
-                popoverIsShown: testCase.popoverIsShown
-            ) == testCase.opens,
-            "\(testCase.note)"
-        )
-    }
-
     @Test("A released controller gives its status item back")
     @MainActor
     func releasingTheControllerReleasesTheStatusItem() async {
@@ -183,11 +153,4 @@ struct MenuBarControllerTests {
             "A refresh loop holding its controller would outlive the test and keep the item in the status bar."
         )
     }
-}
-
-struct MenuBarClickCase: Sendable {
-    let intendedOpen: Bool
-    let popoverIsShown: Bool
-    let opens: Bool
-    let note: String
 }

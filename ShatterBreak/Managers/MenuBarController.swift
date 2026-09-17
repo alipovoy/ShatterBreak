@@ -24,8 +24,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     /// Parked where the item was when the menu opened, and left there.
     private var anchorWindow: NSWindow?
 
-    /// Intent rather than `NSPopover.isShown` — see ``clickOpensMenu(intendedOpen:popoverIsShown:)``.
-    private var isMenuOpen = false
+    /// See ``togglePopover()``.
+    private var dismissalIsUnanswered = false
 
     private var refreshTask: Task<Void, Never>?
     private var styleObserver: (any NSObjectProtocol)?
@@ -82,52 +82,44 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     // MARK: - Popover
 
+    /// Only ever opens: a click on the item deactivates the app, dismissing the menu 28ms
+    /// before this runs, on the deactivation rather than the click. The two cannot be matched
+    /// up by event, only by order — a dismissal the item caused is followed by this action, one
+    /// caused elsewhere is not.
     @objc private func togglePopover() {
-        guard Self.clickOpensMenu(intendedOpen: isMenuOpen, popoverIsShown: popover.isShown) else {
-            isMenuOpen = false
-            popover.performClose(nil)
+        guard dismissalIsUnanswered == false else {
+            dismissalIsUnanswered = false
             return
         }
-
         guard let anchor = stageAnchor() else { return }
-        isMenuOpen = true
 
         // Deprecated, but the `activate()` that replaced it declines to bring an accessory
         // app forward — measured leaving the menu with no key window at all.
         NSApp.activate(ignoringOtherApps: true)
         popover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .minY)
+
         popover.contentViewController?.view.window?.makeKey()
+        dropFirstResponder()
     }
 
-    /// The duration field otherwise takes first responder, being the first control in the
-    /// menu that accepts one.
-    func popoverDidShow(_ notification: Notification) {
+    /// The duration field takes first responder as the window appears, being the first control
+    /// that accepts one. At `didShow` alone the field holds it for the length of the fade;
+    /// here alone misses a menu reopened while the last was closing.
+    private func dropFirstResponder() {
         popover.contentViewController?.view.window?.makeFirstResponder(nil)
     }
 
-    /// AppKit dismisses a transient popover on the mouse-down, and the button's action runs on
-    /// the mouse-up — measured one event and 16ms later. Left alone, that close is
-    /// indistinguishable here from one a click elsewhere caused, and answering it by reopening
-    /// would make the item's own click flash the menu shut and back up. Refusing it hands the
-    /// decision to the action, which is the only place that knows the click was on the item.
-    func popoverShouldClose(_ popover: NSPopover) -> Bool {
-        guard let event = NSApp.currentEvent, event.type == .leftMouseDown,
-              event.window === statusItem.button?.window else { return true }
-        return false
+    func popoverDidShow(_ notification: Notification) {
+        dropFirstResponder()
     }
 
-    /// Every close that got this far belongs to something other than the item's own click, so
-    /// the intent it left behind is stale. Not `didClose`: that lands when the animation ends,
-    /// ~530ms later, and a click inside it would still find both flags saying a menu is up.
     func popoverWillClose(_ notification: Notification) {
-        isMenuOpen = false
+        dismissalIsUnanswered = true
     }
 
-    /// Neither flag decides this alone: `isShown` stays true through the closing animation, so
-    /// a quick second click would ask a closing menu to close again; and a show requested while
-    /// one is still closing leaves `isShown` false with a menu on its way up.
-    static func clickOpensMenu(intendedOpen: Bool, popoverIsShown: Bool) -> Bool {
-        (intendedOpen && popoverIsShown) == false
+    /// Unanswered by now means a click elsewhere.
+    func popoverDidClose(_ notification: Notification) {
+        dismissalIsUnanswered = false
     }
 
     /// From the trailing edge, the one coordinate a status item keeps when its width
