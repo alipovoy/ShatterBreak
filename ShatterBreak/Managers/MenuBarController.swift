@@ -29,6 +29,11 @@ final class MenuBarController: NSObject {
     /// is what AppKit reacts to — cannot reach the menu.
     private var anchorWindow: NSWindow?
 
+    /// Whether the menu is meant to be up, which is not the same as `NSPopover.isShown`:
+    /// that stays true through the closing animation, so a quick second click read it as
+    /// still open and asked it to close again — swallowing the click.
+    private var isMenuOpen = false
+
     private var refreshTask: Task<Void, Never>?
     private var styleObserver: (any NSObjectProtocol)?
     private var closeObserver: (any NSObjectProtocol)?
@@ -76,7 +81,7 @@ final class MenuBarController: NSObject {
             object: popover,
             queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.anchorWindow?.orderOut(nil) }
+            MainActor.assumeIsolated { self?.popoverDidClose() }
         }
 
         observeState()
@@ -100,10 +105,12 @@ final class MenuBarController: NSObject {
     @objc private func togglePopover() {
         guard let button = statusItem.button else { return }
 
-        if popover.isShown {
+        guard Self.clickOpensMenu(intendedOpen: isMenuOpen, popoverIsShown: popover.isShown) else {
+            isMenuOpen = false
             popover.performClose(nil)
             return
         }
+        isMenuOpen = true
 
         // An accessory app's popover would otherwise open behind the frontmost app, leaving
         // the duration fields unable to take a keystroke.
@@ -115,6 +122,27 @@ final class MenuBarController: NSObject {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
         popover.contentViewController?.view.window?.makeKey()
+    }
+
+    /// Whether a click on the icon opens the menu, rather than closing the one that is up.
+    ///
+    /// Neither flag decides this alone. `NSPopover.isShown` stays true through the closing
+    /// animation, so a quick second click reads a menu that is on its way out as still open
+    /// and asks it to close again — the click goes nowhere. And a transient popover
+    /// dismissed by a click elsewhere never runs this code, leaving the intent set, so the
+    /// next click would close a menu that has already gone.
+    static func clickOpensMenu(intendedOpen: Bool, popoverIsShown: Bool) -> Bool {
+        (intendedOpen && popoverIsShown) == false
+    }
+
+    /// A close landing after the menu was opened again is the old one arriving late: the
+    /// anchor beneath it belongs to the new menu, and taking it down would take the menu
+    /// with it. `isShown` cannot tell the two apart at this point — it reads false either
+    /// way — so the anchor is only taken down for a close the button asked for, and is
+    /// otherwise left parked, invisible, for the next opening to reuse.
+    private func popoverDidClose() {
+        guard isMenuOpen == false else { return }
+        anchorWindow?.orderOut(nil)
     }
 
     /// Measured from the trailing edge, the one coordinate a status item keeps when its
