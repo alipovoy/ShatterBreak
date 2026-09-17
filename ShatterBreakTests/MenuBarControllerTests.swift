@@ -97,21 +97,35 @@ struct MenuBarControllerTests {
         )
     }
 
-    @Test("The popover's anchor stays where it was parked when the item resizes")
+    @Test("The anchor parks on the item's trailing edge, and stays there when the item resizes")
     @MainActor
-    func theAnchorDoesNotFollowTheItem() async {
+    func theAnchorParksOnTheItemsTrailingEdge() async {
         let environment = TestEnvironment()
         environment.setMenuBarTimerStyle(.seconds)
         let state = environment.makeTimerState()
         state.workDurationSecs = 1500
         let controller = environment.makeMenuBarController(state: state)
 
-        let anchor = controller.stageAnchor()
-        let parked = controller.anchorOrigin
-        #expect(anchor != nil && parked != nil, "Opening the menu should park an anchor over the item.")
+        _ = controller.stageAnchor()
+        guard let item = controller.itemScreenFrame, let parked = controller.anchorOrigin else {
+            Issue.record("Opening the menu should park an anchor over the item.")
+            return
+        }
+        #expect(
+            parked.x == item.maxX - 16,
+            "The whole design rests on this offset: 16pt in from the trailing edge is the icon."
+        )
+        #expect(
+            abs(parked.y - item.minY) <= 1,
+            "The anchor sits on the item's row; AppKit snaps a window origin to the backing grid."
+        )
 
         state.start()
         await environment.waitUntil { controller.countdownText.isEmpty == false }
+        #expect(
+            controller.itemScreenFrame?.width != item.width,
+            "The rest of this test means nothing unless a countdown really does resize the item."
+        )
         #expect(
             controller.anchorOrigin == parked,
             "A countdown appearing widens the item; the anchor — and so the open menu — must not move with it."
@@ -133,7 +147,7 @@ struct MenuBarControllerTests {
                 intendedOpen: true,
                 popoverIsShown: false,
                 opens: true,
-                note: "The menu was dismissed by a click elsewhere, so the intent is stale."
+                note: "A show asked for while the last menu was still closing: one is on its way up."
             )
         ]
     )

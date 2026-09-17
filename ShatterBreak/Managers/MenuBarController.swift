@@ -105,18 +105,30 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         popover.contentViewController?.view.window?.makeFirstResponder(nil)
     }
 
-    /// Neither flag decides this alone: `isShown` stays true through the closing animation,
-    /// so a quick second click would ask a closing menu to close again; and a dismissal by a
-    /// click elsewhere never reaches this class, leaving the intent stale.
+    /// AppKit dismisses a transient popover on the mouse-down, and the button's action runs on
+    /// the mouse-up — measured one event and 16ms later. Left alone, that close is
+    /// indistinguishable here from one a click elsewhere caused, and answering it by reopening
+    /// would make the item's own click flash the menu shut and back up. Refusing it hands the
+    /// decision to the action, which is the only place that knows the click was on the item.
+    func popoverShouldClose(_ popover: NSPopover) -> Bool {
+        guard let event = NSApp.currentEvent, event.type == .leftMouseDown,
+              event.window === statusItem.button?.window else { return true }
+        return false
+    }
+
+    /// Every close that got this far belongs to something other than the item's own click, so
+    /// the intent it left behind is stale. Not `didClose`: that lands when the animation ends,
+    /// ~530ms later, and a click inside it would still find both flags saying a menu is up.
+    func popoverWillClose(_ notification: Notification) {
+        isMenuOpen = false
+    }
+
+    /// Neither flag decides this alone: `isShown` stays true through the closing animation, so
+    /// a quick second click would ask a closing menu to close again; and a show requested while
+    /// one is still closing leaves `isShown` false with a menu on its way up.
     static func clickOpensMenu(intendedOpen: Bool, popoverIsShown: Bool) -> Bool {
         (intendedOpen && popoverIsShown) == false
     }
-
-    /// Measured from the trailing edge, the one coordinate a status item keeps when its
-    /// width changes. Taken from the centre instead, an anchor ends up beside the item
-    /// rather than on it when a session is stopped from an open menu. Sixteen points is
-    /// where the icon sits while the countdown is hidden.
-    private static let anchorInsetFromTrailingEdge: CGFloat = 16
 
     /// From the trailing edge, the one coordinate a status item keeps when its width
     /// changes: from the centre, stopping a session from an open menu leaves the arrow
@@ -124,10 +136,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private static let anchorInset: CGFloat = 16
 
     func stageAnchor() -> NSView? {
-        guard let button = statusItem.button,
-              let screenRect = button.window?.convertToScreen(button.convert(button.bounds, to: nil)) else {
-            return nil
-        }
+        guard let screenRect = itemScreenFrame else { return nil }
 
         let window = anchorWindow ?? makeAnchorWindow()
         anchorWindow = window
@@ -149,6 +158,9 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         window.hasShadow = false
         window.ignoresMouseEvents = true
         window.level = .statusBar
+        // Without this the anchor — and so the menu hanging off it — stays on the Space it
+        // was first ordered onto, while the status item is on all of them.
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         return window
     }
 
@@ -201,6 +213,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     /// Read-only seams, so a test can assert on the item without holding the AppKit object.
     var anchorOrigin: CGPoint? { anchorWindow?.frame.origin }
+    var itemScreenFrame: CGRect? {
+        guard let button = statusItem.button else { return nil }
+        return button.window?.convertToScreen(button.convert(button.bounds, to: nil))
+    }
     var countdownText: String {
         statusItem.button?.attributedTitle.string.trimmingCharacters(in: .whitespaces) ?? ""
     }
