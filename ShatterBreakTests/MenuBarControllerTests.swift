@@ -5,9 +5,6 @@ import Testing
 
 /// The status item reacts to a preference written elsewhere, to the phase on the clock and
 /// to being released — none of which reaches it through SwiftUI any more.
-///
-/// Nothing here asserts on the item's width: it sizes itself to whatever it draws. The one
-/// placement that is ours — the popover's anchor — is asserted to hold still.
 @Suite("Menu bar controller", .tags(.timerState), .timeLimit(.minutes(1)))
 struct MenuBarControllerTests {
     @Test("A style written to the store reaches the item")
@@ -58,8 +55,7 @@ struct MenuBarControllerTests {
         )
     }
 
-    /// Asserts on a minute already spent: a countdown that never renders keeps the starting
-    /// minute, which a first-minute assertion could not tell from a real render.
+    /// A minute already spent: a countdown that never renders keeps the starting minute.
     @Test("The countdown is drawn against the timer's clock")
     @MainActor
     func countdownRendersAgainstTheTimersClock() async {
@@ -101,8 +97,6 @@ struct MenuBarControllerTests {
         )
     }
 
-    /// The popover hangs off this, so an item that resizes behind an open menu cannot make
-    /// AppKit move the menu — measured at 48pt out when the popover hung off the button.
     @Test("The popover's anchor stays where it was parked when the item resizes")
     @MainActor
     func theAnchorDoesNotFollowTheItem() async {
@@ -124,7 +118,6 @@ struct MenuBarControllerTests {
         )
     }
 
-    /// The four states a click can land in, and what each one means on screen.
     @Test(
         "A click opens the menu unless one is genuinely up",
         arguments: [
