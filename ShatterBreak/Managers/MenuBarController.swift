@@ -113,7 +113,9 @@ final class MenuBarController: NSObject {
         isMenuOpen = true
 
         // An accessory app's popover would otherwise open behind the frontmost app, leaving
-        // the duration fields unable to take a keystroke.
+        // the duration fields unable to take a keystroke. Still the deprecated call: the
+        // cooperative `activate()` that replaced it declines to bring an accessory app
+        // forward here, measured leaving the menu with no key window at all.
         NSApp.activate(ignoringOtherApps: true)
 
         if let anchor = stageAnchor() {
@@ -122,6 +124,13 @@ final class MenuBarController: NSObject {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
         popover.contentViewController?.view.window?.makeKey()
+
+        // The duration field would otherwise take first responder for being the first
+        // control in the menu that accepts one, putting the keyboard in a text field for a
+        // menu opened to press a button. Next turn, once SwiftUI has set its own.
+        Task { @MainActor [popover] in
+            popover.contentViewController?.view.window?.makeFirstResponder(nil)
+        }
     }
 
     /// Whether a click on the icon opens the menu, rather than closing the one that is up.
