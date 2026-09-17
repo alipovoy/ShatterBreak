@@ -1,12 +1,17 @@
 import AppKit
 import SwiftUI
 
-/// The status item — a fixed-width countdown beside the icon — and the popover holding
-/// ``MenuView``.
+/// The status item — the icon, and a countdown beside it while a session runs — and the
+/// popover holding ``MenuView``.
 ///
-/// AppKit rather than `MenuBarExtra`: that scene discards every font and layout modifier on
-/// its label, so the countdown drew in the menu bar's proportional-digit font and the item
-/// resized on every tick, shuffling the status icons to its left.
+/// AppKit rather than `MenuBarExtra`: that scene discards every font modifier on its label,
+/// so the countdown drew in the menu bar's proportional-digit font and the item resized on
+/// every tick, shuffling the status icons to its left. Monospaced digits hold the width for
+/// as long as the digit count holds.
+///
+/// The item sizes itself to whatever it draws. The popover is the one thing placed by hand,
+/// and only once per opening: AppKit moves a popover whose positioning view resizes, and
+/// lands it half a countdown away, so it hangs off an anchor that holds still instead.
 @MainActor
 final class MenuBarController: NSObject {
     private let state: TimerState
@@ -19,8 +24,14 @@ final class MenuBarController: NSObject {
     /// `button.font`, which is what keeps the baseline where AppKit put it.
     private let titleAttributes: [NSAttributedString.Key: Any]
 
+    /// A 1×1 invisible window parked where the button was when the menu was opened. The
+    /// popover hangs off this instead of the button, so the item resizing behind it — which
+    /// is what AppKit reacts to — cannot reach the menu.
+    private var anchorWindow: NSWindow?
+
     private var refreshTask: Task<Void, Never>?
     private var styleObserver: (any NSObjectProtocol)?
+    private var closeObserver: (any NSObjectProtocol)?
     private var timerStyle: MenuBarTimerStyle
 
     init(
@@ -58,6 +69,16 @@ final class MenuBarController: NSObject {
             MainActor.assumeIsolated { self?.styleDidChange() }
         }
 
+        // `NSPopover` posts to the default centre, not the injected one. A transient popover
+        // also closes on a click elsewhere, which never reaches `togglePopover`.
+        closeObserver = NotificationCenter.default.addObserver(
+            forName: NSPopover.didCloseNotification,
+            object: popover,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.anchorWindow?.orderOut(nil) }
+        }
+
         observeState()
         restart()
     }
@@ -67,6 +88,10 @@ final class MenuBarController: NSObject {
         if let styleObserver {
             notificationCenter.removeObserver(styleObserver)
         }
+        if let closeObserver {
+            NotificationCenter.default.removeObserver(closeObserver)
+        }
+        anchorWindow?.orderOut(nil)
         NSStatusBar.system.removeStatusItem(statusItem)
     }
 
@@ -83,8 +108,50 @@ final class MenuBarController: NSObject {
         // An accessory app's popover would otherwise open behind the frontmost app, leaving
         // the duration fields unable to take a keystroke.
         NSApp.activate(ignoringOtherApps: true)
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+
+        if let anchor = stageAnchor() {
+            popover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .minY)
+        } else {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
         popover.contentViewController?.view.window?.makeKey()
+    }
+
+    /// Measured from the trailing edge, the one coordinate a status item keeps when its
+    /// width changes. Taken from the centre instead, an anchor ends up beside the item
+    /// rather than on it when a session is stopped from an open menu. Sixteen points is
+    /// where the icon sits while the countdown is hidden.
+    private static let anchorInsetFromTrailingEdge: CGFloat = 16
+
+    /// Parks the anchor over the item's screen position as it stands right now, and hands
+    /// back the view for the popover to hang off.
+    func stageAnchor() -> NSView? {
+        guard let button = statusItem.button,
+              let screenRect = button.window?.convertToScreen(button.convert(button.bounds, to: nil)) else {
+            return nil
+        }
+
+        let origin = NSPoint(x: screenRect.maxX - Self.anchorInsetFromTrailingEdge, y: screenRect.minY)
+        if let anchorWindow {
+            anchorWindow.setFrameOrigin(origin)
+        } else {
+            let window = NSWindow(
+                contentRect: NSRect(origin: origin, size: CGSize(width: 1, height: 1)),
+                styleMask: .borderless,
+                backing: .buffered,
+                defer: false
+            )
+            window.isReleasedWhenClosed = false
+            window.backgroundColor = .clear
+            window.isOpaque = false
+            window.hasShadow = false
+            window.ignoresMouseEvents = true
+            window.level = .statusBar
+            anchorWindow = window
+        }
+
+        anchorWindow?.orderFront(nil)
+        return anchorWindow?.contentView
     }
 
     // MARK: - Refresh
@@ -135,7 +202,7 @@ final class MenuBarController: NSObject {
     // MARK: - Drawing
 
     /// Read-only seams, so a test can assert on the item without holding the AppKit object.
-    var pinnedLength: CGFloat { statusItem.length }
+    var anchorOrigin: CGPoint? { anchorWindow?.frame.origin }
     var countdownText: String {
         statusItem.button?.attributedTitle.string.trimmingCharacters(in: .whitespaces) ?? ""
     }
@@ -146,20 +213,18 @@ final class MenuBarController: NSObject {
     }
 
     /// Everything a tick cannot change, so that a tick only assigns a string: the VoiceOver
-    /// label, whether the countdown shows at all, and the width it is pinned to.
+    /// label, and whether the countdown shows at all.
     private func configure() {
         guard let button = statusItem.button else { return }
         button.setAccessibilityLabel(String(localized: accessibilityLabel))
 
-        guard let style = displayStyle else {
+        guard displayStyle != nil else {
             button.attributedTitle = NSAttributedString()
             button.imagePosition = .imageOnly
-            statusItem.length = NSStatusItem.variableLength
             return
         }
 
         button.imagePosition = .imageLeading
-        statusItem.length = length(fitting: style.widthCandidates(overDuration: state.countdownDuration), on: button)
     }
 
     private func render(at referenceDate: Date) {
@@ -169,18 +234,6 @@ final class MenuBarController: NSObject {
 
     private func attributedTitle(_ text: String) -> NSAttributedString {
         NSAttributedString(string: " " + text, attributes: titleAttributes)
-    }
-
-    /// Measured by fitting the button to each candidate rather than summing metrics: only
-    /// AppKit knows the padding it puts around the image and title.
-    private func length(fitting candidates: [String], on button: NSStatusBarButton) -> CGFloat {
-        var widest: CGFloat = 0
-        for candidate in candidates {
-            button.attributedTitle = attributedTitle(candidate)
-            button.sizeToFit()
-            widest = max(widest, button.frame.width)
-        }
-        return widest.rounded(.up)
     }
 
     private var accessibilityLabel: LocalizedStringResource {
