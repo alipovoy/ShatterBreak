@@ -24,8 +24,9 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     /// Parked where the item was when the menu opened, and left there.
     private var anchorWindow: NSWindow?
 
-    /// See ``togglePopover()``.
+    /// Both read in ``press(menuIsShown:)``.
     private var dismissalIsUnanswered = false
+    private var isClosing = false
 
     private var refreshTask: Task<Void, Never>?
     private var styleObserver: (any NSObjectProtocol)?
@@ -82,15 +83,40 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     // MARK: - Popover
 
-    /// Only ever opens: a click on the item deactivates the app, dismissing the menu 28ms
-    /// before this runs, on the deactivation rather than the click. The two cannot be matched
-    /// up by event, only by order — a dismissal the item caused is followed by this action, one
-    /// caused elsewhere is not.
-    @objc private func togglePopover() {
+    enum PressOutcome {
+        case swallowed, closes, opens
+    }
+
+    /// A click on the item deactivates the app, dismissing the menu 28ms before the action runs,
+    /// on the deactivation rather than the click. The two cannot be matched up by event, only by
+    /// order — a dismissal the item caused is followed by a press, one caused elsewhere is not.
+    ///
+    /// A press that dismissed nothing — VoiceOver, Full Keyboard Access — has to close the menu
+    /// itself. A menu still fading reads as shown, and is reopened rather than closed again.
+    func press(menuIsShown: Bool) -> PressOutcome {
         guard dismissalIsUnanswered == false else {
             dismissalIsUnanswered = false
-            return
+            return .swallowed
         }
+        return menuIsShown && isClosing == false ? .closes : .opens
+    }
+
+    @objc private func togglePopover() {
+        switch press(menuIsShown: popover.isShown) {
+        case .swallowed: return
+        case .closes: closeMenu()
+        case .opens: showMenu()
+        }
+    }
+
+    /// `willClose` fires inside `performClose`; a close this class asked for is answered
+    /// already, and left unanswered it would swallow the next press.
+    private func closeMenu() {
+        popover.performClose(nil)
+        dismissalIsUnanswered = false
+    }
+
+    private func showMenu() {
         guard let anchor = stageAnchor() else { return }
 
         // Deprecated, but the `activate()` that replaced it declines to bring an accessory
@@ -109,17 +135,21 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         popover.contentViewController?.view.window?.makeFirstResponder(nil)
     }
 
+    /// A menu shown over one still closing may never see that close's `didClose`.
     func popoverDidShow(_ notification: Notification) {
+        isClosing = false
         dropFirstResponder()
     }
 
     func popoverWillClose(_ notification: Notification) {
         dismissalIsUnanswered = true
+        isClosing = true
     }
 
     /// Unanswered by now means a click elsewhere.
     func popoverDidClose(_ notification: Notification) {
         dismissalIsUnanswered = false
+        isClosing = false
     }
 
     /// From the trailing edge, the one coordinate a status item keeps when its width

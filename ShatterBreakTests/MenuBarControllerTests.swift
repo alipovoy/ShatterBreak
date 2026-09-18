@@ -111,14 +111,12 @@ struct MenuBarControllerTests {
             Issue.record("Opening the menu should park an anchor over the item.")
             return
         }
+        // AppKit snaps a window origin to the backing grid, so neither coordinate lands exactly.
         #expect(
-            parked.x == item.maxX - 16,
+            abs(parked.x - (item.maxX - 16)) <= 1,
             "The whole design rests on this offset: 16pt in from the trailing edge is the icon."
         )
-        #expect(
-            abs(parked.y - item.minY) <= 1,
-            "The anchor sits on the item's row; AppKit snaps a window origin to the backing grid."
-        )
+        #expect(abs(parked.y - item.minY) <= 1, "The anchor sits on the item's row.")
 
         state.start()
         await environment.waitUntil { controller.countdownText.isEmpty == false }
@@ -129,6 +127,49 @@ struct MenuBarControllerTests {
         #expect(
             controller.anchorOrigin == parked,
             "A countdown appearing widens the item; the anchor — and so the open menu — must not move with it."
+        )
+    }
+
+    /// Asserts how the handshake answers the ordering AppKit was measured to produce, not that
+    /// AppKit produces it — only real clicks can show that.
+    @Test("A press answers the dismissal the item caused, and closes the menu nothing else did")
+    @MainActor
+    func aPressAnswersTheDismissalTheItemCaused() async {
+        let environment = TestEnvironment()
+        let state = environment.makeTimerState()
+        let controller = environment.makeMenuBarController(state: state)
+        let notification = Notification(name: NSPopover.willCloseNotification)
+
+        #expect(
+            controller.press(menuIsShown: false) == .opens,
+            "A press with no menu up has nothing to answer."
+        )
+        #expect(
+            controller.press(menuIsShown: true) == .closes,
+            "A press that dismissed nothing — VoiceOver, keyboard — must close the menu itself."
+        )
+
+        controller.popoverWillClose(notification)
+        #expect(
+            controller.press(menuIsShown: true) == .swallowed,
+            "The item's own click dismisses the menu before the press arrives; reopening it fights the user."
+        )
+        #expect(
+            controller.press(menuIsShown: true) == .opens,
+            "A second click while the first is still fading reopens rather than closing again."
+        )
+
+        controller.popoverDidShow(notification)
+        #expect(
+            controller.press(menuIsShown: true) == .closes,
+            "A menu shown over one still closing may never see that close's didClose."
+        )
+
+        controller.popoverWillClose(notification)
+        controller.popoverDidClose(notification)
+        #expect(
+            controller.press(menuIsShown: false) == .opens,
+            "A dismissal answered by the time the fade ends came from a click elsewhere."
         )
     }
 
