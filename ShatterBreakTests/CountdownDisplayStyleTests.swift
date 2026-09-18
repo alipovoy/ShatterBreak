@@ -41,31 +41,6 @@ struct CountdownDisplayStyleTests {
         #expect(CountdownDisplayStyle.minutes.text(forRemaining: 0, locale: english) == "00:00")
     }
 
-    // MARK: - Width candidates
-
-    @Test("Seconds style is bounded by the string it starts on")
-    func secondsStyleWidthCandidatesCoverTheWholeCountdown() {
-        #expect(
-            CountdownDisplayStyle.seconds.widthCandidates(overDuration: 5400, locale: english) == ["90:00"]
-        )
-        #expect(
-            CountdownDisplayStyle.seconds.widthCandidates(overDuration: 1500, locale: english) == ["25:00"]
-        )
-        #expect(
-            CountdownDisplayStyle.seconds.widthCandidates(overDuration: 6900, locale: english) == ["115:00"]
-        )
-    }
-
-    @Test("Minutes style also offers the final-minute MM:SS, which outgrows any minute count")
-    func minutesStyleWidthCandidatesIncludeTheHandoff() {
-        #expect(
-            CountdownDisplayStyle.minutes.widthCandidates(overDuration: 1500, locale: english)
-                == ["25m", "01:00"]
-        )
-    }
-
-    // MARK: - Refresh cadence
-
     @Test("Seconds style sleeps to the next second boundary")
     func secondsStyleSleepsToNextSecond() {
         #expect(CountdownDisplayStyle.seconds.nextRefreshDelay(forRemaining: 90) == .seconds(1))

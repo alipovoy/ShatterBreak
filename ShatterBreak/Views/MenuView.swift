@@ -28,6 +28,7 @@ struct MenuView: View {
                         .frame(maxWidth: .infinity)
                     }
                     .controlSize(.large)
+                    .keyboardShortcut(.defaultAction)
 
                     Button {
                         state.stop()
@@ -45,6 +46,7 @@ struct MenuView: View {
                     }
                     .controlSize(.large)
                     .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
                 }
             }
 
