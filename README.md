@@ -11,13 +11,14 @@ ShatterBreak is built as a small macOS utility with a strong focus on system int
 * fullscreen break overlays on all connected displays
 * three break effects: screenshot-based `Shatter` (ScreenCaptureKit), `Fogged` (live desktop, no capture), and `Dimmed`
 * a "Try It" preview in Preferences that runs a real 5-second sample break, so effects are compared live rather than as static thumbnails
+* an optional reduced-motion `Shatter` that fades in instead of shaking, also applied whenever macOS Reduce Motion is on
 * soft overlay mode that keeps the menu bar reachable
 * hard overlay mode that covers the menu bar
 * configurable work and rest durations
 * optional postpone during breaks, and optional early return near the end of one
 * automatic or manual restart after breaks
 * optional timer text in the menu bar (off, minutes, or seconds)
-* opt-in session statistics (work sessions, breaks, postpones, early returns)
+* opt-in session statistics (work sessions, breaks, postpones, early returns), optionally counting a session shortly before it ends
 * VoiceOver labels on the break overlay and menu bar, with Dynamic Type on the countdowns
 * sleep/wake handling for active timers
 
@@ -26,7 +27,7 @@ ShatterBreak is built as a small macOS utility with a strong focus on system int
 * Xcode with the macOS 15 SDK
 * [XcodeGen](https://github.com/yonaskolb/XcodeGen) for generating the Xcode project
 
-Screen recording permission is required only for the `Shatter` visual effect, and is requested only when a work session starts while `Shatter` is selected — choose `Fogged` or `Dimmed` and the app never asks for anything. Without the permission, breaks fall back to the `Fogged` effect.
+Screen recording permission is required only for the `Shatter` visual effect, and is requested only when you select `Shatter` in Preferences or start a work session with it selected — choose `Fogged` or `Dimmed` and the app never asks for anything. Without the permission, breaks fall back to the `Fogged` effect.
 
 ## Build
 This repository uses `project.yml` as the source of truth. The Xcode project must be generated locally with XcodeGen.
@@ -105,8 +106,8 @@ once a month. It cannot be preflighted or pre-approved in System Settings.
 
 ShatterBreak deliberately triggers it when a work session **starts**, so it never
 lands in the middle of a break. Decline it and the app remembers the answer: breaks fall
-back to the `Fogged` effect and nothing asks again. Preferences → Break Screen says why,
-and offers both ways out — ask macOS again, or select `Fogged` for good.
+back to the `Fogged` effect and nothing asks again. Preferences → Break Screen says why
+and offers **Ask macOS again**; selecting `Shatter` there once more asks as well.
 
 ## How to Use
 1. Launch the app and find the `ShatterBreak` icon in the macOS menu bar.
@@ -118,20 +119,27 @@ and offers both ways out — ask macOS again, or select `Fogged` for good.
    * use `Postpone` if that option is enabled and still available for the current cycle
    * end it early with `I'm back` if early return is enabled and you're within its closing window
    * return manually with `I'm back` if manual restart mode is enabled
-6. Use `Preferences` to change the visual effect (with a live "Try It" preview), enable soft overlay, allow postpone or early return, and control menu bar timer display and session statistics.
+6. Use `Preferences` to change the visual effect (with a live "Try It" preview), allow postpone or early return, and control menu bar timer display and session statistics.
 
 ## Preferences
-The current app supports these settings:
+Preferences has three tabs.
 
-* `Play Sound`
-* `Effect Type`: `Shatter`, `Fogged`, or `Dimmed` — with a "Try It" button that runs a real sample break
-* `Soft Overlay (allows menu bar access)`
-* `Allow Postpone` (duration and how long into the break it stays offered)
-* `Allow Early Return` (how close to the break's end the option appears)
-* `Start work after break ends`: `Automatic` or `Manual`
-* `Auto-start work on launch`
+**General**
+* `Start timer on launch`
 * `Show timer in menu bar`: `Off`, `Minutes`, or `Seconds`
-* `Track statistics` (with reset-on-start and a collapsible tally)
+* `Track statistics`, with `Reset statistics on a new session` and `Count Sessions Early` (how long before a session's end it counts)
+
+**Schedule**
+* `Work Duration` and `Rest Duration`
+* `Start work automatically after a break` — off, the overlay waits for `I'm back`
+* `Allow Postpone` (how long into the break it stays offered, and how long it postpones)
+* `Allow Early Return` (how close to the break's end `I'm back` appears)
+
+**Break Screen**
+* `Effect Type`: `Shatter`, `Fogged`, or `Dimmed` — with a `Try It` button that runs a real sample break
+* `Reduce motion` — `Shatter` fades in instead of shaking; shown once `Shatter` can capture the screen, and implied while macOS Reduce Motion is on
+* `Soft Overlay (allows menu bar access)`
+* `Play Sound`
 
 ## Project Notes
 
