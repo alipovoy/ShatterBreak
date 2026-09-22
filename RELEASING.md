@@ -29,16 +29,17 @@ suggestion — the version is whatever tag you publish, so double-check it befor
 shipping. Nothing is tagged or published until you decide to cut a release.
 
 Conventional Commits keep the history changelog-ready and make the release bump
-trustworthy. Which string drives the bump depends on the merge method:
+trustworthy. The repository squash-merges only, so the **PR title** becomes the
+commit on `main` and drives the bump (keep *Settings → General → "Default to PR
+title for squash merge commits"* enabled so it carries through).
 
-- **squash-merge** uses the **PR title** (enable *Settings → General → "Default
-  to PR title for squash merge commits"* so it carries through),
-- **rebase-merge** replays your **commit subjects** verbatim.
-
-So both the PR title and every commit subject must be valid Conventional
-Commits. The `PR Conventions` workflow (`.github/workflows/pr-conventions.yml`)
-enforces this with two checks — one for the title, one for the commits — so the
-bump is trustworthy whichever merge method you use.
+Branch commit subjects never reach `main`, but they follow the convention too, so
+it stays a habit for people and coding agents alike. The commit-msg hook in
+[`.githooks/`](./.githooks) rejects a bad subject at commit time, and the
+`PR Conventions` workflow (`.github/workflows/pr-conventions.yml`) checks both the
+title and every commit. Commit subjects may also be the ones git writes itself
+(`fixup!`, `squash!`, `amend!`, `Revert "…"`, `Merge …`); the title may not. The
+rule lives in one place, `Scripts/lint-commit-subject.sh`.
 
 In the table below, `{semver}` is the **last released** `vX.Y.Z` (or `1.0.0`
 before the first tag) — not the next one.

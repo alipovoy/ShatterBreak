@@ -85,18 +85,22 @@ Many issues can be fixed automatically:
 swiftlint --fix
 ```
 
-### Pre-commit hook
+### Git hooks
 
-A pre-commit hook that runs SwiftLint lives in [`.githooks/`](./.githooks). Enable it
-once per clone by pointing Git at that directory:
+Two hooks live in [`.githooks/`](./.githooks). Enable them once per clone by pointing
+Git at that directory (worktrees share the setting):
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-After that, every `git commit` runs `swiftlint lint --strict` and blocks the commit on
-violations. If SwiftLint is not installed the hook warns and lets the commit through —
-CI still enforces it.
+* **pre-commit** runs `swiftlint lint --strict` and blocks the commit on violations. If
+  SwiftLint is not installed the hook warns and lets the commit through — CI still
+  enforces it.
+* **commit-msg** rejects a subject that is not a
+  [Conventional Commit](https://www.conventionalcommits.org), e.g.
+  `fix(timer): correct sleep handling`. Subjects git writes itself (`fixup!`,
+  `Revert "…"`, `Merge …`) pass. CI runs the same check on every commit in a PR.
 
 ## Coding guidelines
 

@@ -157,10 +157,10 @@ baseline_semver() {
 # SemVer bump: major | minor | patch | none. Any `!` marker (e.g. `feat!:`) or a
 # `BREAKING CHANGE:` footer wins as major; a `feat:` subject is minor; any other
 # commits are patch; an empty range is none. Every subject in the range drives
-# the decision: with squash-merge that is one subject (the PR title); with
-# rebase-merge it is one per replayed commit. The footer match is anchored to a
-# line start (per the Conventional Commits spec) so a commit that merely mentions
-# the phrase in prose does not trigger a spurious major bump.
+# the decision; with squash-merge that is one per PR (its title). The footer
+# match is anchored to a line start (per the Conventional Commits spec) so a
+# commit that merely mentions the phrase in prose does not trigger a spurious
+# major bump.
 detect_bump() {
   local range="$1" subjects bodies
   subjects="$(git log --format='%s' "$range" 2>/dev/null)"

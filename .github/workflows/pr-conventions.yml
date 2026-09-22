@@ -1,12 +1,12 @@
 name: PR Conventions
 
 # Conventional Commits feed the auto-generated release notes and the next-version
-# suggestion (Scripts/compute-version.sh --mode next-tag), and keep history
-# changelog-ready. The string that lands on main depends on the merge method:
-# squash-merge uses the PR title, rebase-merge replays the commit subjects
-# verbatim. So both must be valid Conventional Commits for the notes and
-# suggestion to be trustworthy — each is checked in its own job below so either
-# can be required independently.
+# suggestion (Scripts/compute-version.sh --mode next-tag). The repo squash-merges
+# only, so the PR title is what lands on main; branch commit subjects never do.
+# They are checked anyway, to keep the convention a habit for people and coding
+# agents alike — the commit-msg hook in .githooks/ catches them at commit time,
+# and this job is the backstop for --no-verify and clones without the hook.
+# Both jobs share the rule in Scripts/lint-commit-subject.sh.
 
 on:
   pull_request:
@@ -22,59 +22,40 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: Scripts
+
       - name: Validate PR title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          # <type>[optional (scope)][optional !]: <description>
-          pattern='^(feat|fix|perf|refactor|docs|style|test|build|ci|chore|revert)(\([a-z0-9 ._-]+\))?!?: .+'
-          if printf '%s' "$PR_TITLE" | grep -qE "$pattern"; then
-            echo "OK: $PR_TITLE"
-          else
-            echo "::error::PR title must follow Conventional Commits (used as the commit subject when squash-merging)."
-            echo "Got:      $PR_TITLE"
-            echo "Examples: 'feat: add break reminder', 'fix(timer): correct sleep handling', 'feat!: redesign overlay API'"
-            echo "Types:    feat fix perf refactor docs style test build ci chore revert"
-            exit 1
-          fi
+        # Strict: no git-generated subjects, since the title becomes the commit on main.
+        run: Scripts/lint-commit-subject.sh "$PR_TITLE"
 
   lint-commits:
     name: Conventional Commit messages
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: Scripts
+
       - name: Validate commit subjects
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          # <type>[optional (scope)][optional !]: <description>
-          pattern='^(feat|fix|perf|refactor|docs|style|test|build|ci|chore|revert)(\([a-z0-9 ._-]+\))?!?: .+'
-          # Lint every non-merge commit in the PR. With rebase-merge these land on
-          # main verbatim and drive the bump, so each subject must be valid. Merge
-          # commits (>1 parent) are skipped — they aren't authored by you and
-          # rebase-merge flattens them. --jq runs per page so --paginate is safe;
-          # the while-loop reads from process substitution so counters persist.
-          failed=0
-          count=0
-          while IFS= read -r subject; do
-            count=$((count + 1))
-            if printf '%s' "$subject" | grep -qE "$pattern"; then
-              echo "OK:   $subject"
-            else
-              echo "::error::Commit subject must follow Conventional Commits (lands on main when rebase-merging): $subject"
-              failed=1
-            fi
-          done < <(
+          # Merge commits (>1 parent) are skipped; --jq runs per page, so --paginate is safe.
+          mapfile -t subjects < <(
             gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/commits" \
               --jq '.[] | select((.parents | length) < 2) | .commit.message | split("\n")[0]'
           )
-          if [[ "$count" -eq 0 ]]; then
+          if [[ ${#subjects[@]} -eq 0 ]]; then
             echo "::error::Could not read any commits for PR #$PR_NUMBER."
             exit 1
           fi
-          if [[ "$failed" -ne 0 ]]; then
-            echo "Types: feat fix perf refactor docs style test build ci chore revert"
-            exit 1
-          fi
+          Scripts/lint-commit-subject.sh --git-workflow "${subjects[@]}"
