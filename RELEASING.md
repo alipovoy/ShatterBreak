@@ -33,13 +33,14 @@ trustworthy. The repository squash-merges only, so the **PR title** becomes the
 commit on `main` and drives the bump (keep *Settings → General → "Default to PR
 title for squash merge commits"* enabled so it carries through).
 
-Branch commit subjects never reach `main`, but they follow the convention too, so
-it stays a habit for people and coding agents alike. The commit-msg hook in
-[`.githooks/`](./.githooks) rejects a bad subject at commit time, and the
-`PR Conventions` workflow (`.github/workflows/pr-conventions.yml`) checks both the
-title and every commit. Commit subjects may also be the ones git writes itself
-(`fixup!`, `squash!`, `amend!`, `Revert "…"`, `Merge …`); the title may not. The
-rule lives in one place, `Scripts/lint-commit-subject.sh`.
+Every commit subject follows the convention too, not just the PR title, so
+history reads canonically wherever it lands — a rebase-merge, or a merge between
+non-`main` branches. The commit-msg hook in [`.githooks/`](./.githooks) rejects a
+bad subject at commit time, and the `PR Conventions` workflow
+(`.github/workflows/pr-conventions.yml`) checks the title and every commit. Merge
+commits are skipped; subjects git writes itself (`fixup!`, `Revert "…"`) are not.
+The rule is `Scripts/lint-commit-subject.sh`; `compute-version.sh` reads the
+subjects it produces with its own, looser pattern.
 
 In the table below, `{semver}` is the **last released** `vX.Y.Z` (or `1.0.0`
 before the first tag) — not the next one.

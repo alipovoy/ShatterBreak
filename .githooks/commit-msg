@@ -5,7 +5,8 @@
 # Enable it once per clone with:
 #   git config core.hooksPath .githooks
 #
-# Commits made with --no-verify or from a clone without the hook are still
-# caught by the PR Conventions workflow.
+# Merge commits are left alone, as in CI. Commits made with --no-verify or from a
+# clone without the hook are still caught by the PR Conventions workflow.
 
-"$(git rev-parse --show-toplevel)/Scripts/lint-commit-subject.sh" --git-workflow --file "$1" >/dev/null
+git rev-parse -q --verify MERGE_HEAD >/dev/null && exit 0
+"$(git rev-parse --show-toplevel)/Scripts/lint-commit-subject.sh" --file "$1" >/dev/null

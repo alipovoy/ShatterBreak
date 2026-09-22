@@ -1,12 +1,12 @@
 name: PR Conventions
 
-# Conventional Commits feed the auto-generated release notes and the next-version
-# suggestion (Scripts/compute-version.sh --mode next-tag). The repo squash-merges
-# only, so the PR title is what lands on main; branch commit subjects never do.
-# They are checked anyway, to keep the convention a habit for people and coding
-# agents alike — the commit-msg hook in .githooks/ catches them at commit time,
-# and this job is the backstop for --no-verify and clones without the hook.
-# Both jobs share the rule in Scripts/lint-commit-subject.sh.
+# Every commit subject and the PR title must be a Conventional Commit, so history
+# reads canonically on whatever branch it lands and however it is merged. The
+# PR title also feeds the next-version suggestion (Scripts/compute-version.sh
+# --mode next-tag) when squash-merging. The commit-msg hook in .githooks/ catches
+# bad subjects at commit time; these jobs are the backstop for --no-verify and
+# clones without the hook. Merge commits are skipped. The rule itself lives in
+# Scripts/lint-commit-subject.sh.
 
 on:
   pull_request:
@@ -26,12 +26,14 @@ jobs:
         uses: actions/checkout@v6
         with:
           sparse-checkout: Scripts
+          persist-credentials: false
 
       - name: Validate PR title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
-        # Strict: no git-generated subjects, since the title becomes the commit on main.
-        run: Scripts/lint-commit-subject.sh -- "$PR_TITLE"
+        run: |
+          echo "The PR title becomes the commit subject when squash-merging."
+          Scripts/lint-commit-subject.sh -- "$PR_TITLE"
 
   lint-commits:
     name: Conventional Commit messages
@@ -42,6 +44,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           sparse-checkout: Scripts
+          persist-credentials: false
 
       - name: Validate commit subjects
         env:
@@ -58,4 +61,4 @@ jobs:
             echo "::error::Could not read any commits for PR #$PR_NUMBER."
             exit 1
           fi
-          Scripts/lint-commit-subject.sh --git-workflow -- "${subjects[@]}"
+          Scripts/lint-commit-subject.sh -- "${subjects[@]}"

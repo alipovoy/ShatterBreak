@@ -1,60 +1,51 @@
 #!/usr/bin/env bash
-# The single source of the Conventional Commits rule, shared by the commit-msg
-# hook (.githooks/commit-msg) and the PR Conventions workflow.
+# The Conventional Commits rule for commit subjects and PR titles, shared by the
+# commit-msg hook (.githooks/commit-msg) and the PR Conventions workflow.
 set -uo pipefail
 
 TYPES="feat fix perf refactor docs style test build ci chore revert"
 # <type>[optional (scope)][optional !]: <description>
-PATTERN="^(${TYPES// /|})(\([a-z0-9 ._-]+\))?!?: .+"
-# Subjects git writes itself: `commit --fixup/--squash`, `revert`, `merge`.
-GIT_WORKFLOW_PATTERN='^((fixup|squash|amend)! |Revert "|Merge )'
+PATTERN="^(${TYPES// /|})(\([a-z0-9 ._-]+\))?!?: [^[:space:]][^[:cntrl:]]*$"
 
 usage() {
   cat <<'EOF'
-Usage: lint-commit-subject.sh [--git-workflow] [--] SUBJECT...
-       lint-commit-subject.sh [--git-workflow] --file MESSAGE_FILE
+Usage: lint-commit-subject.sh [--] SUBJECT...
+       lint-commit-subject.sh --file MESSAGE_FILE
 
-Checks each SUBJECT against Conventional Commits and exits non-zero if any fails.
-Pass -- before untrusted subjects so one starting with - is not read as an option.
+Checks each SUBJECT against Conventional Commits and exits 1 if any fails, 2 on
+bad usage. Pass -- before untrusted subjects so one starting with - is not read
+as an option.
 
-  --git-workflow  Also accept subjects git generates itself (fixup!, squash!,
-                  amend!, Revert "…", Merge …). For branch commits only — a PR
-                  title becomes the squash commit on main and must be strict.
-  --file PATH     Read the subject from a commit message file, as a commit-msg
-                  hook receives it: the first line that is neither blank nor a
-                  comment.
+  --file PATH  Read the subject from a commit message file, as a commit-msg hook
+               receives it: the first line left after git's own comment cleanup.
 EOF
 }
 
-git_workflow=0
 file=""
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --git-workflow) git_workflow=1; shift ;;
-    --file) file="${2:?--file needs a path}"; shift 2 ;;
-    -h|--help) usage; exit 0 ;;
-    --) shift; break ;;
-    *) break ;;
-  esac
-done
+case "${1:-}" in
+  --file) file="${2:-}"; [[ -n "$file" && $# -eq 2 ]] || { usage >&2; exit 2; } ;;
+  -h|--help) usage; exit 0 ;;
+  --) shift ;;
+esac
 
-subjects=("$@")
 if [[ -n "$file" ]]; then
-  subject="$(grep -v -E '^[[:space:]]*(#|$)' "$file" | head -n 1)"
+  [[ -f "$file" && -r "$file" ]] || { echo "error: cannot read $file" >&2; exit 2; }
+  # Cut `commit -v`'s diff at the scissors line, then let git strip comments
+  # with the repo's own comment character.
+  subject="$(sed '/ >8 /,$d' "$file" | git stripspace --strip-comments | head -n 1)"
   # An empty message is git's to reject, with its own clearer error.
   [[ -z "$subject" ]] && exit 0
-  subjects=("$subject")
+  set -- "$subject"
 fi
 
-if [[ ${#subjects[@]} -eq 0 ]]; then
+if [[ $# -eq 0 ]]; then
   usage >&2
   exit 2
 fi
 
 failed=0
-for subject in "${subjects[@]}"; do
-  if printf '%s' "$subject" | grep -qE "$PATTERN" ||
-     { [[ "$git_workflow" -eq 1 ]] && printf '%s' "$subject" | grep -qE "$GIT_WORKFLOW_PATTERN"; }; then
+for subject in "$@"; do
+  if [[ "$subject" =~ $PATTERN ]]; then
     echo "OK:   $subject"
   else
     failed=1
