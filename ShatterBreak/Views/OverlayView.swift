@@ -11,6 +11,7 @@ struct OverlayView: View {
 
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
+    @AppStorage(PreferenceKeys.reduceMotion) private var reduceMotion = PreferenceDefaults.reduceMotion
     @ScaledMetric(relativeTo: .largeTitle) private var countdownFontSize: CGFloat = 80
 
     private enum Shake {
@@ -111,7 +112,7 @@ struct OverlayView: View {
         switch OverlayPhaseAction.resolve(
             phase: presentation.phase,
             isShatterEffect: presentation.isShatterEffect,
-            reduceMotion: accessibilityReduceMotion,
+            reduceMotion: reduceMotion || accessibilityReduceMotion,
             shouldPlaySound: playSound && hasPlayedSound == false,
             isSettled: presentation.settled
         ) {

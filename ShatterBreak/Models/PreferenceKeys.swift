@@ -11,6 +11,7 @@ enum PreferenceKeys {
     static let playSound = "playSound"
     static let postponeDurationSecs = "postponeDurationSecs"
     static let postponeWindowSecs = "postponeWindowSecs"
+    static let reduceMotion = "reduceMotion"
     static let resetStatisticsOnStart = "resetStatisticsOnStart"
     static let restDurationSecs = "restDurationSecs"
     static let sessionLeadSecs = "sessionLeadSecs"

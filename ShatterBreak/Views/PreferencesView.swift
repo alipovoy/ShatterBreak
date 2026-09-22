@@ -235,6 +235,7 @@ private struct ScheduleSettingsTab: View {
 
 private struct BreakScreenSettingsTab: View {
     @Environment(\.permissions) private var permissions
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @State private var trial: BreakEffectTrial
 
     init(state: TimerState) {
@@ -244,6 +245,7 @@ private struct BreakScreenSettingsTab: View {
     @AppStorage(PreferenceKeys.effectType) private var effectType = PreferenceDefaults.effectType
     @AppStorage(PreferenceKeys.softOverlay) private var softOverlay = PreferenceDefaults.softOverlay
     @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
+    @AppStorage(PreferenceKeys.reduceMotion) private var reduceMotion = PreferenceDefaults.reduceMotion
 
     var body: some View {
         Form {
@@ -263,6 +265,19 @@ private struct BreakScreenSettingsTab: View {
                         guard permissions.directCaptureAccess == .refused else { return }
                         confirmDirectCapture()
                     }
+
+                if effectType.hasEntranceMotion {
+                    // Left enabled and unchecked while macOS Reduce Motion is on: a forced
+                    // check would report a choice the user never made. The caption says why
+                    // the shake is skipped anyway.
+                    Toggle(isOn: $reduceMotion) {
+                        Text(.reduceMotionToggle)
+                        if accessibilityReduceMotion {
+                            Text(.reduceMotionFollowsSystemCaption)
+                        }
+                    }
+                    .help(Text(.reduceMotionHelp))
+                }
 
                 // Only Shatter captures the screen; Fogged and Dimmed work without
                 // any permission, so consent is only ever discussed under Shatter.
