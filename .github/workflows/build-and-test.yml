@@ -40,6 +40,9 @@ jobs:
       - name: Test compute-version.sh
         run: Scripts/test-compute-version.sh
 
+      - name: Test lint-commit-subject.sh
+        run: Scripts/test-lint-commit-subject.sh
+
       - name: Compute version
         run: |
           eval "$(Scripts/compute-version.sh --mode ci-test --export)"

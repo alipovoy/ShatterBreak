@@ -85,18 +85,24 @@ Many issues can be fixed automatically:
 swiftlint --fix
 ```
 
-### Pre-commit hook
+### Git hooks
 
-A pre-commit hook that runs SwiftLint lives in [`.githooks/`](./.githooks). Enable it
-once per clone by pointing Git at that directory:
+Two hooks live in [`.githooks/`](./.githooks). Enable them once per clone by pointing
+Git at that directory (worktrees share the setting):
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-After that, every `git commit` runs `swiftlint lint --strict` and blocks the commit on
-violations. If SwiftLint is not installed the hook warns and lets the commit through —
-CI still enforces it.
+* **pre-commit** runs `swiftlint lint --strict` and blocks the commit on violations. If
+  SwiftLint is not installed the hook warns and lets the commit through — CI still
+  enforces it.
+* **commit-msg** rejects a subject that is not a
+  [Conventional Commit](https://www.conventionalcommits.org), e.g.
+  `fix(timer): correct sleep handling`. Merge commits are skipped; subjects git
+  writes itself are not, so reword `Revert "…"` to `revert: …` and squash
+  `fixup!` commits before pushing. CI runs the same check on every commit in a PR,
+  and on the PR title, which becomes the commit on `main`.
 
 ## Coding guidelines
 
@@ -120,10 +126,12 @@ Run SwiftLint and make sure it reports no warnings or errors before committing �
 
 1. Fork the repository and create a topic branch from `main`
    (e.g. `feature/short-description` or `fix/short-description`).
-2. Make your change, keeping commits focused and with clear messages.
+2. Make your change, keeping commits focused, each subject a
+   [Conventional Commit](https://www.conventionalcommits.org) (see [Git hooks](#git-hooks)).
 3. Add or update tests covering your change.
 4. Run `xcodebuild test` and `swiftlint lint --strict` and confirm both pass.
-5. Open a pull request against `main` describing **what** changed and **why**.
+5. Open a pull request against `main` with a Conventional Commit title, describing
+   **what** changed and **why**.
    Link any related issue (e.g. `Closes #123`).
 
 For larger or architectural changes, please open an issue first to discuss the

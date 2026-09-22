@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# Commit-msg hook: reject commit subjects that are not Conventional Commits.
+#
+# Enable it once per clone with:
+#   git config core.hooksPath .githooks
+#
+# Merge commits are left alone, as in CI. Commits made with --no-verify or from a
+# clone without the hook are still caught by the PR Conventions workflow.
+
+git rev-parse -q --verify MERGE_HEAD >/dev/null && exit 0
+Scripts/lint-commit-subject.sh --file "$1" >/dev/null
