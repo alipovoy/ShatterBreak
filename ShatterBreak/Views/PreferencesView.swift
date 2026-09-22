@@ -235,6 +235,7 @@ private struct ScheduleSettingsTab: View {
 
 private struct BreakScreenSettingsTab: View {
     @Environment(\.permissions) private var permissions
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @State private var trial: BreakEffectTrial
 
     init(state: TimerState) {
@@ -244,6 +245,7 @@ private struct BreakScreenSettingsTab: View {
     @AppStorage(PreferenceKeys.effectType) private var effectType = PreferenceDefaults.effectType
     @AppStorage(PreferenceKeys.softOverlay) private var softOverlay = PreferenceDefaults.softOverlay
     @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
+    @AppStorage(PreferenceKeys.reduceMotion) private var reduceMotion = PreferenceDefaults.reduceMotion
 
     var body: some View {
         Form {
@@ -273,6 +275,19 @@ private struct BreakScreenSettingsTab: View {
                         onGrantScreenRecording: grantScreenRecording,
                         onConfirmDirectCapture: confirmDirectCapture
                     )
+                }
+
+                // The shake is Shatter's alone, and a blocked capture presents Fogged. Left
+                // enabled while macOS Reduce Motion is on: a forced check would report a
+                // choice the user never made.
+                if effectType.requiresScreenCapture, permissions.isCaptureBlocked == false {
+                    Toggle(isOn: $reduceMotion) {
+                        Text(.reduceMotionToggle)
+                        if accessibilityReduceMotion {
+                            Text(.reduceMotionFollowsSystemCaption)
+                        }
+                    }
+                    .help(Text(.reduceMotionHelp))
                 }
 
                 // A card cannot show a display-sized blur or a fog drawn behind the overlay,

@@ -477,6 +477,42 @@
         }
       }
     },
+    "reduceMotionFollowsSystemCaption": {
+      "comment": "Caption under the Reduce motion toggle while the macOS Reduce Motion accessibility setting is on.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS Reduce Motion is on, so motion is already reduced"
+          }
+        }
+      }
+    },
+    "reduceMotionHelp": {
+      "comment": "Tooltip for the Reduce motion toggle.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Goes straight to the cracked glass, without shaking the screen first."
+          }
+        }
+      }
+    },
+    "reduceMotionToggle": {
+      "comment": "Preferences toggle that skips the shake before the Shatter effect cracks.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reduce motion"
+          }
+        }
+      }
+    },
     "resetStatistics": {
       "comment": "Icon button in the menu's statistics section that starts a fresh tally.",
       "extractionState": "manual",

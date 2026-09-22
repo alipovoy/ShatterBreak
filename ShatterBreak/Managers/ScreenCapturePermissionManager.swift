@@ -17,6 +17,12 @@ final class ScreenCapturePermissionManager {
     /// this is refused, which is exactly the case that ambushed the user mid-break (#90).
     private(set) var directCaptureAccess: DirectCaptureAccess = .unknown
 
+    /// Whether a consent the user must fix stands between Shatter and a capture. An
+    /// ``DirectCaptureAccess/unknown`` answer does not: the next session's probe settles it.
+    var isCaptureBlocked: Bool {
+        hasScreenRecordingAccess == false || directCaptureAccess == .refused
+    }
+
     /// A remembered decline of macOS's direct-capture confirmation. Persisted so the
     /// monthly ask does not reappear on every launch of a login-item menu bar app; the
     /// user re-opens it deliberately (issue #90).
@@ -68,7 +74,7 @@ final class ScreenCapturePermissionManager {
         refresh()
         requestAccessIfNeeded()
 
-        guard hasScreenRecordingAccess, directCaptureAccess != .refused else { return }
+        guard isCaptureBlocked == false else { return }
 
         // A probe already out is joined, not skipped: returning early would hand the caller
         // an answer that has not arrived yet.

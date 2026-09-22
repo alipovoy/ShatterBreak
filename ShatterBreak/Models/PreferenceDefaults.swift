@@ -17,6 +17,7 @@ enum PreferenceDefaults {
     static let playSound = true
     static let postponeDurationSecs: Double = 60
     static let postponeWindowSecs: Double = 60
+    static let reduceMotion = false
     static let resetStatisticsOnStart = false
     static let restDurationSecs: Double = 300
     static let sessionLeadSecs: Double = 180

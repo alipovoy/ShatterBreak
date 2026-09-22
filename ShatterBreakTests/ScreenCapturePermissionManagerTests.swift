@@ -27,6 +27,36 @@ struct ScreenCapturePermissionManagerTests {
         #expect(environment.makePermissionManager(permissionClient: granted.client).hasScreenRecordingAccess)
     }
 
+    @Test("capture is blocked only by a consent the user must fix")
+    @MainActor
+    func captureIsBlockedOnlyByAMissingConsent() async {
+        let environment = TestEnvironment()
+
+        let denied = ScreenCapturePermissionClientSpy()
+        #expect(
+            environment.makePermissionManager(permissionClient: denied.client).isCaptureBlocked,
+            "Missing Screen Recording should block capture."
+        )
+
+        let granted = ScreenCapturePermissionClientSpy()
+        granted.preflightAccess = true
+        let unsettled = environment.makePermissionManager(permissionClient: granted.client)
+        #expect(
+            unsettled.isCaptureBlocked == false,
+            "An unsettled direct-capture answer is the next session's to settle, not the user's to fix."
+        )
+
+        await unsettled.prepareForCapture()
+        #expect(unsettled.isCaptureBlocked == false, "An allowed direct capture should leave capture unblocked.")
+
+        let refusing = ScreenCapturePermissionClientSpy()
+        refusing.preflightAccess = true
+        refusing.directCaptureAllowed = false
+        let refused = environment.makePermissionManager(permissionClient: refusing.client)
+        await refused.prepareForCapture()
+        #expect(refused.isCaptureBlocked, "A refused direct capture should block capture.")
+    }
+
     @Test("access is requested at most once per launch")
     @MainActor
     func requestAccessAsksOncePerLaunch() {
