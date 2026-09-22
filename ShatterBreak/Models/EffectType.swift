@@ -29,12 +29,6 @@ enum EffectType: String, CaseIterable, Identifiable {
         self == .shatter
     }
 
-    /// Whether this effect enters with motion — the shake before the glass cracks — which
-    /// Reduce Motion skips. The other effects only fade in.
-    var hasEntranceMotion: Bool {
-        self == .shatter
-    }
-
     var displayName: LocalizedStringResource {
         switch self {
         case .shatter:

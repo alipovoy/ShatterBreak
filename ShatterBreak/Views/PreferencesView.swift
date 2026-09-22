@@ -266,19 +266,6 @@ private struct BreakScreenSettingsTab: View {
                         confirmDirectCapture()
                     }
 
-                if effectType.hasEntranceMotion {
-                    // Left enabled and unchecked while macOS Reduce Motion is on: a forced
-                    // check would report a choice the user never made. The caption says why
-                    // the shake is skipped anyway.
-                    Toggle(isOn: $reduceMotion) {
-                        Text(.reduceMotionToggle)
-                        if accessibilityReduceMotion {
-                            Text(.reduceMotionFollowsSystemCaption)
-                        }
-                    }
-                    .help(Text(.reduceMotionHelp))
-                }
-
                 // Only Shatter captures the screen; Fogged and Dimmed work without
                 // any permission, so consent is only ever discussed under Shatter.
                 if effectType.requiresScreenCapture {
@@ -288,6 +275,19 @@ private struct BreakScreenSettingsTab: View {
                         onGrantScreenRecording: grantScreenRecording,
                         onConfirmDirectCapture: confirmDirectCapture
                     )
+                }
+
+                // The shake is Shatter's alone, and a blocked capture presents Fogged. Left
+                // enabled while macOS Reduce Motion is on: a forced check would report a
+                // choice the user never made.
+                if effectType.requiresScreenCapture, permissions.isCaptureBlocked == false {
+                    Toggle(isOn: $reduceMotion) {
+                        Text(.reduceMotionToggle)
+                        if accessibilityReduceMotion {
+                            Text(.reduceMotionFollowsSystemCaption)
+                        }
+                    }
+                    .help(Text(.reduceMotionHelp))
                 }
 
                 // A card cannot show a display-sized blur or a fog drawn behind the overlay,
