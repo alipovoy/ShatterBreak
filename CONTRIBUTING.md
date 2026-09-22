@@ -30,7 +30,6 @@ it with XcodeGen after changing `project.yml`.
 * `Config/` — version and build configuration
 * `Scripts/` — build helper scripts (e.g. `compute-version.sh`)
 * `project.yml` — XcodeGen project definition
-* `requirements.md` — behavior blueprint for the app as it exists today
 * `RELEASING.md` — version scheme and release-cutting process (maintainer-facing)
 
 ## Building

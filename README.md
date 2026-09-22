@@ -143,8 +143,6 @@ Preferences has three tabs.
 
 ## Project Notes
 
-The behavior blueprint for the app is documented in [requirements.md](./requirements.md).
-
 The Xcode project definition lives in [project.yml](./project.yml).
 
 ## AI Assistance
