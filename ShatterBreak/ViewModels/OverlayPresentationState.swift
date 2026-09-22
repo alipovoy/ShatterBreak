@@ -44,17 +44,6 @@ final class OverlayPresentationState {
         }
     }
 
-    /// Whether the overlay is drawn yet, so its entrance can fade in on the change.
-    ///
-    /// Shatter stages its own entrance through the shake-and-crack sequence and is drawn
-    /// from the start. With motion reduced it fades instead, like the other effects, but
-    /// only once the capture lands: until then it is clear, and a fade would play out over
-    /// nothing.
-    func isRevealed(reducesMotion: Bool, hasAppeared: Bool) -> Bool {
-        guard isShatterEffect else { return hasAppeared }
-        return reducesMotion == false || phase != .plain
-    }
-
     /// Applies a captured background and advances past `.plain`. A settled overlay
     /// skips straight to `.shattered` — no shake intro, no entrance sound.
     func startShatter(with image: CGImage?) {

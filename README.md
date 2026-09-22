@@ -11,7 +11,7 @@ ShatterBreak is built as a small macOS utility with a strong focus on system int
 * fullscreen break overlays on all connected displays
 * three break effects: screenshot-based `Shatter` (ScreenCaptureKit), `Fogged` (live desktop, no capture), and `Dimmed`
 * a "Try It" preview in Preferences that runs a real 5-second sample break, so effects are compared live rather than as static thumbnails
-* an optional reduced-motion `Shatter` that fades in instead of shaking, also applied whenever macOS Reduce Motion is on
+* an optional reduced-motion `Shatter` that skips the shake and cracks at once, also applied whenever macOS Reduce Motion is on
 * soft overlay mode that keeps the menu bar reachable
 * hard overlay mode that covers the menu bar
 * configurable work and rest durations
@@ -137,7 +137,7 @@ Preferences has three tabs.
 
 **Break Screen**
 * `Effect Type`: `Shatter`, `Fogged`, or `Dimmed` — with a `Try It` button that runs a real sample break
-* `Reduce motion` — `Shatter` fades in instead of shaking; shown once `Shatter` can capture the screen, and implied while macOS Reduce Motion is on
+* `Reduce motion` — `Shatter` skips the shake and cracks at once; shown once `Shatter` can capture the screen, and implied while macOS Reduce Motion is on
 * `Soft Overlay (allows menu bar access)`
 * `Play Sound`
 

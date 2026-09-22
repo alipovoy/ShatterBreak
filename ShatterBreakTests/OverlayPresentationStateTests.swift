@@ -76,48 +76,6 @@ struct OverlayPresentationStateTests {
         #expect(state.showsCracks, "The shattered phase should display cracks.")
     }
 
-    @Test("shatter is drawn from the start, its shake staging the entrance")
-    @MainActor
-    func shatterIsRevealedFromTheStart() {
-        let state = OverlayPresentationState(effectType: .shatter)
-
-        #expect(
-            state.isRevealed(reducesMotion: false, hasAppeared: false),
-            "Without Reduce Motion, shatter should not fade: the shake is its entrance."
-        )
-    }
-
-    @Test("with motion reduced, shatter fades in once the capture lands")
-    @MainActor
-    func shatterFadesInOnCaptureWhenMotionIsReduced() throws {
-        let state = OverlayPresentationState(effectType: .shatter)
-
-        #expect(
-            state.isRevealed(reducesMotion: true, hasAppeared: true) == false,
-            "Before the capture the overlay is clear, so the fade must wait for it."
-        )
-
-        try state.startShatter(with: #require(makeTestImage(width: 1)))
-        #expect(
-            state.isRevealed(reducesMotion: true, hasAppeared: true),
-            "The capture landing should reveal the overlay, fading in instead of shaking."
-        )
-    }
-
-    @Test("the other effects fade in on appearing, whatever Reduce Motion says", arguments: [
-        EffectType.fogged,
-        .dimmed
-    ])
-    @MainActor
-    func otherEffectsFadeInOnAppearing(effect: EffectType) {
-        let state = OverlayPresentationState(effectType: effect)
-
-        for reducesMotion in [false, true] {
-            #expect(state.isRevealed(reducesMotion: reducesMotion, hasAppeared: false) == false)
-            #expect(state.isRevealed(reducesMotion: reducesMotion, hasAppeared: true))
-        }
-    }
-
     @Test("shatter intro skips motion when Reduce Motion is enabled")
     func shatterIntroSkipsMotionWhenReduceMotionIsEnabled() {
         let action = OverlayPhaseAction.resolve(
