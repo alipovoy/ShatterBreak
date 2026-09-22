@@ -9,4 +9,4 @@
 # clone without the hook are still caught by the PR Conventions workflow.
 
 git rev-parse -q --verify MERGE_HEAD >/dev/null && exit 0
-"$(git rev-parse --show-toplevel)/Scripts/lint-commit-subject.sh" --file "$1" >/dev/null
+Scripts/lint-commit-subject.sh --file "$1" >/dev/null
