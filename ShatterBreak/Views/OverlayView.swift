@@ -11,7 +11,7 @@ struct OverlayView: View {
 
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @AppStorage(PreferenceKeys.playSound) private var playSound = PreferenceDefaults.playSound
-    @AppStorage(PreferenceKeys.reduceMotion) private var reduceMotion = PreferenceDefaults.reduceMotion
+    @AppStorage(PreferenceKeys.reduceMotion) private var reduceMotionPreference = PreferenceDefaults.reduceMotion
     @ScaledMetric(relativeTo: .largeTitle) private var countdownFontSize: CGFloat = 80
 
     private enum Shake {
@@ -77,8 +77,8 @@ struct OverlayView: View {
                 }
             }
         }
-        .opacity(introOpacity)
-        .animation(.easeOut(duration: Intro.fadeDuration), value: hasAppeared)
+        .opacity(isRevealed ? 1 : 0)
+        .animation(.easeOut(duration: Intro.fadeDuration), value: isRevealed)
         .task(id: presentation.phase) {
             await handlePhase()
         }
@@ -99,11 +99,12 @@ struct OverlayView: View {
         return true
     }
 
-    /// Shatter stages its own entrance through the shake-and-crack sequence, so it appears
-    /// at full opacity; the other effects fade in rather than snapping on.
-    private var introOpacity: Double {
-        guard presentation.isShatterEffect == false else { return 1 }
-        return hasAppeared ? 1 : 0
+    private var isRevealed: Bool {
+        presentation.isRevealed(reducesMotion: reducesMotion, hasAppeared: hasAppeared)
+    }
+
+    private var reducesMotion: Bool {
+        reduceMotionPreference || accessibilityReduceMotion
     }
 
     /// Plays the break sound and, for shatter, runs the shake intro before settling. The
@@ -112,7 +113,7 @@ struct OverlayView: View {
         switch OverlayPhaseAction.resolve(
             phase: presentation.phase,
             isShatterEffect: presentation.isShatterEffect,
-            reduceMotion: reduceMotion || accessibilityReduceMotion,
+            reduceMotion: reducesMotion,
             shouldPlaySound: playSound && hasPlayedSound == false,
             isSettled: presentation.settled
         ) {
