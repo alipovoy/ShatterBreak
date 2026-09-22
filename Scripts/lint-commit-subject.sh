@@ -11,10 +11,11 @@ GIT_WORKFLOW_PATTERN='^((fixup|squash|amend)! |Revert "|Merge )'
 
 usage() {
   cat <<'EOF'
-Usage: lint-commit-subject.sh [--git-workflow] SUBJECT...
+Usage: lint-commit-subject.sh [--git-workflow] [--] SUBJECT...
        lint-commit-subject.sh [--git-workflow] --file MESSAGE_FILE
 
 Checks each SUBJECT against Conventional Commits and exits non-zero if any fails.
+Pass -- before untrusted subjects so one starting with - is not read as an option.
 
   --git-workflow  Also accept subjects git generates itself (fixup!, squash!,
                   amend!, Revert "…", Merge …). For branch commits only — a PR

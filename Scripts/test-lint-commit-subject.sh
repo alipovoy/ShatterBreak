@@ -36,6 +36,8 @@ check 1 "empty description"        "fix: "
 check 1 "free text"                "WIP"
 check 1 "one bad among good"       "feat: a" "oops" "fix: b"
 check 2 "no subjects"
+check 1 "-- keeps a subject from being an option" -- "-h"
+check 1 "-- keeps a flag-like subject a subject"  -- "--git-workflow"
 
 # --- git-generated subjects --------------------------------------------------
 check 1 "fixup! strict"            "fixup! feat: add break reminder"

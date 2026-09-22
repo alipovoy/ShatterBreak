@@ -31,7 +31,7 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         # Strict: no git-generated subjects, since the title becomes the commit on main.
-        run: Scripts/lint-commit-subject.sh "$PR_TITLE"
+        run: Scripts/lint-commit-subject.sh -- "$PR_TITLE"
 
   lint-commits:
     name: Conventional Commit messages
@@ -58,4 +58,4 @@ jobs:
             echo "::error::Could not read any commits for PR #$PR_NUMBER."
             exit 1
           fi
-          Scripts/lint-commit-subject.sh --git-workflow "${subjects[@]}"
+          Scripts/lint-commit-subject.sh --git-workflow -- "${subjects[@]}"
