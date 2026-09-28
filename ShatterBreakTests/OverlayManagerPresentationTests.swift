@@ -17,9 +17,9 @@ struct OverlayManagerPresentationTests {
         let environment = TestEnvironment()
         let screens = StubScreens([StubScreens.display(primaryDisplay)])
         let manager = environment.makeOverlayManager(captureClient: screens.captureClient)
-        defer { manager.dismissOverlays() }
+        defer { manager.dismiss() }
 
-        manager.showOverlays(state: environment.makeTimerState(), settled: false)
+        manager.show(environment.makeTimerState(), style: .animated)
 
         #expect(manager.overlayStates[primaryDisplay]?.settled == false)
     }
@@ -33,9 +33,9 @@ struct OverlayManagerPresentationTests {
             captureClient: screens.captureClient,
             notificationCenter: center
         )
-        defer { manager.dismissOverlays() }
+        defer { manager.dismiss() }
 
-        manager.showOverlays(state: environment.makeTimerState(), settled: false)
+        manager.show(environment.makeTimerState(), style: .animated)
 
         // The display sleeps and drops off, then comes back when the user returns.
         screens.screens = []
@@ -63,9 +63,9 @@ struct OverlayManagerPresentationTests {
             captureClient: screens.captureClient,
             notificationCenter: center
         )
-        defer { manager.dismissOverlays() }
+        defer { manager.dismiss() }
 
-        manager.showOverlays(state: environment.makeTimerState(), settled: false)
+        manager.show(environment.makeTimerState(), style: .animated)
 
         screens.screens.append(StubScreens.display(secondaryDisplay, x: 1))
         center.post(name: NSApplication.didChangeScreenParametersNotification, object: nil)
@@ -86,9 +86,9 @@ struct OverlayManagerPresentationTests {
             captureClient: screens.captureClient,
             notificationCenter: center
         )
-        defer { manager.dismissOverlays() }
+        defer { manager.dismiss() }
 
-        manager.showOverlays(state: environment.makeTimerState(), settled: true)
+        manager.show(environment.makeTimerState(), style: .settled)
 
         screens.screens.append(StubScreens.display(secondaryDisplay, x: 1))
         center.post(name: NSApplication.didChangeScreenParametersNotification, object: nil)

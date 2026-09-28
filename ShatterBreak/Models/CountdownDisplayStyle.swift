@@ -84,7 +84,7 @@ extension CountdownDisplayStyle {
     /// against a plan the clock started puts the two on different timelines.
     @MainActor
     func driveCountdown(for state: TimerState, onTick: (Date) -> Void) async {
-        var referenceDate = state.clock.instant.date
+        var referenceDate = state.now().date
         onTick(referenceDate)
 
         guard state.isRunning else { return }
@@ -102,7 +102,7 @@ extension CountdownDisplayStyle {
                 return
             }
 
-            referenceDate = state.clock.instant.date
+            referenceDate = state.now().date
             onTick(referenceDate)
         }
     }

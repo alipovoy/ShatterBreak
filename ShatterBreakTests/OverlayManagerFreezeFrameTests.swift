@@ -18,7 +18,7 @@ struct OverlayManagerFreezeFrameTests {
     func returningDisplayReusesItsCapture() async throws {
         let capture = try TestImage.make(width: 160, height: 90)
         let context = try Context(capture: capture, displays: [primary])
-        defer { context.manager.dismissOverlays() }
+        defer { context.manager.dismiss() }
 
         await context.startBreak()
 
@@ -43,7 +43,7 @@ struct OverlayManagerFreezeFrameTests {
     func newDisplayCapturesFresh() async throws {
         let capture = try TestImage.make(width: 160, height: 90)
         let context = try Context(capture: capture, displays: [primary])
-        defer { context.manager.dismissOverlays() }
+        defer { context.manager.dismiss() }
 
         await context.startBreak()
 
@@ -61,7 +61,7 @@ struct OverlayManagerFreezeFrameTests {
     func reframedDisplayRefitsItsCapture() async throws {
         let capture = try TestImage.make(width: 160, height: 90)
         let context = try Context(capture: capture, displays: [primary])
-        defer { context.manager.dismissOverlays() }
+        defer { context.manager.dismiss() }
 
         await context.startBreak()
         #expect(context.manager.overlayStates[primaryDisplay]?.backgroundImage === capture)
@@ -79,7 +79,7 @@ struct OverlayManagerFreezeFrameTests {
     func repeatedReframesDoNotCompound() async throws {
         let capture = try TestImage.make(width: 160, height: 90)
         let context = try Context(capture: capture, displays: [primary])
-        defer { context.manager.dismissOverlays() }
+        defer { context.manager.dismiss() }
 
         await context.startBreak()
 
@@ -126,7 +126,7 @@ struct OverlayManagerFreezeFrameTests {
         /// Opens a break and waits for its freeze-frames to land, so later assertions
         /// run against a settled session rather than a race.
         func startBreak() async {
-            manager.showOverlays(state: environment.makeTimerState(), settled: false)
+            manager.show(environment.makeTimerState(), style: .animated)
             await settleCaptures()
         }
 

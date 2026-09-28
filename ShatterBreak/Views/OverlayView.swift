@@ -178,11 +178,7 @@ private func previewOverlay(phase: TimerPlan.Phase, duration: TimeInterval = 300
     // allowed for the overlay to offer it, and the break stays short so its window is open.
     let defaults = InMemoryKeyValueStore()
     defaults.set(true, forKey: PreferenceKeys.allowPostpone)
-    let state = TimerState(
-        overlays: .disabled,
-        defaults: defaults,
-        showing: .starting(phase, duration: duration)
-    )
+    let state = TimerState.parked(.starting(phase, duration: duration), defaults: defaults)
     state.restDurationSecs = duration
 
     return OverlayView(state: state, presentation: presentation)

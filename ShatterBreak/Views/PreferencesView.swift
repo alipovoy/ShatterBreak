@@ -341,7 +341,7 @@ private extension View {
     defaults.set(600, forKey: PreferenceKeys.sessionLeadSecs)
     defaults.set(300, forKey: PreferenceKeys.workDurationSecs)
 
-    return GeneralSettingsTab(state: TimerState(overlays: .disabled, defaults: defaults))
+    return GeneralSettingsTab(state: TimerState.parked(.idle(at: .now), defaults: defaults))
         .defaultAppStorage(defaults)
         .frame(width: 480)
 }
@@ -352,7 +352,7 @@ private extension View {
     // settings.
     let defaults = UserDefaults.preview("settings")
 
-    return PreferencesView(state: TimerState(overlays: .disabled, defaults: defaults))
+    return PreferencesView(state: TimerState.parked(.idle(at: .now), defaults: defaults))
         .environment(\.permissions, ScreenCapturePermissionManager(defaults: defaults))
         .defaultAppStorage(defaults)
 }
@@ -367,7 +367,7 @@ private extension View {
     defaults.set(true, forKey: PreferenceKeys.allowEarlyReturn)
     defaults.set(600, forKey: PreferenceKeys.earlyReturnLeadSecs)
 
-    return ScheduleSettingsTab(state: TimerState(overlays: .disabled, defaults: defaults))
+    return ScheduleSettingsTab(state: TimerState.parked(.idle(at: .now), defaults: defaults))
         .defaultAppStorage(defaults)
         .frame(width: 480)
 }
@@ -375,7 +375,7 @@ private extension View {
 #Preview("Break Screen") { @MainActor in
     let defaults = UserDefaults.preview("breakScreen")
 
-    return BreakScreenSettingsTab(state: TimerState(overlays: .disabled, defaults: defaults))
+    return BreakScreenSettingsTab(state: TimerState.parked(.idle(at: .now), defaults: defaults))
         .environment(\.permissions, ScreenCapturePermissionManager(defaults: defaults))
         .defaultAppStorage(defaults)
         .frame(width: 480)

@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class OverlayManager {
+final class OverlayManager: BreakPresenting {
     /// The decisions made when a break began, retained so that overlays added for a
     /// display that appears mid-break (e.g. a clamshell lid opening) match the rest.
     /// The entrance style is deliberately absent: a session exists only after the
@@ -38,7 +38,7 @@ final class OverlayManager {
 
     /// - Parameters:
     ///   - directCaptureAccess: the app's latest reading of macOS's direct-capture
-    ///     consent, supplied by ``OverlayPresenter/live(defaults:)``. Defaults to
+    ///     consent, supplied by the app. Defaults to
     ///     ``DirectCaptureAccess/unknown``, so a caller that never wires it up falls back to
     ///     fogged rather than putting a system dialog over the break.
     ///   - isDisplayAwake: whether a given display is currently lit. Defaults to the real
@@ -65,7 +65,7 @@ final class OverlayManager {
 
         // A display already presenting needs no help from sleeping; whatever is on its
         // window server buffer persists until it wakes. A display skipped at
-        // ``showOverlays(state:settled:)`` because it was asleep has no window at all,
+        // ``show(_:style:)`` because it was asleep has no window at all,
         // though, and nothing else prompts a recheck once it lights back up.
         sleepWakeObserver.startObserving(
             onSleep: {},
@@ -127,8 +127,17 @@ final class OverlayManager {
         captureClient.availableScreens().filter { isDisplayAwake($0.displayID) }
     }
 
-    func showOverlays(state: TimerState, settled: Bool) {
-        dismissOverlays()
+    var hasAwakeScreen: Bool { awakeScreens().isEmpty == false }
+
+    /// A user on Fogged or Dimmed is never asked for anything.
+    func prepareCapture() async {
+        guard selectedEffectType.requiresScreenCapture else { return }
+        await ScreenCapturePermissionManager.shared.prepareForCapture()
+    }
+
+    func show(_ state: TimerState, style: OverlayPresentationStyle) {
+        dismiss()
+        let settled = style == .settled
 
         let effectType = Self.resolveEffectType(
             selected: selectedEffectType,
@@ -152,7 +161,7 @@ final class OverlayManager {
         startCapture(for: Set(overlayStates.keys), sessionID: sessionID)
     }
 
-    func dismissOverlays() {
+    func dismiss() {
         captureTasks.forEach { $0.cancel() }
         captureTasks.removeAll()
         activeSessionID = UUID()
@@ -275,7 +284,7 @@ final class OverlayManager {
     /// capture whose session no longer matches the active one.
     ///
     /// The session guard protects against a capture that finishes after
-    /// ``dismissOverlays()`` (or a newer ``showOverlays(state:settled:)``) rotated
+    /// ``dismiss()`` (or a newer ``show(_:style:)``) rotated
     /// ``activeSessionID``: a stale image must never be painted onto the windows
     /// of a later session. Displays missing from `images` fall back to a plain
     /// overlay because ``OverlayPresentationState/startShatter(with:)`` accepts a

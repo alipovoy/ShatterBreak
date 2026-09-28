@@ -39,7 +39,9 @@ struct ShatterBreakApp: App {
 /// lifecycle to hang the status item or the auto-start on.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    let timerState = TimerState()
+    let timerState = TimerState(
+        overlays: OverlayManager(directCaptureAccess: { ScreenCapturePermissionManager.shared.directCaptureAccess })
+    )
     private var menuBar: MenuBarController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {

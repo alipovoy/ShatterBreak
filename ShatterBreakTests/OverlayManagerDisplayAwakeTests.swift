@@ -20,11 +20,11 @@ struct OverlayManagerDisplayAwakeTests {
             StubScreens.display(secondaryDisplay, x: 1)
         ])
         let manager = environment.makeOverlayManager(captureClient: screens.captureClient)
-        defer { manager.dismissOverlays() }
+        defer { manager.dismiss() }
 
         #expect(manager.awakeScreens().map(\.displayID) == [secondaryDisplay])
 
-        manager.showOverlays(state: environment.makeTimerState(), settled: false)
+        manager.show(environment.makeTimerState(), style: .animated)
 
         #expect(manager.overlayStates[primaryDisplay] == nil, "The asleep display must get no overlay window.")
         #expect(manager.overlayStates[secondaryDisplay] != nil, "The awake display still gets its overlay.")
@@ -46,9 +46,9 @@ struct OverlayManagerDisplayAwakeTests {
             captureClient: screens.captureClient,
             notificationCenter: center
         )
-        defer { manager.dismissOverlays() }
+        defer { manager.dismiss() }
 
-        manager.showOverlays(state: environment.makeTimerState(), settled: false)
+        manager.show(environment.makeTimerState(), style: .animated)
         #expect(manager.overlayStates[secondaryDisplay] == nil, "Asleep at break start, so no window yet.")
 
         environment.asleepDisplays.remove(secondaryDisplay)
@@ -73,9 +73,9 @@ struct OverlayManagerDisplayAwakeTests {
             captureClient: screens.captureClient,
             notificationCenter: center
         )
-        defer { manager.dismissOverlays() }
+        defer { manager.dismiss() }
 
-        manager.showOverlays(state: environment.makeTimerState(), settled: false)
+        manager.show(environment.makeTimerState(), style: .animated)
 
         center.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
         center.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
@@ -95,9 +95,9 @@ struct OverlayManagerDisplayAwakeTests {
             captureClient: screens.captureClient,
             notificationCenter: center
         )
-        defer { manager.dismissOverlays() }
+        defer { manager.dismiss() }
 
-        manager.showOverlays(state: environment.makeTimerState(), settled: false)
+        manager.show(environment.makeTimerState(), style: .animated)
 
         // The primary sleeps; some unrelated reconfiguration (e.g. a third display
         // arriving) fires the same notification reconcileOverlays() also answers to.

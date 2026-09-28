@@ -1,219 +1,223 @@
-import AppKit
+import Foundation
 import Testing
 
 @testable import ShatterBreak
 
-@Suite("TimerState basic flows", .tags(.timerState), .timeLimit(.minutes(1)))
-struct TimerStateBasicTests {
-    @Test("start() initializes and transitions to rest")
-    @MainActor
-    func startTransitionsToRest() async {
-        let environment = TestEnvironment()
-        let defaults = environment.defaults
-        defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
+/// What the reducer tests cannot reach: preferences read into it, its effects performed
+/// against a screen that may be dark, and the system's sleep and wake reaching it.
+@Suite("TimerState", .tags(.timerState))
+@MainActor
+struct TimerStateTests {
+    let environment = TestEnvironment()
+    let screen = PresenterSpy()
 
-        let state = environment.makeTimerState()
-        state.workDurationSecs = 1
-        state.restDurationSecs = 2
-
-        state.start()
-        #expect(state.isRunning, "start() should put the timer into a running work interval.")
-        #expect(state.isPaused == false, "A newly started timer should not be paused.")
-        #expect(state.isResting == false, "A newly started timer should begin with work, not rest.")
-        #expect(state.timeRemaining == 1, "Work should start with the configured duration.")
-
-        await environment.advanceTime()
-
-        #expect(state.isResting, "Should enter rest after work completes.")
-        #expect(state.isRunning, "The timer should keep running after transitioning to rest.")
-        #expect(state.timeRemaining == 2, "Rest should start with the configured duration.")
+    private func makeState(work: Double = 10, rest: Double = 5) -> TimerState {
+        let state = environment.makeTimerState(overlays: screen)
+        state.workDurationSecs = work
+        state.restDurationSecs = rest
+        return state
     }
 
-    @Test("pause during work freezes countdown; resume continues")
-    @MainActor
-    func pauseAndResume() async {
-        let environment = TestEnvironment()
-        let state = environment.makeTimerState()
-        state.workDurationSecs = 5
-        state.restDurationSecs = 2
-
+    @Test("a cycle puts the break on screen as work ends and takes it down as work resumes")
+    func fullCycle() async {
+        let state = makeState()
         state.start()
-        await environment.advanceTime()
-        state.pause()
-        let snapshot = state.timeRemaining
+        #expect(screen.shown.isEmpty)
 
-        #expect(state.isPaused, "pause() should move the timer into a paused state.")
-        await environment.advanceTime(ticks: 2)
-        #expect(state.timeRemaining == snapshot, "timeRemaining should not change while paused.")
+        await environment.advanceTime(by: 10)
+        #expect(state.isResting)
+        #expect(screen.shown == [.animated])
+        #expect(screen.presentedState === state)
+
+        await environment.advanceTime(by: 5)
+        #expect(state.mode == .running)
+        #expect(screen.presentedState == nil)
+    }
+
+    @Test("every session settles capture consent before its break needs it")
+    func everySessionPrepares() async {
+        let state = makeState()
+        state.start()
+        await environment.advanceTime(by: 10)
+        await environment.advanceTime(by: 5)
+        for _ in 0..<10 where screen.prepareCount < 2 { await Task.yield() }
+        #expect(screen.prepareCount == 2)
+    }
+
+    @Test("a break falling due on a dark screen waits for one, while the plan moves on")
+    func darkScreenHoldsTheBreak() async {
+        let state = makeState()
+        state.start()
+        screen.hasAwakeScreen = false
+
+        await environment.advanceTime(by: 10)
+        #expect(state.isResting)
+        #expect(screen.shown.isEmpty)
+
+        screen.hasAwakeScreen = true
+        state.reconcile()
+        #expect(screen.shown == [.animated])
+    }
+
+    @Test("a break that ended behind a dark screen is announced settled")
+    func heldBreakThatEndedIsSettled() async {
+        environment.defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
+        let state = makeState()
+        state.start()
+        screen.hasAwakeScreen = false
+
+        await environment.advanceTime(by: 10)
+        await environment.advanceTime(by: 5)
+        #expect(state.awaitingReturn)
+
+        screen.hasAwakeScreen = true
+        state.reconcile()
+        #expect(screen.shown == [.settled])
+    }
+
+    @Test("a break dismissed while the screen was dark never surfaces")
+    func dismissedHeldBreakNeverSurfaces() async {
+        let state = makeState()
+        state.start()
+        screen.hasAwakeScreen = false
+        await environment.advanceTime(by: 10)
+
+        state.stop()
+        screen.hasAwakeScreen = true
+        state.reconcile()
+        #expect(screen.shown.isEmpty)
+    }
+
+    /// Issue #112.
+    @Test("a stop landing on an unreconciled boundary never puts the break on screen")
+    func stopOnUnreconciledBoundary() {
+        let state = makeState()
+        state.start()
+        environment.clock.elapse(by: 11)
+
+        state.stop()
+        #expect(state.mode == .idle)
+        #expect(screen.shown.isEmpty)
+    }
+
+    @Test("a long sleep reported by the system starts a fresh session on wake")
+    func sleepAndWakeNotifications() {
+        let state = makeState(work: 60, rest: 5)
+        state.start()
+        environment.clock.elapse(by: 20)
+
+        state.systemWillSleep()
+        environment.clock.sleepMachine(by: 600)
+        state.systemDidWake()
+
+        #expect(state.mode == .running)
+        #expect(state.timeRemaining == 60)
+    }
+
+    @Test("pausing freezes the countdown and resuming continues from it")
+    func pauseAndResume() async {
+        let state = makeState()
+        state.start()
+        await environment.advanceTime(by: 3)
+        state.pause()
+        await environment.advanceTime(by: 100)
+        #expect(state.timeRemaining == 7)
 
         state.resume()
-        await environment.advanceTime()
-
-        #expect(state.timeRemaining == snapshot - 1, "timeRemaining should resume decreasing.")
+        await environment.advanceTime(by: 2)
+        #expect(state.timeRemaining == 5)
     }
 
-    @Test("work countdown tracks elapsed time")
-    @MainActor
-    func workCountdownTracksElapsedTime() async {
-        let environment = TestEnvironment()
-        let state = environment.makeTimerState()
-        state.workDurationSecs = 3
-
+    /// Issue #109: work auto-resuming after a break leaves the mode unchanged.
+    @Test("every phase entry is a new countdown, even in the same mode")
+    func intervalIdentity() async {
+        let state = makeState()
         state.start()
-        await environment.advanceTime(by: 0.5)
-        #expect(state.timeRemaining == 2.5, "Half a second of elapsed time should reduce the work countdown.")
-
-        await environment.advanceTime(by: 1.5)
-        #expect(state.timeRemaining == 1, "Additional elapsed time should continue reducing the work countdown.")
+        let first = state.countdownIntervalID
+        await environment.advanceTime(by: 10)
+        await environment.advanceTime(by: 5)
+        #expect(state.mode == .running)
+        #expect(state.countdownIntervalID != first)
     }
 
-    @Test("work countdown reflects elapsed time without model ticks")
-    @MainActor
-    func workCountdownReflectsElapsedTimeWithoutTick() {
-        let environment = TestEnvironment()
-        let state = environment.makeTimerState()
-        state.workDurationSecs = 3
-
+    @Test("postpone is offered in the break's opening window and hidden once used")
+    func postponeButton() async {
+        environment.defaults.set(true, forKey: PreferenceKeys.allowPostpone)
+        environment.defaults.set(2.0, forKey: PreferenceKeys.postponeWindowSecs)
+        let state = makeState()
         state.start()
-        environment.elapseTimeWithoutTick(by: 1.5)
+        await environment.advanceTime(by: 10)
+        #expect(state.showsPostponeButton(at: environment.clock.date))
+        #expect(state.showsPostponeButton(at: environment.clock.date + 2) == false)
 
-        #expect(state.timeRemaining == 1.5, "Reading timeRemaining should account for elapsed time even before a tick.")
+        state.postpone()
+        await environment.advanceTime(by: 60)
+        #expect(state.isResting)
+        #expect(state.showsPostponeButton(at: environment.clock.date) == false)
     }
 
-    @Test("stop() cancels and resets state")
-    @MainActor
-    func stopResets() {
-        let environment = TestEnvironment()
-        let state = environment.makeTimerState()
-        state.workDurationSecs = 5
-        state.restDurationSecs = 2
-
+    @Test("early return appears in the break's closing lead, and always once it has ended")
+    func returnButton() async {
+        environment.defaults.set(true, forKey: PreferenceKeys.allowEarlyReturn)
+        environment.defaults.set(2.0, forKey: PreferenceKeys.earlyReturnLeadSecs)
+        environment.defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
+        let state = makeState()
         state.start()
+        await environment.advanceTime(by: 10)
+        #expect(state.showsReturnButton(at: environment.clock.date) == false)
+        #expect(state.showsReturnButton(at: environment.clock.date + 3))
+
+        environment.defaults.set(false, forKey: PreferenceKeys.allowEarlyReturn)
+        await environment.advanceTime(by: 5)
+        #expect(state.showsReturnButton(at: environment.clock.date))
+    }
+
+    @Test(
+        "the session lead counts only while it and tracking are both on",
+        arguments: [(true, true, 1), (false, true, 0), (true, false, 0)]
+    )
+    func sessionLeadGating(tracking: Bool, leadOn: Bool, expected: Int) async {
+        environment.defaults.set(tracking, forKey: PreferenceKeys.trackStatistics)
+        environment.defaults.set(leadOn, forKey: PreferenceKeys.countSessionEarly)
+        environment.defaults.set(3.0, forKey: PreferenceKeys.sessionLeadSecs)
+        let state = makeState()
+        state.start()
+        await environment.advanceTime(by: 7)
+        #expect(state.statistics.current.workSessionsCompleted == expected)
+        #expect(state.mode == .running)
+    }
+
+    @Test("auto-start on launch starts an idle timer only, and only when enabled")
+    func autoStart() {
+        let state = makeState()
+        state.autoStartIfEnabled()
+        #expect(state.mode == .idle)
+
+        environment.defaults.set(true, forKey: PreferenceKeys.autoStartOnLaunch)
+        state.autoStartIfEnabled()
+        #expect(state.mode == .running)
+        let interval = state.countdownIntervalID
+        state.autoStartIfEnabled()
+        #expect(state.countdownIntervalID == interval)
+    }
+
+    @Test("a parked timer shows its plan and ignores everything")
+    func parkedIsInert() {
+        let state = TimerState.parked(.starting(.rest, duration: 30), defaults: environment.defaults)
         state.stop()
-
-        #expect(state.isRunning == false, "stop() should leave the timer not running.")
-        #expect(state.mode == .idle, "stop() should reset the mode to idle.")
-        #expect(state.timeRemaining == 0, "stop() should clear remaining time.")
+        state.postpone()
+        state.systemDidWake()
+        #expect(state.isResting)
     }
 
-    @Test("manual mode waits for user after rest expiry")
-    @MainActor
-    func manualModeDelaysWorkStart() async {
-        let environment = TestEnvironment()
-        let defaults = environment.defaults
-        defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
-
-        let state = environment.makeTimerState()
-        state.workDurationSecs = 1
-        state.restDurationSecs = 1
-
-        state.start()
-        await environment.advanceUntil(maxTicks: 3) { state.awaitingReturn }
-
-        #expect(state.isRunning == false, "Work should not auto-start in manual mode.")
-        #expect(state.awaitingReturn, "Manual mode should wait for user return after rest expires.")
-        #expect(state.timeRemaining == 0, "Expired manual rest should have no remaining time.")
-
-        state.start()
-        #expect(state.isRunning, "Starting from awaiting return should begin work.")
-        #expect(state.awaitingReturn == false, "Starting from awaiting return should clear the waiting state.")
-    }
-
-    @Test("autoStartIfEnabled() starts work when the launch preference is on")
-    @MainActor
-    func autoStartLaunchEnabledStartsWork() {
-        let environment = TestEnvironment()
-        environment.defaults.set(true, forKey: PreferenceKeys.autoStartOnLaunch)
-
-        let state = environment.makeTimerState()
-        state.autoStartIfEnabled()
-
-        #expect(state.isRunning, "Auto-start on launch should begin a work session when enabled.")
-        #expect(state.mode == .running, "Auto-start should put the timer into the running work state.")
-    }
-
-    @Test("autoStartIfEnabled() does nothing when the launch preference is off")
-    @MainActor
-    func autoStartLaunchDisabledStaysIdle() {
-        let environment = TestEnvironment()
-        // Default is off; leave the preference unset to exercise the fallback.
-        let state = environment.makeTimerState()
-        state.autoStartIfEnabled()
-
-        #expect(state.mode == .idle, "Auto-start should leave the timer idle when the preference is off.")
-        #expect(state.isRunning == false, "A disabled launch preference should not start the timer.")
-    }
-
-    @Test("autoStartIfEnabled() does not disrupt an already-running timer")
-    @MainActor
-    func autoStartLaunchIgnoredWhenNotIdle() {
-        let environment = TestEnvironment()
-        environment.defaults.set(true, forKey: PreferenceKeys.autoStartOnLaunch)
-
-        let state = environment.makeTimerState()
-        state.workDurationSecs = 5
-        state.start()
-        let snapshot = state.timeRemaining
-
-        state.autoStartIfEnabled()
-
-        #expect(state.mode == .running, "Auto-start should not change the mode of an active timer.")
-        #expect(state.timeRemaining == snapshot, "Auto-start should not restart an already-running work session.")
-    }
-
-    @Test("formatting helper produces zero-padded strings")
-    @MainActor
-    func formattingProducesCorrectOutput() {
-        #expect(TimerState.format(timeInterval: 0) == "00:00", "Zero seconds should format as 00:00.")
-        #expect(TimerState.format(timeInterval: 5) == "00:05", "Single-digit seconds should be zero padded.")
-        #expect(TimerState.format(timeInterval: 65) == "01:05", "Minutes and seconds should be zero padded.")
-        #expect(TimerState.format(timeInterval: 599) == "09:59", "Single-digit minutes should be zero padded.")
-        #expect(
-            TimerState.format(timeInterval: 600) == "10:00",
-            "Double-digit minutes should format without truncation."
-        )
-        #expect(TimerState.format(timeInterval: 8.999) == "00:09", "Fractional seconds should round up for display.")
-        #expect(
-            TimerState.format(timeInterval: 0.1) == "00:01",
-            "Subsecond positive values should display at least one second."
-        )
-    }
-
-    @Test("initialization loads stored durations and falls back for zero values")
-    @MainActor
-    func initializationLoadsStoredDurations() {
-        let environment = TestEnvironment()
-        let defaults = environment.defaults
-        defaults.set(120.0, forKey: PreferenceKeys.workDurationSecs)
-        defaults.set(0.0, forKey: PreferenceKeys.restDurationSecs)
-
-        let state = environment.makeTimerState()
-
-        #expect(state.workDurationSecs == 120, "Initialization should load a stored work duration.")
-        #expect(state.restDurationSecs == 300, "Initialization should fall back when stored rest duration is zero.")
-    }
-
-    @Test("timer state deallocates while sleep observers are active")
-    @MainActor
-    func timerStateDeallocatesWhileObservingSleepNotifications() async {
-        let environment = TestEnvironment()
+    @Test("the timer is released while subscribed to the system's sleep notifications")
+    func deallocates() {
         weak var weakState: TimerState?
-
         do {
-            let state = environment.makeTimerState()
-            state.workDurationSecs = 60
-            // `start()` activates the workspace sleep/wake observers, so this exercises
-            // the weak-capture path of the observer blocks (and the tick handler), not
-            // just a never-started object.
+            let state = makeState()
             state.start()
-            #expect(state.isRunning, "start() should activate the sleep observers under test.")
             weakState = state
         }
-
-        await Task.yield()
-        #expect(
-            weakState == nil,
-            "TimerState should deallocate even while its sleep observers are active."
-        )
+        #expect(weakState == nil)
     }
 }

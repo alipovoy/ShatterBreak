@@ -41,7 +41,7 @@ struct CountdownClock<Content: View>: View {
     @MainActor
     private func drive() async {
         guard isActive else {
-            referenceDate = state.clock.instant.date
+            referenceDate = state.now().date
             return
         }
 

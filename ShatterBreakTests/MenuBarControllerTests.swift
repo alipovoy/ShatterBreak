@@ -35,7 +35,8 @@ struct MenuBarControllerTests {
     func postponedWorkCountsTheDelay() async {
         let environment = TestEnvironment()
         environment.setMenuBarTimerStyle(.seconds)
-        let state = environment.makeTimerState(postponeDurationSecs: 300)
+        environment.defaults.set(300.0, forKey: PreferenceKeys.postponeDurationSecs)
+        let state = environment.makeTimerState()
         state.workDurationSecs = 6000
         state.restDurationSecs = 60
         let controller = environment.makeMenuBarController(state: state)
