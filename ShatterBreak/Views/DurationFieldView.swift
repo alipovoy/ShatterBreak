@@ -9,32 +9,11 @@ struct DurationFieldView: View {
     let min: Double
     let max: Double
 
-    @State private var manualInput = ""
-    @FocusState private var isInputFocused: Bool
-
     var body: some View {
         LabeledContent {
             HStack(spacing: 6) {
-                // The label is the field's accessibility name only; a Form would
-                // otherwise promote it to a visible label beside the field, so it
-                // is hidden and the placeholder moved to `prompt`.
-                TextField(text: $manualInput, prompt: Text(verbatim: "00:00")) {
-                    Text(title)
-                }
-                .labelsHidden()
-                .textFieldStyle(.roundedBorder)
-                .font(.body.monospacedDigit())
-                .multilineTextAlignment(.trailing)
-                .frame(width: 80)
-                .focused($isInputFocused)
-                .onSubmit {
-                    commitManualInput()
-                    isInputFocused = false
-                }
-                .onExitCommand {
-                    manualInput = DurationFormat.friendly(value)
-                    isInputFocused = false
-                }
+                DurationTextField(title: title, value: $value, min: min, max: max)
+                    .frame(width: 80)
 
                 Stepper {
                     Text(title)
@@ -48,27 +27,6 @@ struct DurationFieldView: View {
         } label: {
             Text(title)
         }
-        .onAppear { manualInput = displayText(for: value) }
-        .onChange(of: value) { _, newValue in
-            manualInput = displayText(for: newValue)
-        }
-        .onChange(of: isInputFocused) { _, isFocused in
-            if isFocused {
-                manualInput = DurationFormat.clock(value)
-            } else {
-                commitManualInput()
-            }
-        }
-    }
-
-    /// Clock format while editing (parseable as typed back), friendly otherwise.
-    private func displayText(for seconds: Double) -> String {
-        isInputFocused ? DurationFormat.clock(seconds) : DurationFormat.friendly(seconds)
-    }
-
-    private func commitManualInput() {
-        value = DurationFormat.applying(input: manualInput, to: value, min: min, max: max)
-        manualInput = DurationFormat.friendly(value)
     }
 
     private func adjust(by delta: Double) {
