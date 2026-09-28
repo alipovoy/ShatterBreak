@@ -6,13 +6,8 @@ struct ShatterBreakApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var permissions = ScreenCapturePermissionManager.shared
 
-    // No scene requests screen-capture permission on appearance: opening the menu or
-    // Preferences says nothing about whether a capture is imminent, and asking there
-    // prompted users who had chosen Fogged or Dimmed. Every request now follows an action
-    // meaning "I want Shatter to work" — see `ScreenCaptureConsentView`.
-    //
-    // The status item is not a scene: `MenuBarExtra` discards font and layout modifiers on
-    // its label, so the countdown could not hold a width. `MenuBarController` owns it.
+    // The status item is not a scene: `MenuBarExtra` drops font modifiers on its label, so
+    // the countdown could not hold a width. `MenuBarController` owns it.
     var body: some Scene {
         // A plain Window rather than a Settings scene: TabView renders here with the
         // capsule-toolbar tabs, and Xcode previews match the app exactly. The scene's

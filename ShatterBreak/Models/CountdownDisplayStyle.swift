@@ -1,26 +1,14 @@
 import Foundation
 
-/// How a live countdown renders its remaining time, and — because the refresh
-/// cadence must match what the text can actually show — how long the display
-/// stays valid before it needs another redraw.
-///
-/// `minutes` is the power-save style: the text carries only minute precision
-/// (e.g. "24m"), so a single refresh per minute keeps it accurate, and a
-/// generous timer tolerance lets the system coalesce the wake-ups. In the
-/// final minute it hands over to the per-second MM:SS style so the countdown
-/// stays legible where it matters.
+/// How a countdown renders, and so how often it must redraw. `minutes` ("24m") redraws once
+/// a minute with a loose tolerance, and falls back to MM:SS for the final minute.
 enum CountdownDisplayStyle: Equatable {
     case seconds
     case minutes
 
-    /// Remaining time at or below which `minutes` falls back to per-second MM:SS.
     static let finalCountdownThreshold: TimeInterval = 60
 
-    /// The text for `remaining` seconds left on the clock.
-    ///
-    /// Minute counts round up, matching the ceiling the MM:SS formatter applies:
-    /// "24m" means "no more than 24 minutes remain", and the value ticks over
-    /// exactly when `remaining` crosses a multiple of 60.
+    /// Minutes round up, as MM:SS does: "24m" means no more than 24 minutes remain.
     func text(forRemaining remaining: TimeInterval, locale: Locale = .autoupdatingCurrent) -> String {
         switch self {
         case .seconds:
@@ -35,9 +23,7 @@ enum CountdownDisplayStyle: Equatable {
         }
     }
 
-    /// How long the text for `remaining` stays correct — the sleep until the
-    /// next redraw. Always the exact distance to the next value change, so the
-    /// display is never stale regardless of cadence.
+    /// Exactly the time until the text next changes.
     func nextRefreshDelay(forRemaining remaining: TimeInterval) -> Duration {
         switch self {
         case .seconds:
@@ -50,9 +36,6 @@ enum CountdownDisplayStyle: Equatable {
         }
     }
 
-    /// The slack the next refresh can absorb. Minute-level sleeps accept several
-    /// seconds so the system can coalesce timers (the energy win this style
-    /// exists for); per-second ticks stay tight to keep the countdown smooth.
     func refreshTolerance(forRemaining remaining: TimeInterval) -> Duration {
         switch self {
         case .seconds:
@@ -62,8 +45,6 @@ enum CountdownDisplayStyle: Equatable {
         }
     }
 
-    /// The time until `remaining` next crosses a multiple of `boundary`, or a
-    /// full `boundary` when it sits exactly on one.
     private static func delayToNextBoundary(
         forRemaining remaining: TimeInterval,
         boundary: TimeInterval
@@ -74,14 +55,8 @@ enum CountdownDisplayStyle: Equatable {
 }
 
 extension CountdownDisplayStyle {
-    /// Calls `onTick` with now, then with each later moment the countdown's text can differ
-    /// from the one before, until the interval runs out or the task is cancelled.
-    ///
-    /// The menu bar item and the on-screen countdowns share this so the cadence — and the
-    /// power-save style's once-a-minute wake — is decided in one place.
-    ///
-    /// Moments come from the timer's own clock, never the wall clock: reading `Date.now`
-    /// against a plan the clock started puts the two on different timelines.
+    /// Calls `onTick` now and at each moment the text can change, until the interval runs
+    /// out or the task is cancelled. Moments come from the timer's clock, never `Date.now`.
     @MainActor
     func driveCountdown(for state: TimerState, onTick: (Date) -> Void) async {
         var referenceDate = state.now().date

@@ -4,8 +4,8 @@ import Foundation
 
 /// Drives ``TimerReducer`` over a clock the test moves by hand.
 ///
-/// ``run(_:)``, ``drift(_:)`` and ``sleepMachine(_:)`` are the same three ways time can
-/// pass that ``ManualTimerClock`` documents. No sleep notification is ever posted here,
+/// Time passes three ways: ``run(_:)`` awake and reconciling, ``drift(_:)`` awake with
+/// nothing reconciled, ``sleepMachine(_:)`` asleep. No sleep notification is ever posted here,
 /// deliberately: the absence must be measurable without one.
 struct ReducerDriver {
     private(set) var plan: TimerPlan

@@ -1,15 +1,13 @@
 import Foundation
 
-/// Something the world must do because the plan changed.
-///
-/// The reducer decides *what*, the executor *when it is safe* — which is what lets the plan
-/// advance during a DarkWake while the overlay waits for a screen.
+/// Something the world must do because the plan changed. The reducer decides what;
+/// ``TimerState`` decides when it is safe, so the plan can advance while the screen is dark.
 enum TimerEffect: Equatable {
     /// Settle screen-capture consent at the head of a work session, well before a break
     /// needs it: presentation is instantaneous, a system dialog is not.
     case prepareCapturePermissions
-    /// Position in a batch buys nothing: the executor holds every presentation and makes it
-    /// last, so a later `dismissOverlay` or `settleHeldOverlay` still has its say (issue #112).
+    /// Held until the whole batch is done, so a later `dismissOverlay` or `settleHeldOverlay`
+    /// still has its say (issue #112).
     case showOverlay(OverlayPresentationStyle)
     case dismissOverlay
     /// A held presentation is out of date: the break it would announce has ended, so present
