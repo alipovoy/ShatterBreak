@@ -5,20 +5,10 @@ import Foundation
 
 @MainActor
 final class TestEnvironment {
-    /// A domain of its own, removed with the environment, so no test sees another's writes.
-    let defaults: UserDefaults
-    private let suiteName = "dev.lipovoy.shatterbreak.tests.\(UUID().uuidString)"
+    let defaults: any KeyValueStore = InMemoryKeyValueStore()
     let clock = TestClock()
     var asleepDisplays: Set<CGDirectDisplayID> = []
     private weak var timer: TimerState?
-
-    init() {
-        defaults = UserDefaults(suiteName: suiteName) ?? .standard
-    }
-
-    isolated deinit {
-        defaults.removePersistentDomain(forName: suiteName)
-    }
 
     func makeTimerState(overlays: (any BreakPresenting)? = nil) -> TimerState {
         let state = TimerState(defaults: defaults, overlays: overlays, now: { [clock] in clock.instant })
@@ -83,9 +73,10 @@ final class TestEnvironment {
         )
     }
 
-    /// `@AppStorage` writes the style, so the change notification is all the item hears.
+    /// The in-memory store posts no change notification of its own.
     func setMenuBarTimerStyle(_ style: MenuBarTimerStyle) {
         defaults.set(style.rawValue, forKey: PreferenceKeys.menuBarTimerStyle)
+        NotificationCenter.default.post(name: UserDefaults.didChangeNotification, object: nil)
     }
 
     /// Work posted to the main queue lands a turn or more after the call that scheduled it.

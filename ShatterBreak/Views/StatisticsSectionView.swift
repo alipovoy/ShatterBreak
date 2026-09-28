@@ -57,7 +57,7 @@ struct StatisticsSectionView: View {
 }
 
 #Preview("StatisticsSectionView") { @MainActor in
-    let defaults = UserDefaults.preview("statistics")
+    let defaults = InMemoryKeyValueStore()
     defaults.set(true, forKey: PreferenceKeys.trackStatistics)
     let statistics = StatisticsStore(defaults: defaults)
     for _ in 0..<4 { statistics.record(.workSessionCompleted) }

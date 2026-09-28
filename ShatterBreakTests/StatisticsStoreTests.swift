@@ -7,7 +7,7 @@ import Testing
 @MainActor
 struct StatisticsStoreTests {
     let environment = TestEnvironment()
-    var defaults: UserDefaults { environment.defaults }
+    var defaults: any KeyValueStore { environment.defaults }
     @Test("recording increments counters and persists across store instances")
     func recordingPersistsAcrossInstances() {
         defaults.set(true, forKey: PreferenceKeys.trackStatistics)

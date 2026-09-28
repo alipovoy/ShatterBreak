@@ -24,7 +24,7 @@ struct TimerDisplayView: View {
 
 private extension TimerState {
     static func preview(_ plan: TimerPlan) -> TimerState {
-        TimerState.parked(plan, defaults: UserDefaults.preview("timerDisplay"))
+        TimerState.parked(plan, defaults: InMemoryKeyValueStore())
     }
 }
 

@@ -21,7 +21,7 @@ final class OverlayManager: BreakPresenting {
     private var session: Session?
     private var observers: [(NotificationCenter, any NSObjectProtocol)] = []
 
-    private let defaults: UserDefaults
+    private let defaults: any KeyValueStore
     private let screens: @MainActor () -> [ScreenInfo]
     private let capture: @Sendable (Set<CGDirectDisplayID>) async throws -> [CGDirectDisplayID: CGImage]
     private let isDisplayAwake: @MainActor (CGDirectDisplayID) -> Bool
@@ -30,7 +30,7 @@ final class OverlayManager: BreakPresenting {
 
     /// The defaults are the system; tests stand in for the displays and the capture.
     init(
-        defaults: UserDefaults = .standard,
+        defaults: any KeyValueStore = UserDefaults.standard,
         screens: @escaping @MainActor () -> [ScreenInfo] = { ScreenCapture.screens() },
         capture: @escaping @Sendable (Set<CGDirectDisplayID>) async throws -> [CGDirectDisplayID: CGImage]
             = { try await ScreenCapture.captureImages($0) },

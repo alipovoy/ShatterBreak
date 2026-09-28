@@ -37,7 +37,7 @@ final class TimerState {
     }
 
     let statistics: StatisticsStore
-    let defaults: UserDefaults
+    let defaults: any KeyValueStore
     @ObservationIgnored let overlays: (any BreakPresenting)?
     @ObservationIgnored let now: () -> TimerInstant
 
@@ -51,7 +51,7 @@ final class TimerState {
     @ObservationIgnored private var sleepObservers: [any NSObjectProtocol] = []
 
     init(
-        defaults: UserDefaults = UserDefaults.standard,
+        defaults: any KeyValueStore = UserDefaults.standard,
         overlays: (any BreakPresenting)?,
         statistics: StatisticsStore? = nil,
         now: @escaping () -> TimerInstant = { .now },
@@ -87,7 +87,7 @@ final class TimerState {
     }
 
     /// A timer frozen on `plan`, touching nothing outside itself.
-    static func parked(_ plan: TimerPlan, defaults: UserDefaults) -> TimerState {
+    static func parked(_ plan: TimerPlan, defaults: any KeyValueStore) -> TimerState {
         TimerState(defaults: defaults, overlays: nil, parkedAt: plan)
     }
 

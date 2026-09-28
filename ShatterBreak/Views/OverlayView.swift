@@ -167,7 +167,7 @@ private func previewOverlay(phase: TimerPlan.Phase, duration: TimeInterval = 300
     presentation.phase = .shattered
 
     // Postpone must be allowed for the overlay to offer it.
-    let defaults = UserDefaults.preview("overlay")
+    let defaults = InMemoryKeyValueStore()
     defaults.set(true, forKey: PreferenceKeys.allowPostpone)
     let state = TimerState.parked(.starting(phase, duration: duration), defaults: defaults)
     state.restDurationSecs = duration

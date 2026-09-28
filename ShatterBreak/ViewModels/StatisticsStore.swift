@@ -13,14 +13,14 @@ enum StatisticsEvent: Equatable {
 final class StatisticsStore {
     private(set) var current: SessionStatistics
 
-    private let defaults: UserDefaults
+    private let defaults: any KeyValueStore
 
     var isTrackingEnabled: Bool {
         (defaults.object(forKey: PreferenceKeys.trackStatistics) as? Bool)
             ?? PreferenceDefaults.trackStatistics
     }
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: any KeyValueStore = UserDefaults.standard) {
         self.defaults = defaults
         self.current = Self.load(from: defaults) ?? SessionStatistics(since: .now)
     }
@@ -59,7 +59,7 @@ final class StatisticsStore {
         defaults.set(try? JSONEncoder().encode(current), forKey: PreferenceKeys.sessionStatistics)
     }
 
-    private static func load(from defaults: UserDefaults) -> SessionStatistics? {
+    private static func load(from defaults: any KeyValueStore) -> SessionStatistics? {
         guard let data = defaults.object(forKey: PreferenceKeys.sessionStatistics) as? Data else { return nil }
         return try? JSONDecoder().decode(SessionStatistics.self, from: data)
     }

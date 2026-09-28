@@ -25,12 +25,12 @@ final class ScreenCapturePermissionManager {
     private var activationObserver: (any NSObjectProtocol)?
     private var confirmation: Task<Void, Never>?
     private var hasRequestedAccessThisLaunch = false
-    private let defaults: UserDefaults
+    private let defaults: any KeyValueStore
     private let appNotificationCenter: NotificationCenter
     private let permissionClient: ScreenCapturePermissionClient
 
     init(
-        defaults: UserDefaults = .standard,
+        defaults: any KeyValueStore = UserDefaults.standard,
         appNotificationCenter: NotificationCenter = .default,
         permissionClient: ScreenCapturePermissionClient = .live
     ) {
