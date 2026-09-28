@@ -12,8 +12,6 @@ import SwiftUI
 @MainActor
 final class MenuBarController: NSObject, NSPopoverDelegate {
     private let state: TimerState
-    private let defaults: any KeyValueStore
-    private let notificationCenter: NotificationCenter
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let popover = NSPopover()
 
@@ -32,15 +30,9 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private var styleObserver: (any NSObjectProtocol)?
     private var timerStyle: MenuBarTimerStyle
 
-    init(
-        state: TimerState,
-        defaults: any KeyValueStore = UserDefaults.standard,
-        notificationCenter: NotificationCenter = .default
-    ) {
+    init(state: TimerState) {
         self.state = state
-        self.defaults = defaults
-        self.notificationCenter = notificationCenter
-        self.timerStyle = defaults.value(
+        self.timerStyle = state.defaults.value(
             forKey: PreferenceKeys.menuBarTimerStyle,
             default: PreferenceDefaults.menuBarTimerStyle
         )
@@ -60,7 +52,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         popover.delegate = self
         popover.contentViewController = NSHostingController(rootView: MenuView(state: state))
 
-        styleObserver = notificationCenter.addObserver(
+        styleObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
             object: nil,
             queue: .main
@@ -75,7 +67,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     isolated deinit {
         refreshTask?.cancel()
         if let styleObserver {
-            notificationCenter.removeObserver(styleObserver)
+            NotificationCenter.default.removeObserver(styleObserver)
         }
         anchorWindow?.orderOut(nil)
         NSStatusBar.system.removeStatusItem(statusItem)
@@ -220,7 +212,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
 
     private func styleDidChange() {
-        let stored: MenuBarTimerStyle = defaults.value(
+        let stored: MenuBarTimerStyle = state.defaults.value(
             forKey: PreferenceKeys.menuBarTimerStyle,
             default: PreferenceDefaults.menuBarTimerStyle
         )

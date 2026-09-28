@@ -18,18 +18,16 @@ enum StatisticsEvent: Equatable {
 final class StatisticsStore {
     private(set) var current: SessionStatistics
 
-    private let defaults: any KeyValueStore
-    private let now: () -> Date
+    private let defaults: UserDefaults
 
     var isTrackingEnabled: Bool {
         (defaults.object(forKey: PreferenceKeys.trackStatistics) as? Bool)
             ?? PreferenceDefaults.trackStatistics
     }
 
-    init(defaults: any KeyValueStore = UserDefaults.standard, now: @escaping () -> Date = Date.init) {
+    init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        self.now = now
-        self.current = Self.load(from: defaults) ?? SessionStatistics(since: now())
+        self.current = Self.load(from: defaults) ?? SessionStatistics(since: .now)
     }
 
     func record(_ event: StatisticsEvent) {
@@ -50,7 +48,7 @@ final class StatisticsStore {
 
     /// Starts a fresh tally from zero, stamping `since` with the present moment.
     func reset() {
-        current = SessionStatistics(since: now())
+        current = SessionStatistics(since: .now)
         persist()
     }
 
@@ -68,7 +66,7 @@ final class StatisticsStore {
         defaults.set(try? JSONEncoder().encode(current), forKey: PreferenceKeys.sessionStatistics)
     }
 
-    private static func load(from defaults: any KeyValueStore) -> SessionStatistics? {
+    private static func load(from defaults: UserDefaults) -> SessionStatistics? {
         guard let data = defaults.object(forKey: PreferenceKeys.sessionStatistics) as? Data else { return nil }
         return try? JSONDecoder().decode(SessionStatistics.self, from: data)
     }

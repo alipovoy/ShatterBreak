@@ -3,7 +3,7 @@ import Foundation
 /// Canonical default values for each ``PreferenceKeys`` entry.
 ///
 /// This is the single source of truth shared by the `@AppStorage` declarations in
-/// the views and the accessors that read preferences through ``KeyValueStore``
+/// the views and the accessors that read preferences through `UserDefaults`
 /// (``OverlayManager``, ``TimerState``). Sourcing every default from here keeps the
 /// call sites from silently drifting apart when a default changes.
 enum PreferenceDefaults {

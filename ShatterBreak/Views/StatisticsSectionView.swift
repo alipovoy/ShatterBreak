@@ -60,7 +60,7 @@ struct StatisticsSectionView: View {
 
 #Preview("StatisticsSectionView") { @MainActor in
     // Four zeros say nothing about the layout, so the preview records a morning first.
-    let defaults = InMemoryKeyValueStore()
+    let defaults = UserDefaults.preview("statistics")
     defaults.set(true, forKey: PreferenceKeys.trackStatistics)
     let statistics = StatisticsStore(defaults: defaults)
     for _ in 0..<4 { statistics.record(.workSessionCompleted) }

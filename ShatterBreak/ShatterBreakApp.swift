@@ -40,12 +40,12 @@ struct ShatterBreakApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let timerState = TimerState(
-        overlays: OverlayManager(directCaptureAccess: { ScreenCapturePermissionManager.shared.directCaptureAccess })
+        overlays: OverlayManager()
     )
     private var menuBar: MenuBarController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        menuBar = MenuBarController(state: timerState, defaults: timerState.defaults)
+        menuBar = MenuBarController(state: timerState)
         timerState.autoStartIfEnabled()
     }
 }

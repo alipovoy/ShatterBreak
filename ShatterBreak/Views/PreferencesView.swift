@@ -353,7 +353,7 @@ private extension View {
     let defaults = UserDefaults.preview("settings")
 
     return PreferencesView(state: TimerState.parked(.idle(at: .now), defaults: defaults))
-        .environment(\.permissions, ScreenCapturePermissionManager(defaults: defaults))
+        .environment(\.permissions, .shared)
         .defaultAppStorage(defaults)
 }
 
@@ -376,7 +376,7 @@ private extension View {
     let defaults = UserDefaults.preview("breakScreen")
 
     return BreakScreenSettingsTab(state: TimerState.parked(.idle(at: .now), defaults: defaults))
-        .environment(\.permissions, ScreenCapturePermissionManager(defaults: defaults))
+        .environment(\.permissions, .shared)
         .defaultAppStorage(defaults)
         .frame(width: 480)
 }

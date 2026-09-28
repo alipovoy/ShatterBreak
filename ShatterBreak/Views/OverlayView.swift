@@ -174,9 +174,9 @@ private func previewOverlay(phase: TimerPlan.Phase, duration: TimeInterval = 300
     presentation.backgroundImage = PreviewWallpaper.image
     presentation.phase = .shattered
 
-    // Volatile, so the canvas neither reads nor writes real preferences. Postpone must be
+    // A domain of its own, so the canvas never writes real preferences. Postpone must be
     // allowed for the overlay to offer it, and the break stays short so its window is open.
-    let defaults = InMemoryKeyValueStore()
+    let defaults = UserDefaults.preview("overlay")
     defaults.set(true, forKey: PreferenceKeys.allowPostpone)
     let state = TimerState.parked(.starting(phase, duration: duration), defaults: defaults)
     state.restDurationSecs = duration
