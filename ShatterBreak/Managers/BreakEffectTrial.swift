@@ -30,7 +30,7 @@ final class BreakEffectTrial {
         end()
     }
 
-    var canStart: Bool { isRunning == false && breakWindowIsFree && timer.overlays != nil }
+    var canStart: Bool { isRunning == false && breakWindowIsFree }
 
     func start() async {
         guard canStart, let overlays = timer.overlays else { return }
