@@ -11,12 +11,20 @@ enum BreakTimingWarning: Hashable {
     case earlyReturnLeadExceedsRest
     /// The Postpone and "I'm back" windows overlap, leaving no button-free rest gap.
     case windowsOverlap
+
+    var message: LocalizedStringResource {
+        switch self {
+        case .postponeWindowExceedsRest: .postponeWindowExceedsRestWarning
+        case .earlyReturnLeadExceedsRest: .earlyReturnLeadExceedsRestWarning
+        case .windowsOverlap: .windowsOverlapWarning
+        }
+    }
 }
 
 /// Pure validation for the break-timing windows.
 ///
 /// Kept as a stateless namespace so the warning decision is unit-testable without any
-/// UI, and shared verbatim by ``BreakTimingWarningsView``. All comparisons are strictly
+/// UI. All comparisons are strictly
 /// greater than rest: a window *equal* to the break, or windows that exactly meet, are
 /// valid and warning-free.
 enum BreakTimingValidator {

@@ -205,7 +205,12 @@ private struct ScheduleSettingsTab: View {
 
             if breakTimingWarnings.isEmpty == false {
                 Section {
-                    BreakTimingWarningsView(warnings: breakTimingWarnings)
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(breakTimingWarnings, id: \.self) { warning in
+                            WarningLabel(message: warning.message)
+                        }
+                    }
+                    .readingWidth()
                 }
             }
         }
@@ -266,15 +271,30 @@ private struct BreakScreenSettingsTab: View {
                         confirmDirectCapture()
                     }
 
-                // Only Shatter captures the screen; Fogged and Dimmed work without
-                // any permission, so consent is only ever discussed under Shatter.
+                // Only Shatter captures the screen, so consent is discussed only under it.
+                // Screen Recording gates direct capture, so it is the one raised first. There
+                // is no offer to switch to Fogged: the picker sits right above.
                 if effectType.requiresScreenCapture {
-                    ScreenCaptureConsentView(
-                        hasScreenRecordingAccess: permissions.hasScreenRecordingAccess,
-                        directCaptureAccess: permissions.directCaptureAccess,
-                        onGrantScreenRecording: grantScreenRecording,
-                        onConfirmDirectCapture: confirmDirectCapture
-                    )
+                    if permissions.hasScreenRecordingAccess == false {
+                        WarningLabel(
+                            message: .permissionWarningText,
+                            actionTitle: .openSystemSettingsToGrant,
+                            action: grantScreenRecording
+                        )
+                        .readingWidth()
+                    } else if permissions.directCaptureAccess == .refused {
+                        WarningLabel(
+                            message: .directCaptureWarningText,
+                            actionTitle: .directCaptureConfirmAction,
+                            action: confirmDirectCapture
+                        )
+                        .readingWidth()
+                    } else {
+                        Text(.directCaptureNote)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .readingWidth()
+                    }
                 }
 
                 // The shake is Shatter's alone, and a blocked capture presents Fogged. Left
@@ -347,9 +367,6 @@ private extension View {
 }
 
 #Preview("Settings") { @MainActor in
-    // `@AppStorage` reads `UserDefaults` and nothing else, so this pane cannot use the
-    // in-memory store other previews do; a suite of its own keeps the canvas off real
-    // settings.
     let defaults = UserDefaults.preview("settings")
 
     return PreferencesView(state: TimerState.parked(.idle(at: .now), defaults: defaults))

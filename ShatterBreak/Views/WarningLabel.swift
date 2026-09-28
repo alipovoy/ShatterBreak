@@ -1,18 +1,36 @@
 import SwiftUI
 
-/// A cautionary inline label: a warning-triangle icon beside wrapping text. Shared by the
-/// Preferences warnings (``BreakTimingWarningsView`` and ``PermissionWarningView``) so
-/// every inline caution reads with the same icon, tint, and font.
+/// Every caution in Preferences: a warning triangle beside wrapping text, above the one
+/// action that fixes it, when there is one.
 struct WarningLabel: View {
     let message: LocalizedStringResource
+    var actionTitle: LocalizedStringResource?
+    var action: () -> Void = {}
 
     var body: some View {
-        Label {
-            Text(message)
-        } icon: {
-            Image(systemName: "exclamationmark.triangle.fill")
+        VStack(alignment: .leading) {
+            Label {
+                Text(message)
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+            }
+            .font(.callout)
+            .foregroundStyle(.orange)
+
+            if let actionTitle {
+                Button(actionTitle, action: action)
+                    .buttonStyle(.link)
+                    .font(.callout)
+            }
         }
-        .font(.callout)
-        .foregroundStyle(.orange)
     }
+}
+
+#Preview("Warnings") {
+    Form {
+        WarningLabel(message: .windowsOverlapWarning)
+        WarningLabel(message: .permissionWarningText, actionTitle: .openSystemSettingsToGrant)
+        WarningLabel(message: .directCaptureWarningText, actionTitle: .directCaptureConfirmAction)
+    }
+    .formStyle(.grouped)
 }
