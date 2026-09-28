@@ -3,8 +3,6 @@ import Testing
 
 @testable import ShatterBreak
 
-/// The status item reacts to a preference written elsewhere, to the phase on the clock and
-/// to being released — none of which reaches it through SwiftUI any more.
 @Suite("Menu bar controller", .tags(.timerState), .timeLimit(.minutes(1)))
 struct MenuBarControllerTests {
     @Test("A style written to the store reaches the item")

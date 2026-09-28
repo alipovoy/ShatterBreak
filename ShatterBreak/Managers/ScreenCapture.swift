@@ -2,13 +2,11 @@ import AppKit
 import os
 import ScreenCaptureKit
 
-/// A display: its identifier and frame.
 struct ScreenInfo: Equatable, Sendable {
     let displayID: CGDirectDisplayID
     let frame: CGRect
 }
 
-/// The displays attached, and ScreenCaptureKit screenshots of them.
 enum ScreenCapture {
     @MainActor
     static func screens() -> [ScreenInfo] {

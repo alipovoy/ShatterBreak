@@ -1,9 +1,7 @@
 import AppKit
 
-/// Puts a real break on screen for a few seconds: nothing that tells a display-wide blur
-/// from a fog drawn behind the overlay survives a picker card.
-///
-/// Presented through the timer's own presenter, so the break window keeps one owner.
+/// A real break on screen for a few seconds, through the timer's own presenter so the break
+/// window keeps one owner.
 @MainActor
 @Observable
 final class BreakEffectTrial {

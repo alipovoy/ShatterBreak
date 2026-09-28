@@ -1,16 +1,12 @@
 import SwiftUI
 
-/// A captured screenshot as frosted glass: blur plus a slight dim.
-///
-/// The radius is in points, so a Retina and a non-Retina screen in the same break are
-/// softened alike rather than betraying their pixel densities.
+/// The blur radius is in points, so Retina and non-Retina screens soften alike.
 struct FrostedCaptureView: View {
     let image: CGImage
 
     private enum Frost {
         static let blurRadius: CGFloat = 5
-        /// Pushes the blur's faded edges outside the frame, hiding the translucent border
-        /// the kernel leaves where it samples past the screenshot's bounds.
+        /// Pushes the blur's translucent edge outside the frame.
         static let edgeBleedScale: CGFloat = 1.05
         static let dimOpacity: CGFloat = 0.2
     }

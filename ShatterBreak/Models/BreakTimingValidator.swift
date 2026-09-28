@@ -1,9 +1,7 @@
 import Foundation
 
-/// A contradiction between the break-timing settings and the configured break length.
-///
-/// Surfaced to the user as a warning in Preferences rather than silently clamped, so
-/// the behavior stays explicit.
+/// A contradiction between the break-timing settings and the break length, warned about
+/// rather than silently clamped.
 enum BreakTimingWarning: Hashable {
     /// The Postpone window is longer than the break, so Postpone never auto-hides.
     case postponeWindowExceedsRest
@@ -21,12 +19,8 @@ enum BreakTimingWarning: Hashable {
     }
 }
 
-/// Pure validation for the break-timing windows.
-///
-/// Kept as a stateless namespace so the warning decision is unit-testable without any
-/// UI. All comparisons are strictly
-/// greater than rest: a window *equal* to the break, or windows that exactly meet, are
-/// valid and warning-free.
+/// Strictly greater than rest: a window equal to the break, or windows that exactly meet,
+/// are fine.
 enum BreakTimingValidator {
     static func warnings(
         restDurationSecs: Double,
@@ -42,9 +36,7 @@ enum BreakTimingValidator {
         if postponeExceeds { warnings.append(.postponeWindowExceedsRest) }
         if leadExceeds { warnings.append(.earlyReturnLeadExceedsRest) }
 
-        // Overlap is only reported as its own case when neither window individually
-        // exceeds the break; otherwise the "exceeds" warning already explains the
-        // collision and a second message would be redundant.
+        // Only when neither window alone exceeds the break, which already explains it.
         let windowsOverlap = allowPostpone && allowEarlyReturn
             && !postponeExceeds && !leadExceeds
             && postponeWindowSecs + earlyReturnLeadSecs > restDurationSecs

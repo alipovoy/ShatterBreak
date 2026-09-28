@@ -2,8 +2,7 @@ import Testing
 
 @testable import ShatterBreak
 
-/// Issue #71: a work session is counted once its closing lead begins, so the minutes
-/// between "I'm done" and the boundary stop deciding whether the session happened.
+/// Issue #71: a work session counts once its closing lead begins.
 @Suite("Session credit lead", .tags(.timerState, .statistics))
 struct SessionCreditLeadTests {
     @Test("the session counts at the credit point, and not again at the boundary")
@@ -64,8 +63,7 @@ struct SessionCreditLeadTests {
 
     @Test("leaving before the lead begins counts the break, not the session")
     func leavingBeforeTheLeadCountsNoSession() {
-        // The bound the lead must not widen: without it, this is an away-reset that counts
-        // the break alone, and turning the lead on must not turn it into a worked session.
+        // An away-reset counts the break alone, lead or not.
         var driver = ReducerDriver(prefs: .testing(work: 25, rest: 5, lead: 3))
         driver.act(.start)
         driver.run(20)
@@ -86,9 +84,7 @@ struct SessionCreditLeadTests {
 
     @Test("the boundary still counts a session the dark withheld at its credit point")
     func theBoundaryCountsAWithheldSession() {
-        // The second chance the strict guard leaves open: gone before the lead began, but by
-        // less than a break, so the boundary arrives with the absence short of the away-reset
-        // — where the session counted before the lead existed.
+        // Gone before the lead began, by less than a break: the boundary still counts it.
         var driver = ReducerDriver(prefs: .testing(work: 25, rest: 5, lead: 3))
         driver.act(.start)
         driver.run(21)
@@ -139,9 +135,7 @@ struct SessionCreditLeadTests {
 
     @Test("a postponed break resumed after a dark boundary counts no second session")
     func postponingAfterADarkBoundaryCountsOneSession() {
-        // The one route where the boundary itself records the session — nobody was there at
-        // the credit point — so the boundary must also mark the credit taken, or the postponed
-        // remainder would count the session again.
+        // The boundary records the session here, so it must mark the credit taken too.
         var driver = ReducerDriver(prefs: .testing(work: 25, rest: 10, postpone: 3, lead: 3))
         driver.act(.start)
         driver.run(21)

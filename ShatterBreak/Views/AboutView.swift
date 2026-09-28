@@ -19,8 +19,7 @@ struct AboutView: View {
 
             Button(action: copyVersion) {
                 ZStack {
-                    // Both states stay laid out (toggled via opacity) so the window
-                    // keeps a constant size when the text swaps on copy.
+                    // Both stay laid out, so the window keeps its size as the text swaps.
                     VStack(spacing: 2) {
                         Text(.aboutVersion(info.version))
                         Text(.aboutBuild(info.build, info.commitHash))
@@ -48,15 +47,12 @@ struct AboutView: View {
         .fixedSize()
     }
 
-    /// Copies a single-line version summary to the clipboard and briefly swaps the
-    /// link text to a confirmation, reverting after a short delay.
     private func copyVersion() {
         let summary = "\(info.name) \(info.version) (\(info.commitHash))"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(summary, forType: .string)
 
         didCopy = true
-        // Restart the timer on repeated clicks so the confirmation always lingers.
         resetTask?.cancel()
         resetTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(3))
@@ -66,10 +62,7 @@ struct AboutView: View {
     }
 }
 
-/// The running application's icon, identical to the artwork in the asset catalog.
-///
-/// An app-icon *set* is not exposed as a SwiftUI `Image(name:)` asset symbol on
-/// macOS, so the AppKit application icon is used instead.
+/// An app-icon set has no SwiftUI asset symbol on macOS, hence AppKit's.
 private struct AppIconView: View {
     var body: some View {
         if let icon = NSImage(named: NSImage.applicationIconName) {

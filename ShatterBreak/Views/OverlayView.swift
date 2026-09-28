@@ -39,8 +39,7 @@ struct OverlayView: View {
             }
 
             if showsForegroundContent {
-                // One clock for the whole break screen: the buttons' windows open and close
-                // as the break elapses, so they re-evaluate on the text's cadence.
+                // One clock for the whole screen: the buttons' windows open and close with it.
                 CountdownClock(state: state) { referenceDate in
                     VStack(spacing: 24) {
                         Text(.timeToRest)
@@ -99,15 +98,12 @@ struct OverlayView: View {
         return true
     }
 
-    /// Shatter stages its own entrance through the shake-and-crack sequence, so it appears
-    /// at full opacity; the other effects fade in rather than snapping on.
+    /// Shatter stages its own entrance; the other effects fade in.
     private var introOpacity: Double {
         guard presentation.isShatterEffect == false else { return 1 }
         return hasAppeared ? 1 : 0
     }
 
-    /// Plays the break sound and, for shatter, runs the shake intro before settling. The
-    /// branching decision lives in the tested ``OverlayPhaseAction/resolve``.
     private func handlePhase() async {
         switch OverlayPhaseAction.resolve(
             phase: presentation.phase,
@@ -163,19 +159,14 @@ struct OverlayView: View {
     }
 }
 
-/// A break overlay over a rendered stand-in wallpaper, rasterised so the shatter effect has
-/// a real capture to frost and the buttons sit over actual frosted glass.
-///
-/// Nothing schedules the plan, so no transition fires — though a live phase still counts
-/// down, the clock being derived from the plan and the real moment.
+/// Over a stand-in wallpaper, so the shatter effect has a capture to frost.
 @MainActor
 private func previewOverlay(phase: TimerPlan.Phase, duration: TimeInterval = 300) -> some View {
     let presentation = OverlayPresentationState(effectType: .shatter)
     presentation.backgroundImage = PreviewWallpaper.image
     presentation.phase = .shattered
 
-    // A domain of its own, so the canvas never writes real preferences. Postpone must be
-    // allowed for the overlay to offer it, and the break stays short so its window is open.
+    // Postpone must be allowed for the overlay to offer it.
     let defaults = UserDefaults.preview("overlay")
     defaults.set(true, forKey: PreferenceKeys.allowPostpone)
     let state = TimerState.parked(.starting(phase, duration: duration), defaults: defaults)

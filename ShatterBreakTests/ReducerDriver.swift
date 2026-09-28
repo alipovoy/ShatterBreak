@@ -70,9 +70,7 @@ struct ReducerDriver {
 }
 
 extension TimerPreferences {
-    /// Short durations so scenarios read in seconds. `awayResetThreshold` tracks
-    /// `restDuration`, as the app passes it today; `lead` defaults to the app's zero, so a
-    /// scenario that does not ask for one behaves as it did before the lead existed.
+    /// Short durations, so scenarios read in seconds; the away-reset tracks rest, as in the app.
     static func testing(
         work: TimeInterval = 10,
         rest: TimeInterval = 5,

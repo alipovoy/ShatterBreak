@@ -1,8 +1,5 @@
 import SwiftUI
 
-/// A single-line duration row for Settings: title on the leading edge, an editable
-/// MM:SS field plus a stepper trailing. The menu keeps ``DurationSliderView`` for
-/// quick coarse adjustment; this row trades the slider for precision and height.
 struct DurationFieldView: View {
     let title: LocalizedStringResource
     @Binding var value: Double

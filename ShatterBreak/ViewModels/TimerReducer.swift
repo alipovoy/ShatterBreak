@@ -9,10 +9,8 @@ import Foundation
 enum TimerReducer {
     // MARK: - Reconciliation
 
-    /// Brings `plan` up to date, crossing at most one boundary.
-    ///
-    /// One, deliberately: looping would replay a three-hour sleep as four cycles. An absence
-    /// is one event.
+    /// Brings `plan` up to date, crossing at most one boundary: looping would replay a
+    /// three-hour sleep as four cycles.
     ///
     /// - Parameter override: for callers that measured the absence themselves.
     static func advance(
@@ -43,13 +41,10 @@ enum TimerReducer {
                 )
             }
 
-            // One `remaining` for both decisions below, which is the whole of the difference
-            // between them: the credit point, then the boundary a lead later.
             let remaining = plan.rawRemaining(at: instant.date)
             var tally: [TimerEffect] = []
-            // Counting a session needs the user here, and an absence shorter than the
-            // away-reset is no evidence of that. Withholding costs nothing: the credit stays
-            // unspent, so a return takes it and the boundary below still judges it.
+            // Counting a session needs the user here. A withheld credit stays unspent for the
+            // return or the boundary to take.
             if plan.phase == .work,
                plan.sessionCredited == false,
                plan.unattendedSince == nil,
@@ -84,11 +79,8 @@ enum TimerReducer {
         }
     }
 
-    /// Drops the statistics of a crossing made in an empty room, matching the away-reset
-    /// route above, which counts nothing it cannot show someone was here for.
-    ///
-    /// Only the tally: the transition and its overlay still happen, since a lost wake must
-    /// never leave the timer parked.
+    /// Drops the tally of a crossing made in an empty room. The transition itself still
+    /// happens: a lost wake must never leave the timer parked.
     private static func untallied(
         _ result: (TimerPlan, [TimerEffect]),
         if unattended: Bool
@@ -104,9 +96,7 @@ enum TimerReducer {
         let wallGap = instant.date.timeIntervalSince(plan.lastSeen.date)
         let awakeGap = instant.awakeUptime - plan.lastSeen.awakeUptime
         let slept = max(0, wallGap - awakeGap)
-        // From wherever this absence was last resolved, so a still-unattended machine is not
-        // told the same thing twice. A resolution narrows an absence already in flight;
-        // alone it is no evidence of one.
+        // From where it was last resolved, so a still-unattended machine is not told twice.
         let noted = plan.unattendedSince.map { start in
             max(0, instant.date.timeIntervalSince(max(start, plan.absenceResolvedAt ?? start)))
         } ?? 0
@@ -118,15 +108,11 @@ enum TimerReducer {
         max(0, prefs.sessionLead)
     }
 
-    /// When the reducer next has something to do, for callers arming a timer: the credit
-    /// point while a work session is still short of it, the end of the countdown otherwise.
+    /// When the reducer next has something to do: the credit point while a work session is
+    /// short of it, the end of the countdown otherwise.
     ///
-    /// The heartbeat behind the boundary timer runs every 30 seconds — far too coarse to land
-    /// a lead on, and a lead landing at the boundary instead is a lead that did nothing.
-    ///
-    /// The credit point is never answered with zero: a session sitting past it uncredited is
-    /// waiting for the user, not for the clock, and zero would be rescheduled the moment it
-    /// fired for as long as the machine stayed dark.
+    /// Never zero for the credit point: a session past it uncredited waits for the user, and
+    /// zero would refire for as long as the machine stayed dark.
     static func nextTransition(
         _ plan: TimerPlan,
         at now: Date,

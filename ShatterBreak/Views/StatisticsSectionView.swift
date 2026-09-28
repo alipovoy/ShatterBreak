@@ -1,7 +1,5 @@
 import SwiftUI
 
-/// The collapsible statistics tally in the menu: four counters, the moment
-/// the tally began, and a manual reset. Shown only while "Track statistics" is enabled.
 struct StatisticsSectionView: View {
     let statistics: StatisticsStore
 
@@ -59,7 +57,6 @@ struct StatisticsSectionView: View {
 }
 
 #Preview("StatisticsSectionView") { @MainActor in
-    // Four zeros say nothing about the layout, so the preview records a morning first.
     let defaults = UserDefaults.preview("statistics")
     defaults.set(true, forKey: PreferenceKeys.trackStatistics)
     let statistics = StatisticsStore(defaults: defaults)

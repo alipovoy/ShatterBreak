@@ -248,8 +248,7 @@ final class TimerState {
         overlays?.show(self, style: pending)
     }
 
-    /// A punctual timer for the boundary, and a coalesced heartbeat behind it in case the
-    /// first goes missing, which it has.
+    /// A punctual timer for the boundary, and a coalesced heartbeat in case it goes missing.
     private func schedule(boundary: TimeInterval?, heartbeat: Bool) {
         boundaryTask?.cancel()
         boundaryTask = boundary.map { delay in

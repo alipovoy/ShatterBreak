@@ -1,7 +1,5 @@
 import Foundation
 
-/// A countable moment in the work/rest cycle, recorded by ``TimerState`` at its
-/// transition points and tallied by ``StatisticsStore``.
 enum StatisticsEvent: Equatable {
     case workSessionCompleted
     case breakCompleted
@@ -9,10 +7,7 @@ enum StatisticsEvent: Equatable {
     case earlyReturn
 }
 
-/// Owns the session-statistics tally.
-///
-/// Gated on "Track statistics", read live; disabling stops counting but keeps the values.
-/// A relaunch never resets anything, so a mid-day reboot keeps the day's numbers.
+/// Disabling tracking stops counting but keeps the values; a relaunch keeps them too.
 @MainActor
 @Observable
 final class StatisticsStore {
@@ -46,14 +41,12 @@ final class StatisticsStore {
         persist()
     }
 
-    /// Starts a fresh tally from zero, stamping `since` with the present moment.
     func reset() {
         current = SessionStatistics(since: .now)
         persist()
     }
 
-    /// The opt-in reset at the stop→start boundary. A disabled tracker never mutates its
-    /// values, so both preferences gate it.
+    /// The opt-in reset at the stop→start boundary. A disabled tracker never changes.
     func resetForNewSessionIfEnabled() {
         let resetOnStart = (defaults.object(forKey: PreferenceKeys.resetStatisticsOnStart) as? Bool)
             ?? PreferenceDefaults.resetStatisticsOnStart

@@ -18,9 +18,7 @@ struct MenuWindowVisibilityObserver: NSViewRepresentable {
         return view
     }
 
-    /// Hands over the fresh binding and nothing else. Reading the window here and writing
-    /// the answer back would land inside SwiftUI's update; the window's own notifications
-    /// carry every transition on their own.
+    /// The binding only: writing the answer back here would land inside SwiftUI's update.
     @MainActor
     func updateNSView(_ nsView: WindowTrackingView, context: Context) {
         context.coordinator.isVisible = $isVisible

@@ -80,7 +80,6 @@ struct MenuView: View {
 
             Divider()
 
-            // Keep these local actions inline; a separate footer view would add only pass-through inputs.
             HStack {
                 Button(.preferences, systemImage: "gearshape", action: openPreferences)
                     .labelStyle(.iconOnly)
@@ -116,8 +115,6 @@ struct MenuView: View {
 }
 
 #Preview("Idle") { @MainActor in
-    // The statistics section reads `@AppStorage`, which cannot see the in-memory store the
-    // timer uses, so this needs a real domain.
     MenuView(state: .parked(.idle(at: .now), defaults: UserDefaults.preview("menu")), onQuit: { })
         .defaultAppStorage(UserDefaults.preview("menu"))
 }

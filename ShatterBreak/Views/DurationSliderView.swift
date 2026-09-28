@@ -2,15 +2,12 @@ import SwiftUI
 
 struct DurationSliderView: View {
     let title: LocalizedStringResource
-    /// Leading glyph for the row; pass `nil` to omit it (e.g. in Preferences, where the
-    /// titles already read as a settings list and an icon would only add clutter).
     let systemImage: String?
     @Binding var value: Double
     let min: Double
     let max: Double
     var disabled: Bool = false
-    /// Width of the trailing MM:SS field. The default fits the menu's hour-scale
-    /// durations ("1h 5m"); short break windows can pass a narrower value.
+    /// The default fits hour-scale durations ("1h 5m").
     var inputWidth: CGFloat = 85
 
     @State private var isEditing = false
@@ -34,8 +31,7 @@ struct DurationSliderView: View {
                         isEditing = editing
                     }
                 )
-                // A grouped Form reserves a leading label gutter for each control; the
-                // slider has no label, so hide it to reclaim that space and span the row.
+                // Reclaims the label gutter a grouped Form reserves.
                 .labelsHidden()
                 .disabled(disabled)
 
@@ -46,8 +42,7 @@ struct DurationSliderView: View {
             }
         }
         .padding(10)
-        // Claim the full row width so a grouped Form lays the title and slider out as
-        // one full-width cell instead of splitting them into a label/control column pair.
+        // One full-width cell, not a Form's label/control pair.
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 

@@ -23,7 +23,6 @@ struct TimerDisplayView: View {
 }
 
 private extension TimerState {
-    /// A timer parked in a phase, reading and writing nothing outside the preview.
     static func preview(_ plan: TimerPlan) -> TimerState {
         TimerState.parked(plan, defaults: UserDefaults.preview("timerDisplay"))
     }

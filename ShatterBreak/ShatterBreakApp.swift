@@ -9,9 +9,7 @@ struct ShatterBreakApp: App {
     // The status item is not a scene: `MenuBarExtra` drops font modifiers on its label, so
     // the countdown could not hold a width. `MenuBarController` owns it.
     var body: some Scene {
-        // A plain Window rather than a Settings scene: TabView renders here with the
-        // capsule-toolbar tabs, and Xcode previews match the app exactly. The scene's
-        // usual perk (a standard ⌘, shortcut) has no menu bar to live in anyway.
+        // A plain Window rather than Settings: capsule-toolbar tabs, and previews that match.
         Window(.preferences, id: "preferences") {
             PreferencesView(state: delegate.timerState)
                 .environment(\.permissions, permissions)
@@ -30,8 +28,7 @@ struct ShatterBreakApp: App {
     }
 }
 
-/// An accessory app with no `MenuBarExtra` shows nothing at launch, so there is no view
-/// lifecycle to hang the status item or the auto-start on.
+/// An accessory app with no scene on screen has no view lifecycle to start from.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let timerState = TimerState(
@@ -46,14 +43,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 extension EnvironmentValues {
-    // Use the shared manager so missing injection does not silently create fresh state.
     @Entry var permissions: ScreenCapturePermissionManager = .environmentDefault
 }
 
-// Stored, not written inline as the `@Entry` default: that default is re-evaluated on
-// every access, so Xcode 27 flags a class-typed one whatever the expression returns —
-// it cannot see that this closure hands back the one shared instance. A `let` also
-// settles the main-actor hop once instead of on every read.
+// Stored: an inline `@Entry` default is re-evaluated on every access, and Xcode flags a
+// class-typed one even when it returns a shared instance.
 extension ScreenCapturePermissionManager {
     nonisolated fileprivate static let environmentDefault = MainActor.assumeIsolated { shared }
 }

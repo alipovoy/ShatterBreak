@@ -1,14 +1,11 @@
 import Foundation
 
-/// The whole timer as one value; everything shown derives from this plus the current moment.
+/// The whole timer as one value; everything shown derives from it and the current moment.
 ///
-/// Deliberately no `deadline`, no `frozenRemaining` and no "is asleep" flag: separate truths
-/// that could disagree, and each did.
-///
-/// In memory only, so a relaunch starts fresh and honours auto-start-on-launch.
+/// No `deadline`, `frozenRemaining` or "is asleep" flag: separate truths that could
+/// disagree, and each did. In memory only, so a relaunch starts fresh.
 struct TimerPlan: Equatable, Sendable {
-    /// Pausing is deliberately *not* a phase — a paused work session is still `work` with
-    /// ``pausedAt`` set — which spares callers "which mode do I restore?" bookkeeping.
+    /// Pausing is not a phase: a paused work session is still `work`, with ``pausedAt`` set.
     enum Phase: Equatable, Sendable {
         case idle
         case work
@@ -25,9 +22,7 @@ struct TimerPlan: Equatable, Sendable {
     /// The frozen remainder is derived from this, not stored.
     var pausedAt: Date?
 
-    /// Bumped on every phase entry, for views to key their refresh loop on. Two consecutive
-    /// work sessions are identical in every other field, so keying on phase alone left the
-    /// menu bar rendering a finished session after work auto-resumed.
+    /// Bumped on every phase entry: two consecutive work sessions differ in nothing else.
     var intervalID: Int
 
     /// Break time owed back after a postpone.
@@ -36,24 +31,17 @@ struct TimerPlan: Equatable, Sendable {
     /// new cycle's break restores it.
     var postponeUsedThisCycle: Bool
 
-    /// The session credit is spent this cycle (issue #71). Deliberately a flag and not a
-    /// phase, for the reason ``pausedAt`` is not one: a counted work session is still work,
-    /// and callers switching on the phase should not have to know otherwise.
+    /// The session credit is spent this cycle (issue #71). A flag, not a phase: a counted
+    /// work session is still work.
     var sessionCredited: Bool
 
-    /// When the machine last reported going unattended (system or display sleep).
-    ///
-    /// An *input* to measuring the absence, never a gate on transitions: the old asleep flag
-    /// was a gate, and stalled the timer for good when a wake never arrived. A lost wake here
-    /// leaves the timer cycling in an empty room instead, which ``ranUnattended`` keeps from
-    /// tallying. Any user action clears it.
+    /// When the machine last reported going unattended. An input to measuring the absence,
+    /// never a gate: a gate stalled the timer for good when a wake never arrived. Any user
+    /// action clears it.
     var unattendedSince: Date?
 
-    /// How much of ``unattendedSince`` is already resolved into a transition, without which
-    /// the same absence settles the cycle again at every heartbeat past the threshold.
-    ///
-    /// Separate from ``unattendedSince`` rather than advancing it: the user's actual return
-    /// is owed a decision about the *whole* absence.
+    /// How much of the absence is already resolved, so it is not settled again at every
+    /// heartbeat. Separate, because the user's return is owed a decision about all of it.
     var absenceResolvedAt: Date?
 
     /// The gap between two of these, against the awake-only clock, is what proves the machine
@@ -76,8 +64,7 @@ struct TimerPlan: Equatable, Sendable {
         )
     }
 
-    /// A plan already in a phase, for previews wanting a countdown without driving one to
-    /// reach it. Built from ``idle(at:)`` so no field is left describing a cycle that is gone.
+    /// A plan already in a phase, for previews and the effect sample.
     static func starting(
         _ phase: Phase,
         duration: TimeInterval = 300,
@@ -121,17 +108,13 @@ struct TimerPlan: Equatable, Sendable {
     }
 }
 
-/// A moment on both clocks.
-///
-/// The pair is the point: `date` moves while the machine sleeps, `awakeUptime` does not, so
-/// the divergence between two instants measures the sleep rather than inferring it from a
-/// notification that may never arrive.
+/// A moment on both clocks: `date` moves while the machine sleeps and `awakeUptime` does not,
+/// so two instants measure a sleep without relying on a notification.
 struct TimerInstant: Equatable, Sendable {
     var date: Date
     /// `ProcessInfo.systemUptime`: advances only while the machine is running.
     var awakeUptime: TimeInterval
 
-    /// The one place the process clocks are sampled.
     static var now: TimerInstant {
         TimerInstant(date: .now, awakeUptime: ProcessInfo.processInfo.systemUptime)
     }

@@ -111,12 +111,8 @@ final class OverlayManager: BreakPresenting {
 
     // MARK: - Displays changing mid-break
 
-    /// Windows stay pinned to their own display, never moved: a vanished display's window is
-    /// torn down, a new one gains its own, a resized one is reframed so its buttons stay
-    /// reachable.
-    ///
-    /// Planned against every attached display, not only lit ones, so a display that merely
-    /// sleeps does not read as removed. Only joining waits for it to wake.
+    /// Windows stay pinned to their own display. Planned against every attached display, not
+    /// only lit ones, so one that merely sleeps does not read as removed.
     private func reconcileOverlays() {
         guard let session else { return }
 
@@ -201,8 +197,7 @@ final class OverlayManager: BreakPresenting {
 
     // MARK: - Capture
 
-    /// Tasks accumulate rather than replace one another: a display joining mid-break may
-    /// capture while an earlier capture is still in flight.
+    /// Accumulates: a display joining mid-break may capture while another capture is in flight.
     private func startCapture(for displayIDs: Set<CGDirectDisplayID>) {
         guard displayIDs.isEmpty == false, let sessionID = session?.id else { return }
         captureTasks.append(Task(priority: .utility) { [weak self] in

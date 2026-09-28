@@ -1,14 +1,8 @@
 import Foundation
 
-/// Where ``TimerReducer`` writes the next plan: one function per transition, each the only
-/// place its phase is entered, so a rule about a phase has one home rather than one per
-/// route that reaches it.
-///
-/// Internal only because the split cost them their `private`; nothing outside
-/// ``TimerReducer`` should call them.
+/// One function per phase entry, so a rule about a phase has one home. Internal only because
+/// of the file split; nothing outside ``TimerReducer`` calls them.
 extension TimerReducer {
-    /// The one start every route funnels through, so a session behaves identically whatever
-    /// preceded it.
     static func startWork(
         _ plan: TimerPlan,
         at instant: TimerInstant,
@@ -35,18 +29,14 @@ extension TimerReducer {
         plan.pausedAt = nil
         plan.lastSeen = instant
         plan.intervalID += 1
-        // A new work session owes nothing to the break that did not happen, and has its own
-        // credit to earn.
         plan.savedRestRemaining = nil
         plan.sessionCredited = false
         return (plan, effects)
     }
 
-    /// The break is credited with the *whole* absence, not just the part past the boundary.
-    ///
-    /// A session still uncredited here never reached its credit point — the machine was
-    /// unattended when it passed — so the boundary is its last chance, judged the way it was
-    /// before the lead existed.
+    /// The break is credited with the whole absence, not just the part past the boundary. A
+    /// session still uncredited here passed its credit point unattended, so this is its last
+    /// chance.
     static func crossWorkBoundary(
         _ plan: TimerPlan,
         at instant: TimerInstant,
@@ -99,9 +89,8 @@ extension TimerReducer {
         return plan
     }
 
-    /// `presenting` raises the break-end window for the route where nothing is on screen yet.
-    /// Always `.settled`: the break elapsed silently, so a shake and chime on return would
-    /// announce something already over.
+    /// `presenting` raises the break-end window where nothing is on screen yet, settled: the
+    /// break is already over.
     static func finishBreak(
         _ plan: TimerPlan,
         at instant: TimerInstant,
@@ -130,20 +119,14 @@ extension TimerReducer {
         return plan
     }
 
-    /// A break the user's absence stood in for: the same finish, plus the tally that route is
-    /// owed (issue #111).
+    /// A break the user's absence stood in for (issue #111).
     ///
-    /// No work session. One worked at the desk is already counted at its credit point, so the
-    /// only session this could add is a countdown the wall clock ran out on with nobody there
-    /// — a minute of work before a closed lid is not a session worked.
+    /// Never a work session: one worked at the desk already counted at its credit point, and
+    /// a minute of work before a closed lid is not a session.
     ///
-    /// The break goes only to a session someone sat through for a break's worth before
-    /// leaving. Below that there is no telling a walk away from the seconds of running time
-    /// between two stretches of sleep, which would otherwise bank a break a night at a time.
-    /// Attended time reads negative for a session restarted in the dark, which the same floor
-    /// turns away.
-    ///
-    /// Postponed work is exempt: its break was earned before the postpone moved `startedAt`.
+    /// The break counts only after a break's worth of attended work, or the seconds between
+    /// two stretches of sleep would bank a break a night. Postponed work is exempt: its break
+    /// was earned before the postpone moved `startedAt`.
     static func settleByAbsence(
         _ plan: TimerPlan,
         at instant: TimerInstant,

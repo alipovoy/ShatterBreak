@@ -34,8 +34,7 @@ final class ScreenCapturePermissionManager {
 
     func refresh() {
         hasScreenRecordingAccess = CGPreflightScreenCaptureAccess()
-        // A grant typically needs a relaunch to take effect, so there is no watching for one
-        // once it has.
+        // Once granted there is nothing left to watch for.
         if hasScreenRecordingAccess, let activationObserver {
             NotificationCenter.default.removeObserver(activationObserver)
             self.activationObserver = nil
@@ -54,9 +53,9 @@ final class ScreenCapturePermissionManager {
         NSWorkspace.shared.open(url)
     }
 
-    /// Called as a work session begins, not as the break does: macOS raises its direct-capture
-    /// dialog at the first real capture request, so making one early keeps the dialog out of
-    /// the break. Screen Recording is settled first, or the probe fails for the wrong reason.
+    /// Called as a work session begins: macOS raises its direct-capture dialog at the first
+    /// capture request, and one made early keeps it out of the break. Screen Recording goes
+    /// first, or the probe fails for the wrong reason.
     func prepareForCapture() async {
         refresh()
         requestAccessIfNeeded()
@@ -86,9 +85,8 @@ final class ScreenCapturePermissionManager {
         await prepareForCapture()
     }
 
-    /// macOS prompts only while it holds no answer, so asking each launch costs nothing and
-    /// recovers a grant an ad-hoc re-signing lost (issue #43). Once per launch in case a
-    /// future macOS re-prompts after a denial.
+    /// macOS prompts only while it holds no answer, so asking each launch is free and recovers
+    /// a grant lost to re-signing (issue #43).
     func requestAccessIfNeeded() {
         guard hasScreenRecordingAccess == false, hasRequestedAccessThisLaunch == false else { return }
         hasRequestedAccessThisLaunch = true

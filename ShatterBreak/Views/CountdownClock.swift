@@ -6,8 +6,6 @@ struct CountdownClock<Content: View>: View {
     let state: TimerState
     /// An off-screen popover should not wake the machine to redraw what nobody can see.
     var isActive = true
-    /// Sets the cadence: the distance to the next visible change, once a minute in the
-    /// power-save style.
     var displayStyle: CountdownDisplayStyle = .seconds
     @ViewBuilder var content: (Date) -> Content
 
