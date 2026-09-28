@@ -16,12 +16,36 @@ final class OverlayManager: BreakPresenting {
     }
 
     private var windows: [CGDirectDisplayID: NSWindow] = [:]
-    private var overlayStates: [CGDirectDisplayID: OverlayPresentationState] = [:]
-    private var captureTasks: [Task<Void, Never>] = []
+    private(set) var overlayStates: [CGDirectDisplayID: OverlayPresentationState] = [:]
+    private(set) var captureTasks: [Task<Void, Never>] = []
     private var session: Session?
     private var observers: [(NotificationCenter, any NSObjectProtocol)] = []
 
-    init() {
+    private let defaults: UserDefaults
+    private let screens: @MainActor () -> [ScreenInfo]
+    private let capture: @Sendable (Set<CGDirectDisplayID>) async throws -> [CGDirectDisplayID: CGImage]
+    private let isDisplayAwake: @MainActor (CGDirectDisplayID) -> Bool
+    private let hasScreenRecordingPermission: @MainActor () -> Bool
+    private let directCaptureAccess: @MainActor () -> DirectCaptureAccess
+
+    /// The defaults are the system; tests stand in for the displays and the capture.
+    init(
+        defaults: UserDefaults = .standard,
+        screens: @escaping @MainActor () -> [ScreenInfo] = { ScreenCapture.screens() },
+        capture: @escaping @Sendable (Set<CGDirectDisplayID>) async throws -> [CGDirectDisplayID: CGImage]
+            = { try await ScreenCapture.captureImages($0) },
+        isDisplayAwake: @escaping @MainActor (CGDirectDisplayID) -> Bool = { CGDisplayIsAsleep($0) == 0 },
+        hasScreenRecordingPermission: @escaping @MainActor () -> Bool = { CGPreflightScreenCaptureAccess() },
+        directCaptureAccess: @escaping @MainActor () -> DirectCaptureAccess
+            = { ScreenCapturePermissionManager.shared.directCaptureAccess }
+    ) {
+        self.defaults = defaults
+        self.screens = screens
+        self.capture = capture
+        self.isDisplayAwake = isDisplayAwake
+        self.hasScreenRecordingPermission = hasScreenRecordingPermission
+        self.directCaptureAccess = directCaptureAccess
+
         // A display skipped because it was asleep has no window, and nothing else prompts a
         // recheck once it lights up.
         let workspace = NSWorkspace.shared.notificationCenter
@@ -32,7 +56,7 @@ final class OverlayManager: BreakPresenting {
         ]
         observers = triggers.map { center, name in
             (center, center.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
-                MainActor.assumeIsolated { self?.reconcileOverlays() }
+                MainActor.assumeIsolated { self?.displaysDidChange() }
             })
         }
     }
@@ -43,15 +67,16 @@ final class OverlayManager: BreakPresenting {
         }
     }
 
-    private var defaults: UserDefaults { .standard }
-
     var selectedEffectType: EffectType {
         defaults.value(forKey: PreferenceKeys.effectType, default: PreferenceDefaults.effectType)
     }
 
-    private var windowLevel: NSWindow.Level {
-        let soft = defaults.object(forKey: PreferenceKeys.softOverlay) as? Bool ?? PreferenceDefaults.softOverlay
-        return soft ? NSWindow.Level(NSWindow.Level.mainMenu.rawValue - 1) : .screenSaver
+    var prefersSoftOverlay: Bool {
+        defaults.object(forKey: PreferenceKeys.softOverlay) as? Bool ?? PreferenceDefaults.softOverlay
+    }
+
+    var overlayWindowLevel: NSWindow.Level {
+        prefersSoftOverlay ? NSWindow.Level(NSWindow.Level.mainMenu.rawValue - 1) : .screenSaver
     }
 
     /// Shatter needs both consents settled: without Screen Recording there is nothing to
@@ -71,7 +96,11 @@ final class OverlayManager: BreakPresenting {
 
     var presentedState: TimerState? { session?.state }
 
-    var hasAwakeScreen: Bool { ScreenCapture.screens().contains(where: Self.isAwake) }
+    var hasAwakeScreen: Bool { awakeScreens().isEmpty == false }
+
+    func awakeScreens() -> [ScreenInfo] {
+        screens().filter { isDisplayAwake($0.displayID) }
+    }
 
     /// A user on Fogged or Dimmed is never asked for anything.
     func prepareCapture() async {
@@ -82,18 +111,17 @@ final class OverlayManager: BreakPresenting {
     func show(_ state: TimerState, style: OverlayPresentationStyle) {
         dismiss()
 
-        let permissions = ScreenCapturePermissionManager.shared
         let session = Session(
             state: state,
             effectType: Self.resolveEffectType(
                 selected: selectedEffectType,
-                hasScreenRecordingPermission: CGPreflightScreenCaptureAccess(),
-                directCaptureAccess: permissions.directCaptureAccess
+                hasScreenRecordingPermission: hasScreenRecordingPermission(),
+                directCaptureAccess: directCaptureAccess()
             )
         )
         self.session = session
 
-        for screen in ScreenCapture.screens() where Self.isAwake(screen) {
+        for screen in awakeScreens() {
             present(on: screen, settled: style == .settled)
         }
         if session.effectType == .shatter {
@@ -113,12 +141,12 @@ final class OverlayManager: BreakPresenting {
 
     /// Windows stay pinned to their own display. Planned against every attached display, not
     /// only lit ones, so one that merely sleeps does not read as removed.
-    private func reconcileOverlays() {
+    func displaysDidChange() {
         guard let session else { return }
 
         let plan = OverlayReconciliation.plan(
             currentWindows: windows.mapValues(\.frame),
-            availableScreens: ScreenCapture.screens()
+            availableScreens: screens()
         )
 
         plan.removed.forEach(removeWindow)
@@ -133,7 +161,7 @@ final class OverlayManager: BreakPresenting {
         }
 
         var needingCapture: Set<CGDirectDisplayID> = []
-        for screen in plan.added where Self.isAwake(screen) {
+        for screen in plan.added where isDisplayAwake(screen.displayID) {
             present(on: screen, settled: true)
             if let retained = session.captures[screen.displayID] {
                 overlayStates[screen.displayID]?.startShatter(with: FreezeFrame.fitted(retained, to: screen.frame.size))
@@ -150,10 +178,6 @@ final class OverlayManager: BreakPresenting {
     }
 
     // MARK: - Windows
-
-    private static func isAwake(_ screen: ScreenInfo) -> Bool {
-        CGDisplayIsAsleep(screen.displayID) == 0
-    }
 
     private func present(on screen: ScreenInfo, settled: Bool) {
         guard let session else { return }
@@ -186,7 +210,7 @@ final class OverlayManager: BreakPresenting {
         // Panels hide when their app deactivates; this one must stay up for the whole break.
         window.hidesOnDeactivate = false
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
-        window.level = windowLevel
+        window.level = overlayWindowLevel
         window.isOpaque = false
         window.backgroundColor = .clear
         // Clear windows let clicks through by default; the break must catch them.
@@ -200,8 +224,9 @@ final class OverlayManager: BreakPresenting {
     /// Accumulates: a display joining mid-break may capture while another capture is in flight.
     private func startCapture(for displayIDs: Set<CGDirectDisplayID>) {
         guard displayIDs.isEmpty == false, let sessionID = session?.id else { return }
+        let capture = capture
         captureTasks.append(Task(priority: .utility) { [weak self] in
-            guard let images = try? await ScreenCapture.captureImages(displayIDs) else { return }
+            guard let images = try? await capture(displayIDs) else { return }
             self?.applyCapture(images, sessionID: sessionID)
         })
     }

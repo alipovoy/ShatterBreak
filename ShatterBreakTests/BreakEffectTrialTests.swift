@@ -1,55 +1,247 @@
+import AppKit
 import Foundation
 import Testing
 
 @testable import ShatterBreak
 
-/// The sample borrows the one break window, so everything here is about who owns it.
-@Suite("Break effect trial", .tags(.overlays))
+/// "Try It": a real break, through the one break window, leaving nothing behind.
+@Suite("Break effect trial", .tags(.overlays), .timeLimit(.minutes(1)))
 @MainActor
 struct BreakEffectTrialTests {
     let environment = TestEnvironment()
-    let screen = PresenterSpy()
 
-    @Test("a sample is shown like a break beginning now, and ending takes it down")
-    func sampleLifecycle() async {
-        let timer = environment.makeTimerState(overlays: screen)
-        let trial = BreakEffectTrial(timer: timer, duration: .seconds(60))
+    /// A plan parks the timer in that phase.
+    private func makeTimer(_ overlays: OverlayRecorder, showing plan: TimerPlan? = nil) -> TimerState {
+        guard let plan else { return environment.makeTimerState(overlays: overlays) }
+        return TimerState(defaults: environment.defaults, overlays: overlays, parkedAt: plan)
+    }
+
+    private func makeTrial(_ overlays: OverlayRecorder, duration: Duration = .milliseconds(20)) -> BreakEffectTrial {
+        BreakEffectTrial(timer: makeTimer(overlays), duration: duration)
+    }
+
+    @Test("a sample is presented like a break beginning now")
+    func samplePresentsAnimated() async {
+        let overlays = OverlayRecorder()
+        let trial = makeTrial(overlays)
 
         await trial.start()
-        #expect(screen.shown == [.animated])
-        #expect(screen.presentedState?.isResting == true)
-        #expect(screen.prepareCount == 1)
 
+        #expect(overlays.showCount == 1)
+        #expect(overlays.lastSettled == false, "The entrance is most of what there is to judge.")
+        #expect(overlays.prepareCount == 1, "Shatter needs its consent settled before it can capture.")
+        #expect(trial.isRunning)
+    }
+
+    @Test("a sample waits for capture consent before it is presented")
+    func samplePresentsOnlyOnceConsentIsSettled() async {
+        let overlays = OverlayRecorder()
+        let trial = makeTrial(overlays, duration: .seconds(30))
+        overlays.holdPrepare()
+
+        let starting = Task { await trial.start() }
+        await overlays.prepared(1)
+
+        #expect(overlays.showCount == 0, "An unsettled consent samples the fallback effect.")
+
+        overlays.releasePrepare()
+        await starting.value
+
+        #expect(overlays.showCount == 1)
         trial.end()
-        #expect(screen.presentedState == nil)
-        #expect(trial.canStart)
+    }
+
+    @Test("a break falling due while consent settles keeps the screen to itself")
+    func aBreakDuringPreparationCancelsTheSample() async {
+        let overlays = OverlayRecorder()
+        environment.defaults.set(60.0, forKey: PreferenceKeys.workDurationSecs)
+        let timer = makeTimer(overlays)
+        let trial = BreakEffectTrial(timer: timer, duration: .seconds(30))
+        overlays.holdPrepare()
+
+        let starting = Task { await trial.start() }
+        await overlays.prepared(1)
+
+        timer.start()
+        await environment.advanceTime(by: 60)
+        #expect(timer.isResting)
+        let breakShows = overlays.showCount
+
+        overlays.releasePrepare()
+        await starting.value
+
+        #expect(overlays.showCount == breakShows, "Presenting would have torn the break down.")
+        #expect(trial.isRunning == false)
+    }
+
+    @Test("the sample's clock reads like the user's own break")
+    func sampleUsesTheConfiguredRestDuration() async throws {
+        environment.defaults.set(420.0, forKey: PreferenceKeys.restDurationSecs)
+        let overlays = OverlayRecorder()
+
+        await makeTrial(overlays).start()
+
+        let sample = try #require(overlays.lastState)
+        #expect(sample.isResting)
+        #expect(sample.timeRemaining > 419, "A sample announcing someone else's break is a lie.")
+    }
+
+    @Test("starting again while a sample is up does not stack a second one")
+    func startIsIdempotentWhileRunning() async {
+        let overlays = OverlayRecorder()
+        let trial = makeTrial(overlays)
+
+        await trial.start()
+        await trial.start()
+
+        #expect(overlays.showCount == 1)
+    }
+
+    @Test("ending dismisses the sample and allows another")
+    func endDismissesAndReleases() async {
+        let overlays = OverlayRecorder()
+        let trial = makeTrial(overlays)
+
+        await trial.start()
+        trial.end()
+
+        #expect(overlays.dismissCount == 1)
+        #expect(trial.isRunning == false)
+
+        await trial.start()
+        #expect(overlays.showCount == 2, "A finished sample must not block the next one.")
+    }
+
+    @Test("ending a sample that was never started dismisses nothing")
+    func endWithoutStartIsInert() {
+        let overlays = OverlayRecorder()
+
+        makeTrial(overlays).end()
+
+        #expect(overlays.dismissCount == 0, "Dismissing here would tear down a real break.")
+    }
+
+    @Test("a sample takes itself off the screen")
+    func sampleEndsOnItsOwn() async throws {
+        let overlays = OverlayRecorder()
+        let trial = makeTrial(overlays, duration: .milliseconds(20))
+
+        await trial.start()
+        try await Task.sleep(for: .milliseconds(200))
+
+        #expect(overlays.dismissCount == 1, "Nobody should have to dismiss a sample they asked for.")
+        #expect(trial.isRunning == false)
+    }
+
+    @Test("a sample does not outlive whatever put it up")
+    func discardingTheTrialTakesTheSampleWithIt() async {
+        let overlays = OverlayRecorder()
+
+        // Preferences closing mid-sample, which releases the trial it owns.
+        do {
+            let trial = makeTrial(overlays)
+            await trial.start()
+        }
+
+        #expect(overlays.dismissCount == 1, "A sample nobody owns is a break screen nobody can dismiss.")
     }
 
     @Test("a sample is refused while a real break owns the screen")
-    func refusedDuringBreak() async {
-        let timer = environment.makeTimerState(overlays: screen)
-        timer.workDurationSecs = 10
-        timer.start()
-        await environment.advanceTime(by: 10)
+    func noSampleDuringARealBreak() async {
+        let overlays = OverlayRecorder()
+        let resting = makeTimer(overlays, showing: .starting(.rest, duration: 300))
+        let trial = BreakEffectTrial(timer: resting, duration: .milliseconds(20))
 
-        let trial = BreakEffectTrial(timer: timer)
+        #expect(trial.canStart == false)
         await trial.start()
-        #expect(screen.shown == [.animated])
-        #expect(screen.presentedState === timer)
+
+        #expect(overlays.showCount == 0, "There is one break window, and the break already has it.")
     }
 
-    @Test("a break that takes the window mid-sample keeps it, and keeps its clicks")
-    func realBreakWinsTheWindow() async {
-        let timer = environment.makeTimerState(overlays: screen)
-        timer.workDurationSecs = 10
-        timer.start()
-        let trial = BreakEffectTrial(timer: timer, duration: .seconds(60))
+    @Test("a sample never starts with no display to draw it on")
+    func noSampleWithNoAwakeScreen() async {
+        let overlays = OverlayRecorder()
+        overlays.hasAwakeScreen = false
+        let trial = makeTrial(overlays)
+
         await trial.start()
 
-        await environment.advanceTime(by: 10)
-        #expect(screen.presentedState === timer)
+        #expect(overlays.showCount == 0, "Presenting to no screen would register as running with nothing on it.")
+        #expect(
+            trial.isRunning == false,
+            "Left running, the next click or keypress anywhere in the app would be swallowed for nothing."
+        )
+    }
 
-        #expect(trial.interrupt() == false, "The click is the real break's.")
-        #expect(screen.presentedState === timer)
+    @Test("a break falling due mid-sample keeps the screen")
+    func aRealBreakTakesTheWindowFromTheSample() async {
+        let overlays = OverlayRecorder()
+        let timer = makeTimer(overlays)
+        let trial = BreakEffectTrial(timer: timer, duration: .milliseconds(20))
+
+        await trial.start()
+        overlays.show(timer, style: .animated)
+        trial.end()
+
+        #expect(overlays.dismissCount == 0, "The sample's timeout must not close a real break.")
+        #expect(overlays.presentedState === timer, "The break stays up.")
+    }
+
+    @Test("the user's first key or click ends the sample and goes no further")
+    func interruptingTakesTheEventAndTheSample() async {
+        let overlays = OverlayRecorder()
+        let trial = makeTrial(overlays)
+
+        await trial.start()
+
+        #expect(trial.interrupt(), "The click was meant for the sample, not for what is under it.")
+        #expect(trial.isRunning == false)
+        #expect(overlays.dismissCount == 1)
+    }
+
+    @Test("a click meant for a real break is not eaten by a finished sample")
+    func interruptingPassesOnEventsThatBelongToARealBreak() async {
+        let overlays = OverlayRecorder()
+        let timer = makeTimer(overlays)
+        let trial = BreakEffectTrial(timer: timer, duration: .seconds(30))
+
+        await trial.start()
+        overlays.show(timer, style: .animated)
+
+        #expect(trial.interrupt() == false, "That key press was the user answering their break.")
+        #expect(overlays.dismissCount == 0)
+        #expect(trial.isRunning == false, "The sample stands down even so; it no longer owns anything.")
+    }
+
+    @Test("a sample is deaf to the machine sleeping")
+    func sampleIgnoresSleepAndWake() async {
+        let overlays = OverlayRecorder()
+        // Held, not discarded: a released trial dismisses its own sample from `deinit`.
+        let trial = makeTrial(overlays, duration: .seconds(30))
+        await trial.start()
+
+        let sample = overlays.lastState
+        sample?.systemWillSleep()
+        sample?.systemDidWake()
+
+        #expect(overlays.dismissCount == 0)
+        #expect(overlays.showCount == 1)
+        trial.end()
+    }
+
+    @Test("nothing a sample does is counted")
+    func sampleNeverTouchesTheRealTally() async throws {
+        environment.defaults.set(true, forKey: PreferenceKeys.trackStatistics)
+        environment.defaults.set(true, forKey: PreferenceKeys.allowPostpone)
+        let overlays = OverlayRecorder()
+
+        await makeTrial(overlays).start()
+        let sample = try #require(overlays.lastState)
+        sample.postpone()
+
+        #expect(
+            StatisticsStore(defaults: environment.defaults).current.postponesUsed == 0,
+            "A sample is a demonstration; the day's numbers are not its to write."
+        )
     }
 }

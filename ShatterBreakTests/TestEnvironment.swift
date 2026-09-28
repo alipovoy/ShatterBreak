@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 @testable import ShatterBreak
@@ -8,7 +9,7 @@ final class TestEnvironment {
     let defaults: UserDefaults
     private let suiteName = "dev.lipovoy.shatterbreak.tests.\(UUID().uuidString)"
     let clock = TestClock()
-    /// The timer ``advanceTime(by:ticks:)`` reconciles, as its own boundary timer would.
+    var asleepDisplays: Set<CGDirectDisplayID> = []
     private weak var timer: TimerState?
 
     init() {
@@ -32,10 +33,54 @@ final class TestEnvironment {
         }
     }
 
+    /// Awake with nothing reconciling: a lost boundary timer, not an absence.
+    func elapseTimeWithoutTick(by interval: TimeInterval) {
+        clock.elapse(by: interval)
+    }
+
+    /// Asleep, with no notification to say so.
+    func sleepMachine(by interval: TimeInterval) {
+        clock.sleepMachine(by: interval)
+    }
+
+    var now: Date { clock.date }
+
     func advanceUntil(by interval: TimeInterval = 1, maxTicks: Int = 5, condition: () -> Bool) async {
         for _ in 0..<maxTicks where condition() == false {
             await advanceTime(by: interval)
         }
+    }
+
+    /// Displays in `asleepDisplays` read as dark. Without `capture`, Screen Recording reads as
+    /// missing, so shatter resolves to fogged and nothing is captured.
+    func makeOverlayManager(
+        screens: StubScreens? = nil,
+        capture image: CGImage? = nil,
+        directCaptureAccess: @escaping @MainActor () -> DirectCaptureAccess = { .unknown }
+    ) -> OverlayManager {
+        OverlayManager(
+            defaults: defaults,
+            screens: { screens?.screens ?? [] },
+            capture: { displayIDs in
+                guard let image else { return [:] }
+                return Dictionary(uniqueKeysWithValues: displayIDs.map { ($0, image) })
+            },
+            isDisplayAwake: { [unowned self] in asleepDisplays.contains($0) == false },
+            hasScreenRecordingPermission: { image != nil },
+            directCaptureAccess: directCaptureAccess
+        )
+    }
+
+    let appNotificationCenter = NotificationCenter()
+
+    func makePermissionManager(
+        permissionClient: ScreenCapturePermissionClient = .live
+    ) -> ScreenCapturePermissionManager {
+        ScreenCapturePermissionManager(
+            defaults: defaults,
+            appNotificationCenter: appNotificationCenter,
+            permissionClient: permissionClient
+        )
     }
 
     /// `@AppStorage` writes the style, so the change notification is all the item hears.

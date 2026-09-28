@@ -25,21 +25,36 @@ final class ScreenCapturePermissionManager {
     private var activationObserver: (any NSObjectProtocol)?
     private var confirmation: Task<Void, Never>?
     private var hasRequestedAccessThisLaunch = false
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
+    private let appNotificationCenter: NotificationCenter
+    private let permissionClient: ScreenCapturePermissionClient
 
-    private init() {
+    init(
+        defaults: UserDefaults = .standard,
+        appNotificationCenter: NotificationCenter = .default,
+        permissionClient: ScreenCapturePermissionClient = .live
+    ) {
+        self.defaults = defaults
+        self.appNotificationCenter = appNotificationCenter
+        self.permissionClient = permissionClient
         directCaptureAccess = defaults.bool(forKey: Self.directCaptureDeclinedKey) ? .refused : .unknown
         refresh()
     }
 
+    isolated deinit {
+        if let activationObserver {
+            appNotificationCenter.removeObserver(activationObserver)
+        }
+    }
+
     func refresh() {
-        hasScreenRecordingAccess = CGPreflightScreenCaptureAccess()
+        hasScreenRecordingAccess = permissionClient.preflightAccess()
         // Once granted there is nothing left to watch for.
         if hasScreenRecordingAccess, let activationObserver {
-            NotificationCenter.default.removeObserver(activationObserver)
+            appNotificationCenter.removeObserver(activationObserver)
             self.activationObserver = nil
         } else if hasScreenRecordingAccess == false, activationObserver == nil {
-            activationObserver = NotificationCenter.default.addObserver(
+            activationObserver = appNotificationCenter.addObserver(
                 forName: NSApplication.didBecomeActiveNotification, object: nil, queue: nil
             ) { [weak self] _ in
                 MainActor.assumeIsolated { self?.refresh() }
@@ -48,9 +63,7 @@ final class ScreenCapturePermissionManager {
     }
 
     func openSystemSettings() {
-        let settings = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
-        guard let url = URL(string: settings) else { return }
-        NSWorkspace.shared.open(url)
+        permissionClient.openSystemSettings()
     }
 
     /// Called as a work session begins: macOS raises its direct-capture dialog at the first
@@ -68,7 +81,7 @@ final class ScreenCapturePermissionManager {
         }
 
         let task = Task {
-            let isAllowed = await ScreenCapture.confirmDirectCaptureAccess()
+            let isAllowed = await permissionClient.confirmDirectCaptureAccess()
             directCaptureAccess = isAllowed ? .allowed : .refused
             defaults.set(isAllowed == false, forKey: Self.directCaptureDeclinedKey)
             confirmation = nil
@@ -90,6 +103,6 @@ final class ScreenCapturePermissionManager {
     func requestAccessIfNeeded() {
         guard hasScreenRecordingAccess == false, hasRequestedAccessThisLaunch == false else { return }
         hasRequestedAccessThisLaunch = true
-        _ = CGRequestScreenCaptureAccess()
+        _ = permissionClient.requestAccess()
     }
 }

@@ -3,115 +3,18 @@ import Testing
 
 @testable import ShatterBreak
 
-/// What the reducer tests cannot reach: preferences read into it, its effects performed
-/// against a screen that may be dark, and the system's sleep and wake reaching it.
+/// Preferences read into the reducer, and the timer's own lifecycle.
 @Suite("TimerState", .tags(.timerState))
 @MainActor
 struct TimerStateTests {
     let environment = TestEnvironment()
-    let screen = PresenterSpy()
+    let screen = OverlayRecorder()
 
     private func makeState(work: Double = 10, rest: Double = 5) -> TimerState {
         let state = environment.makeTimerState(overlays: screen)
         state.workDurationSecs = work
         state.restDurationSecs = rest
         return state
-    }
-
-    @Test("a cycle puts the break on screen as work ends and takes it down as work resumes")
-    func fullCycle() async {
-        let state = makeState()
-        state.start()
-        #expect(screen.shown.isEmpty)
-
-        await environment.advanceTime(by: 10)
-        #expect(state.isResting)
-        #expect(screen.shown == [.animated])
-        #expect(screen.presentedState === state)
-
-        await environment.advanceTime(by: 5)
-        #expect(state.mode == .running)
-        #expect(screen.presentedState == nil)
-    }
-
-    @Test("every session settles capture consent before its break needs it")
-    func everySessionPrepares() async {
-        let state = makeState()
-        state.start()
-        await environment.advanceTime(by: 10)
-        await environment.advanceTime(by: 5)
-        for _ in 0..<10 where screen.prepareCount < 2 { await Task.yield() }
-        #expect(screen.prepareCount == 2)
-    }
-
-    @Test("a break falling due on a dark screen waits for one, while the plan moves on")
-    func darkScreenHoldsTheBreak() async {
-        let state = makeState()
-        state.start()
-        screen.hasAwakeScreen = false
-
-        await environment.advanceTime(by: 10)
-        #expect(state.isResting)
-        #expect(screen.shown.isEmpty)
-
-        screen.hasAwakeScreen = true
-        state.reconcile()
-        #expect(screen.shown == [.animated])
-    }
-
-    @Test("a break that ended behind a dark screen is announced settled")
-    func heldBreakThatEndedIsSettled() async {
-        environment.defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
-        let state = makeState()
-        state.start()
-        screen.hasAwakeScreen = false
-
-        await environment.advanceTime(by: 10)
-        await environment.advanceTime(by: 5)
-        #expect(state.awaitingReturn)
-
-        screen.hasAwakeScreen = true
-        state.reconcile()
-        #expect(screen.shown == [.settled])
-    }
-
-    @Test("a break dismissed while the screen was dark never surfaces")
-    func dismissedHeldBreakNeverSurfaces() async {
-        let state = makeState()
-        state.start()
-        screen.hasAwakeScreen = false
-        await environment.advanceTime(by: 10)
-
-        state.stop()
-        screen.hasAwakeScreen = true
-        state.reconcile()
-        #expect(screen.shown.isEmpty)
-    }
-
-    /// Issue #112.
-    @Test("a stop landing on an unreconciled boundary never puts the break on screen")
-    func stopOnUnreconciledBoundary() {
-        let state = makeState()
-        state.start()
-        environment.clock.elapse(by: 11)
-
-        state.stop()
-        #expect(state.mode == .idle)
-        #expect(screen.shown.isEmpty)
-    }
-
-    @Test("a long sleep reported by the system starts a fresh session on wake")
-    func sleepAndWakeNotifications() {
-        let state = makeState(work: 60, rest: 5)
-        state.start()
-        environment.clock.elapse(by: 20)
-
-        state.systemWillSleep()
-        environment.clock.sleepMachine(by: 600)
-        state.systemDidWake()
-
-        #expect(state.mode == .running)
-        #expect(state.timeRemaining == 60)
     }
 
     @Test("pausing freezes the countdown and resuming continues from it")
