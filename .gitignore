@@ -30,9 +30,8 @@ TODO*.md
 TASKS.md
 NOTES.md
 
-# ─── Environment configuration, secrets ────────────────────────────
-.env/*
-!.env/signing.yml.example
+# ─── Local signing configuration ────────────────────────────────────
+Config/Signing.local.xcconfig
 
 # ─── Claude Code local state (worktrees, settings — not for repo) ───
 .claude/

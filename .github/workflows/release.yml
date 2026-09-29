@@ -39,7 +39,6 @@ jobs:
       ARCHIVE_PATH: ${{ github.workspace }}/DerivedData/ShatterBreak.xcarchive
       RESULT_BUNDLE: ${{ github.workspace }}/ShatterBreak.xcresult
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
-      INCLUDE_SIGNING: "false"
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
 
@@ -97,14 +96,9 @@ jobs:
           | xcbeautify
 
       - name: Sign app
-        # CI has no identity, so it ad-hoc signs: the grant does not survive updates
-        # (#43, #100). Setting SIGN_IDENTITY to a certificate name switches this to a
-        # stable signature — and enables timestamping, a network round-trip inside the
-        # 5-minute job budget (SIGN_TIMESTAMP=none opts out). See RELEASING.md.
-        run: |
-          SIGN_IDENTITY="-" \
-          ENTITLEMENTS="ShatterBreak/ShatterBreak.entitlements" \
-            Scripts/sign-release.sh "$ARCHIVE_PATH/Products/Applications/ShatterBreak.app"
+        # CI has no certificate, so it ad-hoc signs: the grant does not survive updates
+        # (#100). See RELEASING.md.
+        run: Scripts/sign-release.sh --adhoc "$ARCHIVE_PATH/Products/Applications/ShatterBreak.app"
 
       - name: Package app for release
         run: |

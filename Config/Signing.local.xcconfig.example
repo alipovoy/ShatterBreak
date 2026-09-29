@@ -1,0 +1,7 @@
+// cp Config/Signing.local.xcconfig.example Config/Signing.local.xcconfig
+// Optional; see RELEASING.md. Unsigned builds work without it.
+
+// 10-character Team ID: Xcode > Settings > Accounts, or the Apple Developer portal.
+DEVELOPMENT_TEAM = XXXXXXXXXX
+CODE_SIGN_STYLE = Automatic
+CODE_SIGN_IDENTITY[sdk=macosx*] = Apple Development
