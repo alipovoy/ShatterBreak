@@ -1,5 +1,10 @@
 # ShatterBreak
 
+[![Build and Test](https://github.com/alipovoy/ShatterBreak/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/alipovoy/ShatterBreak/actions/workflows/build-and-test.yml?query=branch%3Amain)
+[![CodeQL](https://github.com/alipovoy/ShatterBreak/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/alipovoy/ShatterBreak/actions/workflows/codeql.yml?query=branch%3Amain)
+[![Latest release](https://img.shields.io/github/v/release/alipovoy/ShatterBreak)](https://github.com/alipovoy/ShatterBreak/releases/latest)
+[![License: BSD 3-Clause](https://img.shields.io/github/license/alipovoy/ShatterBreak)](LICENSE)
+
 ShatterBreak is a native macOS menu bar app for structured focus and break cycles.
 
 It runs as a menu bar utility, lets you start a focus session, and then interrupts you with fullscreen break overlays when the work timer ends. The app supports a screenshot-based "shatter" effect plus two simpler overlay modes, optional postpone and early return, manual or automatic restart after a break, and sleep/wake-aware timer behavior.
