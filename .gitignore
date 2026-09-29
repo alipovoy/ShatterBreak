@@ -30,6 +30,11 @@ TODO*.md
 TASKS.md
 NOTES.md
 
+# ─── Secrets: dotenv files never belong in the repo ─────────────────
+.env
+.env.*
+.env/
+
 # ─── Local signing configuration ────────────────────────────────────
 Config/Signing.local.xcconfig
 
