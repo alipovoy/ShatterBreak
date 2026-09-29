@@ -90,6 +90,10 @@ struct OverlayView: View {
             .formatted(.units(allowed: [.minutes, .seconds], width: .wide))
     }
 
+    private var isMotionReduced: Bool {
+        reduceMotion || accessibilityReduceMotion
+    }
+
     private var showsForegroundContent: Bool {
         if presentation.isShatterEffect {
             return presentation.phase == .shattered
@@ -98,9 +102,9 @@ struct OverlayView: View {
         return true
     }
 
-    /// Shatter stages its own entrance; the other effects fade in.
+    /// Shatter stages its own entrance, unless motion is reduced; then it fades in like the others.
     private var introOpacity: Double {
-        guard presentation.isShatterEffect == false else { return 1 }
+        guard presentation.isShatterEffect == false || isMotionReduced else { return 1 }
         return hasAppeared ? 1 : 0
     }
 
@@ -108,7 +112,7 @@ struct OverlayView: View {
         switch OverlayPhaseAction.resolve(
             phase: presentation.phase,
             isShatterEffect: presentation.isShatterEffect,
-            reduceMotion: reduceMotion || accessibilityReduceMotion,
+            reduceMotion: isMotionReduced,
             shouldPlaySound: playSound && hasPlayedSound == false,
             isSettled: presentation.settled
         ) {
