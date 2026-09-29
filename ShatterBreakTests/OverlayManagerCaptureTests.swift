@@ -42,6 +42,46 @@ struct OverlayManagerCaptureTests {
         for task in secondBreak { await task.value }
         #expect(manager.overlayStates[1]?.backgroundImage === image, "Its own capture still lands.")
     }
+
+    @Test("a capture paints only the displays it was taken for")
+    func captureLeavesOtherDisplaysAlone() async throws {
+        let environment = TestEnvironment()
+        let screens = StubScreens([StubScreens.display(1)])
+        let image = try TestImage.make(width: 4, height: 4)
+        let captures = HeldCaptures()
+        let manager = OverlayManager(
+            defaults: environment.defaults,
+            screens: { screens.screens },
+            capture: { displayIDs in
+                await captures.wait()
+                return Dictionary(uniqueKeysWithValues: displayIDs.map { ($0, image) })
+            },
+            isDisplayAwake: { _ in true },
+            hasScreenRecordingPermission: { true },
+            directCaptureAccess: { .allowed }
+        )
+        defer { manager.dismiss() }
+
+        manager.show(environment.makeTimerState(), style: .animated)
+        await captures.held(1)
+        // The second display lights while the first display's capture is still in flight.
+        screens.screens = [StubScreens.display(1), StubScreens.display(2, x: 100)]
+        manager.displaysDidChange()
+        await captures.held(2)
+        let tasks = manager.captureTasks
+
+        captures.releaseOldest()
+        await tasks[0].value
+        #expect(manager.overlayStates[1]?.backgroundImage === image)
+        #expect(
+            manager.overlayStates[2]?.phase == .plain,
+            "A display still waiting on its own capture must not shatter over nothing."
+        )
+
+        captures.releaseAll()
+        await tasks[1].value
+        #expect(manager.overlayStates[2]?.backgroundImage === image, "Its own capture still lands.")
+    }
 }
 
 /// Captures that finish only when the test says so, oldest first.

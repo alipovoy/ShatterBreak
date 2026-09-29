@@ -227,17 +227,22 @@ final class OverlayManager: BreakPresenting {
         let capture = capture
         captureTasks.append(Task(priority: .utility) { [weak self] in
             guard let images = try? await capture(displayIDs) else { return }
-            self?.applyCapture(images, sessionID: sessionID)
+            self?.applyCapture(images, for: displayIDs, sessionID: sessionID)
         })
     }
 
-    private func applyCapture(_ images: [CGDirectDisplayID: CGImage], sessionID: UUID) {
+    private func applyCapture(
+        _ images: [CGDirectDisplayID: CGImage],
+        for displayIDs: Set<CGDirectDisplayID>,
+        sessionID: UUID
+    ) {
         // A capture that outlived its break must not paint the next one.
         guard session?.id == sessionID else { return }
         session?.captures.merge(images) { retained, _ in retained }
-        // Displays the capture missed shatter over the fogged fallback.
-        for (displayID, overlayState) in overlayStates {
-            overlayState.startShatter(with: images[displayID])
+        // Displays the capture missed shatter over the fogged fallback. Any other display may
+        // still be waiting on a capture of its own.
+        for displayID in displayIDs {
+            overlayStates[displayID]?.startShatter(with: images[displayID])
         }
     }
 }
