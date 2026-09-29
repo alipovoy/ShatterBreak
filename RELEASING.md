@@ -147,75 +147,51 @@ is unchanged.
 
 ### Which identity signs a build
 
-| Mode | How | Update-stable |
-|------|-----|---------------|
-| **Ad-hoc** | Default. CI and every build from source. No certificate, no setup. | No |
-| **Self-signed** | You run `Scripts/sign-release.sh` on an archive, with a certificate named `ShatterBreak Self-Signed` in your keychain. | Yes |
-
-Stable signing is an optional convenience for your own builds; nothing requires a
-certificate or a secret. Xcode signing with your own team is separate — see
-[Local team signing](#local-team-signing-optional).
+| Mode | Applies to | Update-stable |
+|------|------------|---------------|
+| **Ad-hoc** | CI and published builds. No certificate, no setup. | No |
+| **Team** | Your own builds from source, once a team is set ([below](#local-team-signing)). Xcode signs with *Apple Development*; a free personal team works. | Yes — the DR pins the certificate's common name, so it normally survives certificate renewal |
+| **Self-signed** | A downloaded build you re-sign yourself ([README](./README.md#stable-signing-for-a-downloaded-build)). | Yes — until the certificate is renewed: a new certificate has a new DR, costing one re-add a year |
 
 **Published builds stay ad-hoc, deliberately.** CI has no certificate, and giving it one
 means a key in repository secrets. Trying the app should not require certificate
 setup; the cost lands on updates, where the README explains the re-add. Tracked in
 [#100](https://github.com/alipovoy/ShatterBreak/issues/100).
 
-### Self-signed certificate
+CI signs ad-hoc directly in `release.yml`; there is no signing script.
 
-*Keychain Access > Certificate Assistant > Create a Certificate…*, named
-`ShatterBreak Self-Signed`, *Identity Type: Self Signed Root*, *Certificate Type: Code
-Signing*, *Key Type: RSA*. An EC key breaks the Screen Recording listing in other
-accounts.
+### Local team signing
 
-Keep the default 365-day validity. **Do not stretch it:** a self-signed key cannot be
-revoked, so a leaked long-lived one can sign software that inherits this app's Screen
-Recording grant. Renewal only matters for signing *new* builds, and the new leaf hash
-costs one re-add on your own machine. Delete the expired certificate after renewing —
-the script refuses to sign while several share the name. Protect the key: login
-keychain, `.p12` backups behind a strong password, never in the repository.
-
-### Signing a build
-
-Archive, then sign the `.app` inside the `.xcarchive` (*Products/Applications*):
-
-```bash
-Scripts/sign-release.sh path/to/ShatterBreak.app
-```
-
-The script fails, naming the reason, if the certificate is missing, expired or
-duplicated. It embeds a secure timestamp, without which the signature stops validating
-the day the certificate expires; that needs the network, so signing offline fails.
-`--adhoc` signs ad-hoc, as CI does.
-
-Organizer's *Distribute App* re-signs — take the `.app` from the archive, or use
-*Distribute App > Custom > Copy App*.
-
-The script prints the Designated Requirement. It should read `certificate leaf =
-H"…"`, not a bare `cdhash`. To check a build later:
-
-```bash
-codesign -d --requirements - path/to/ShatterBreak.app
-```
-
-### Local team signing (optional)
-
-Independent of the script: sign Xcode builds with your own team. The settings stay out
-of the repository, in a git-ignored xcconfig that `Config/Signing.xcconfig` pulls in
-with `#include?`, so a missing file is not an error:
+Without a team, Xcode signs local builds ad-hoc too, so every Debug rebuild drops the
+Screen Recording grant. Only CI turns signing off (`CODE_SIGNING_ALLOWED=NO`). Setting a
+team fixes that. The settings stay out of the repository, in a git-ignored xcconfig that
+`Config/Signing.xcconfig` pulls in with `#include?`, so a missing file is not an error:
 
 ```bash
 cp Config/Signing.local.xcconfig.example Config/Signing.local.xcconfig   # set DEVELOPMENT_TEAM
 xcodegen generate
 ```
 
-Without the file the project has no signing settings — enough to build, run and test,
-and what CI does (`CODE_SIGNING_ALLOWED=NO`). A free personal team works.
+The example also asks for a secure timestamp on Release. Xcode adds none, and without one
+the signature stops validating the day the development certificate expires.
 
-Find the Team ID in *Xcode > Settings > Accounts* or the Apple Developer portal — not
-the parenthesized suffix from `security find-identity`, which identifies the
+Find the Team ID in *Xcode > Settings > Accounts*, or, for a free team, from the
+certificate — the `OU` field:
+
+```bash
+security find-certificate -c "Apple Development" -p | openssl x509 -noout -subject
+```
+
+Not the parenthesized suffix from `security find-identity`, which identifies the
 certificate. The setting applies at project level so the test target inherits it; no
 `PROVISIONING_PROFILE_SPECIFIER` is needed, as the entitlements are sandbox-only.
 
-Development-signed archives are valid on your own machine only. Builds for other people
-come from CI.
+Confirm the DR is not a bare `cdhash`:
+
+```bash
+codesign -d --requirements - path/to/ShatterBreak.app
+```
+
+Don't share development-signed builds. No profile is embedded, so nothing ties them to
+one Mac, but the certificate's common name contains the Apple ID email and development
+certificates are not meant for distribution. Builds for other people come from CI.

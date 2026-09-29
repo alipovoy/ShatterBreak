@@ -98,7 +98,11 @@ jobs:
       - name: Sign app
         # CI has no certificate, so it ad-hoc signs: the grant does not survive updates
         # (#100). See RELEASING.md.
-        run: Scripts/sign-release.sh --adhoc "$ARCHIVE_PATH/Products/Applications/ShatterBreak.app"
+        run: |
+          APP="$ARCHIVE_PATH/Products/Applications/ShatterBreak.app"
+          codesign --force --options runtime --timestamp=none --sign - \
+            --entitlements ShatterBreak/ShatterBreak.entitlements "$APP"
+          codesign --verify --strict --verbose=2 "$APP"
 
       - name: Package app for release
         run: |

@@ -39,9 +39,6 @@ jobs:
       - name: Test compute-version.sh
         run: Scripts/test-compute-version.sh
 
-      - name: Test sign-release.sh
-        run: Scripts/test-sign-release.sh
-
       - name: Test lint-commit-subject.sh
         run: Scripts/test-lint-commit-subject.sh
 

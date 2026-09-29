@@ -1,7 +1,10 @@
 // cp Config/Signing.local.xcconfig.example Config/Signing.local.xcconfig
-// Optional; see RELEASING.md. Unsigned builds work without it.
+// Optional; see RELEASING.md. Without it Xcode signs ad-hoc.
 
-// 10-character Team ID: Xcode > Settings > Accounts, or the Apple Developer portal.
+// 10-character Team ID: Xcode > Settings > Accounts, or see RELEASING.md for a free team.
 DEVELOPMENT_TEAM = XXXXXXXXXX
 CODE_SIGN_STYLE = Automatic
 CODE_SIGN_IDENTITY[sdk=macosx*] = Apple Development
+
+// Xcode adds no timestamp; without one the signature dies with the certificate.
+OTHER_CODE_SIGN_FLAGS[config=Release] = --timestamp
