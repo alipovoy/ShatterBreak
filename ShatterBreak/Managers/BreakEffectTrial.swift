@@ -65,7 +65,7 @@ final class BreakEffectTrial {
     /// Ends the sample on the user's first key or click, reporting whether the event was the
     /// sample's to swallow. Once a real break holds the window it is that break's "I'm back".
     func interrupt() -> Bool {
-        let wasOurs = timer.overlays?.presentedState === sample
+        let wasOurs = sample != nil && timer.overlays?.presentedState === sample
         end()
         return wasOurs
     }
@@ -82,7 +82,7 @@ final class BreakEffectTrial {
         interruption = nil
 
         // A break that took the window mid-sample must not be dismissed here.
-        if let overlays = timer.overlays, overlays.presentedState === sample {
+        if let sample, let overlays = timer.overlays, overlays.presentedState === sample {
             overlays.dismiss()
         }
         sample = nil
