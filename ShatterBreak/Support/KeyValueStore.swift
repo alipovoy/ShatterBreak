@@ -21,6 +21,11 @@ extension KeyValueStore {
         return stored > 0 ? stored : defaultValue
     }
 
+    /// `bool(forKey:)` cannot tell unset from false, and several flags default to true.
+    func flag(forKey key: String, default defaultValue: Bool) -> Bool {
+        object(forKey: key) as? Bool ?? defaultValue
+    }
+
     /// An unrecognized stored string falls back rather than being trusted.
     func value<V: RawRepresentable>(forKey key: String, default defaultValue: V) -> V
     where V.RawValue == String {

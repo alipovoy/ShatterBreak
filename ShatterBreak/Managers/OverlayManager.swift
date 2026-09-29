@@ -72,7 +72,7 @@ final class OverlayManager: BreakPresenting {
     }
 
     var prefersSoftOverlay: Bool {
-        defaults.object(forKey: PreferenceKeys.softOverlay) as? Bool ?? PreferenceDefaults.softOverlay
+        defaults.flag(forKey: PreferenceKeys.softOverlay, default: PreferenceDefaults.softOverlay)
     }
 
     var overlayWindowLevel: NSWindow.Level {

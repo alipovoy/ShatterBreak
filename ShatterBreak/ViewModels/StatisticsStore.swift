@@ -16,8 +16,7 @@ final class StatisticsStore {
     private let defaults: any KeyValueStore
 
     var isTrackingEnabled: Bool {
-        (defaults.object(forKey: PreferenceKeys.trackStatistics) as? Bool)
-            ?? PreferenceDefaults.trackStatistics
+        defaults.flag(forKey: PreferenceKeys.trackStatistics, default: PreferenceDefaults.trackStatistics)
     }
 
     init(defaults: any KeyValueStore = UserDefaults.standard) {
@@ -48,8 +47,8 @@ final class StatisticsStore {
 
     /// The opt-in reset at the stop→start boundary. A disabled tracker never changes.
     func resetForNewSessionIfEnabled() {
-        let resetOnStart = (defaults.object(forKey: PreferenceKeys.resetStatisticsOnStart) as? Bool)
-            ?? PreferenceDefaults.resetStatisticsOnStart
+        let resetOnStart = defaults.flag(
+            forKey: PreferenceKeys.resetStatisticsOnStart, default: PreferenceDefaults.resetStatisticsOnStart)
         guard isTrackingEnabled, resetOnStart else { return }
 
         reset()

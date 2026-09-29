@@ -86,7 +86,8 @@ final class TimerState {
         }
     }
 
-    /// A timer frozen on `plan`, touching nothing outside itself.
+    /// A timer frozen on `plan`: it never schedules, subscribes or records. Duration edits
+    /// still write to `defaults`.
     static func parked(_ plan: TimerPlan, defaults: any KeyValueStore) -> TimerState {
         TimerState(defaults: defaults, overlays: nil, parkedAt: plan)
     }
@@ -302,7 +303,7 @@ final class TimerState {
     }
 
     private func flag(_ key: String, _ fallback: Bool) -> Bool {
-        defaults.object(forKey: key) as? Bool ?? fallback
+        defaults.flag(forKey: key, default: fallback)
     }
 
     private func duration(_ key: String, _ fallback: Double) -> Double {
