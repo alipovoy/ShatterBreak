@@ -12,10 +12,8 @@ final class OverlayPresentationState {
 
     let effectType: EffectType
 
-    /// Whether this overlay should present already settled — no shake intro or entrance
-    /// sound — because the break's entrance is not this overlay's to play: an absence
-    /// already served as the break (issue #76), or the display joined a break that was
-    /// already running (issue #94).
+    /// No entrance and no sound: an absence served as the break (issue #76), or the display
+    /// joined a break already running (issue #94).
     let settled: Bool
 
     var backgroundImage: CGImage?
@@ -30,9 +28,6 @@ final class OverlayPresentationState {
         effectType == .shatter
     }
 
-    /// Whether the cracked-glass overlay is drawn. The shatter effect only cracks
-    /// once it has settled into the shattered phase; the fogged effect always shows
-    /// cracks over its live glass; the dimmed effect never cracks.
     var showsCracks: Bool {
         switch effectType {
         case .shatter:
@@ -44,8 +39,7 @@ final class OverlayPresentationState {
         }
     }
 
-    /// Applies a captured background and advances past `.plain`. A settled overlay
-    /// skips straight to `.shattered` — no shake intro, no entrance sound.
+    /// A settled overlay skips straight to `.shattered`.
     func startShatter(with image: CGImage?) {
         guard isShatterEffect, phase == .plain else { return }
 

@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// A frosted "material pill" for the overlay's action buttons. The semantic primary label
-/// style lets the system apply vibrancy, for legibility over any wallpaper.
+/// `.primary` lets the system apply vibrancy, legible over any wallpaper.
 struct OverlayActionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -21,8 +20,6 @@ struct OverlayActionButtonStyle: ButtonStyle {
 }
 
 #Preview("OverlayActionButtonStyle") {
-    // Over the frosted desktop: material and vibrancy have nothing to work against on a
-    // flat background.
     let desktop = PreviewWallpaper.image
 
     ZStack {

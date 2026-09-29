@@ -2,11 +2,7 @@ import Testing
 
 @testable import ShatterBreak
 
-/// What happens when the user goes away.
-///
-/// The policy is unchanged; the input is not. An absence is *measured* from the two clocks
-/// rather than inferred from a sleep notification that has to arrive, and be matched by a
-/// wake, for anything to happen.
+/// An absence is measured from the two clocks, not inferred from notifications.
 @Suite("Timer reducer absences", .tags(.timerState, .sleepWake))
 struct TimerReducerAbsenceTests {
     // MARK: - Absences measured with no notification at all
@@ -76,9 +72,6 @@ struct TimerReducerAbsenceTests {
         driver.sleepMachine(3)
         driver.reconcile()
 
-        // One rule for every crossing. The old design branched on `away <=
-        // workRemaining`, giving a full break at this exact instant and docking one a
-        // millisecond either side.
         #expect(driver.phase == .rest, "Work ran out exactly as the absence ended.")
         #expect(driver.remaining == 2, "The absence is credited as rest, as it is for any crossing.")
         #expect(driver.count(of: .record(.workSessionCompleted)) == 1, "The session completed and should count.")
@@ -202,8 +195,6 @@ struct TimerReducerAbsenceTests {
         driver.act(.start)
         driver.sleepMachine(3 * 3_600)
         driver.reconcile()
-        // Reconciling again is what the heartbeat, the boundary timer and a wake
-        // notification all do within milliseconds of each other.
         driver.reconcile()
         driver.reconcile()
 
@@ -221,8 +212,7 @@ struct TimerReducerAbsenceTests {
     func ongoingAbsenceResolvesOncePerThreshold() {
         var driver = ReducerDriver(prefs: .testing(work: 1_500, rest: 300))
         driver.act(.start)
-        // The display slept and never woke: the notification arrives, the matching wake
-        // never does. Under the old design this stranded the timer permanently.
+        // The display slept and the matching wake never arrives.
         driver.act(.observedSleep)
         driver.drift(600)
         driver.reconcile()
@@ -248,9 +238,7 @@ struct TimerReducerAbsenceTests {
         )
 
         driver.act(.observedSleep)
-        // Hours with the display dark and the machine awake. Restarting the session each
-        // threshold keeps an empty room from inflating the tally, but settling consent can
-        // raise a dialog nobody is there to answer.
+        // Hours dark but awake: settling consent would raise a dialog nobody can answer.
         for _ in 0..<12 {
             driver.drift(300)
             driver.reconcile()
@@ -282,8 +270,6 @@ struct TimerReducerAbsenceTests {
 
         driver.act(.observedWake)
 
-        // Measuring only the seconds since the last restart would hand back a session
-        // already minutes old; an hour away is owed a whole one.
         #expect(driver.phase == .work, "An hour away served as the break.")
         #expect(driver.remaining == 1_500, "The session the user comes back to must be whole.")
         #expect(driver.plan.unattendedSince == nil, "The absence is over.")
@@ -304,8 +290,7 @@ struct TimerReducerAbsenceTests {
         driver.act(.observedSleep)
         driver.drift(600)
 
-        // No wake notification: the user moved the mouse and pressed Pause, which is better
-        // evidence than one.
+        // No wake notification; pressing Pause is better evidence.
         driver.act(.pause)
 
         #expect(driver.plan.unattendedSince == nil, "A user action must retire the absence a notification claimed.")
@@ -341,8 +326,6 @@ struct TimerReducerAbsenceNotificationTests {
         #expect(driver.plan.unattendedSince == nil, "A wake means the user is back; the absence is over.")
         #expect(driver.remaining == 8, "A short absence leaves the session running.")
 
-        // Without retiring it, this boundary would read the old timestamp as an
-        // eight-second absence and wrongly prorate the break.
         driver.run(8)
         #expect(driver.remaining == 5, "The break should get its full duration, not one docked by a stale absence.")
     }

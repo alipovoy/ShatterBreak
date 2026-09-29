@@ -1,7 +1,5 @@
 import SwiftUI
 
-/// Visual chooser for the break-screen effect: one selectable thumbnail per
-/// ``EffectType``, so the options read by look rather than by name.
 struct EffectCardPicker: View {
     @Binding var selection: EffectType
 
@@ -51,7 +49,6 @@ private struct EffectCard: View {
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
-    /// A stylized miniature of the effect over a mock desktop gradient.
     private var thumbnail: some View {
         ZStack {
             LinearGradient(

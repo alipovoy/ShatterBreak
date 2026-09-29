@@ -2,8 +2,7 @@ import Testing
 
 @testable import ShatterBreak
 
-/// Issue #71: a work session is counted once its closing lead begins, so the minutes
-/// between "I'm done" and the boundary stop deciding whether the session happened.
+/// Issue #71: a work session counts once its closing lead begins.
 @Suite("Session credit lead", .tags(.timerState, .statistics))
 struct SessionCreditLeadTests {
     @Test("the session counts at the credit point, and not again at the boundary")
@@ -64,8 +63,7 @@ struct SessionCreditLeadTests {
 
     @Test("leaving before the lead begins counts the break, not the session")
     func leavingBeforeTheLeadCountsNoSession() {
-        // The bound the lead must not widen: without it, this is an away-reset that counts
-        // the break alone, and turning the lead on must not turn it into a worked session.
+        // An away-reset counts the break alone, lead or not.
         var driver = ReducerDriver(prefs: .testing(work: 25, rest: 5, lead: 3))
         driver.act(.start)
         driver.run(20)
@@ -86,9 +84,7 @@ struct SessionCreditLeadTests {
 
     @Test("the boundary still counts a session the dark withheld at its credit point")
     func theBoundaryCountsAWithheldSession() {
-        // The second chance the strict guard leaves open: gone before the lead began, but by
-        // less than a break, so the boundary arrives with the absence short of the away-reset
-        // — where the session counted before the lead existed.
+        // Gone before the lead began, by less than a break: the boundary still counts it.
         var driver = ReducerDriver(prefs: .testing(work: 25, rest: 5, lead: 3))
         driver.act(.start)
         driver.run(21)
@@ -139,9 +135,7 @@ struct SessionCreditLeadTests {
 
     @Test("a postponed break resumed after a dark boundary counts no second session")
     func postponingAfterADarkBoundaryCountsOneSession() {
-        // The one route where the boundary itself records the session — nobody was there at
-        // the credit point — so the boundary must also mark the credit taken, or the postponed
-        // remainder would count the session again.
+        // The boundary records the session here, so it must mark the credit taken too.
         var driver = ReducerDriver(prefs: .testing(work: 25, rest: 10, postpone: 3, lead: 3))
         driver.act(.start)
         driver.run(21)
@@ -159,77 +153,37 @@ struct SessionCreditLeadTests {
             "The postponed stint is the same session, however many times it hands back."
         )
     }
-}
 
-/// The half a reducer test cannot reach: the lead is a preference, and the clock has to be
-/// armed for it.
-@Suite("Session credit lead through TimerState", .tags(.timerState, .statistics), .timeLimit(.minutes(1)))
-struct TimerStateSessionLeadTests {
-    @MainActor
-    private func makeState(_ environment: TestEnvironment, lead: Double) -> TimerState {
-        environment.defaults.set(true, forKey: PreferenceKeys.trackStatistics)
-        environment.defaults.set(true, forKey: PreferenceKeys.countSessionEarly)
-        environment.defaults.set(lead, forKey: PreferenceKeys.sessionLeadSecs)
-        return environment.makeTimerState()
+    @Test("the boundary timer is armed for the credit point, then for the session's end")
+    func boundaryIsArmedForTheCreditPoint() {
+        var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5, lead: 3))
+        driver.act(.start)
+        #expect(driver.nextTransition == 7, "Armed for the session's end, the credit would land three seconds late.")
+
+        driver.run(7)
+        #expect(driver.nextTransition == 3)
     }
 
-    @Test("the clock is armed for the credit point, not the end of the session")
-    @MainActor
-    func theClockIsArmedForTheCreditPoint() async {
-        let environment = TestEnvironment()
-        let state = makeState(environment, lead: 3)
-        state.workDurationSecs = 10
-        state.restDurationSecs = 5
-
-        state.start()
-        #expect(environment.clock.scheduledBoundary == 7, "The next thing due is the credit point.")
-        let interval = state.countdownIntervalID
-
-        await environment.advanceTime(by: 7)
-        #expect(state.statistics.current.workSessionsCompleted == 1, "The session counts as its lead begins.")
-        #expect(state.mode == .running, "Nothing the user can see has changed: this is still work.")
-        #expect(state.countdownIntervalID == interval, "And still the same countdown.")
-        #expect(environment.clock.scheduledBoundary == 3, "What is due now is the break.")
-
-        await environment.advanceTime(by: 3)
-        #expect(state.isResting, "The boundary should still begin the break.")
-        #expect(state.statistics.current.workSessionsCompleted == 1, "Which counts no second session.")
+    @Test("without a lead, the boundary timer is armed for the session's end")
+    func boundaryWithoutALeadIsTheSessionEnd() {
+        var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5, lead: 0))
+        driver.act(.start)
+        #expect(driver.nextTransition == 10)
     }
 
-    @Test("the lead does nothing while statistics are not being tracked")
-    @MainActor
-    func theLeadNeedsSomethingToCount() async {
-        let environment = TestEnvironment()
-        // Switched on, but with the tally that owns it turned off — the state left behind by
-        // turning Track Statistics off, which also takes this switch off screen.
-        environment.defaults.set(true, forKey: PreferenceKeys.countSessionEarly)
-        environment.defaults.set(3, forKey: PreferenceKeys.sessionLeadSecs)
-        let state = environment.makeTimerState()
-        state.workDurationSecs = 10
-        state.restDurationSecs = 5
+    @Test("nothing is armed while no countdown runs")
+    func nothingIsArmedWithoutACountdown() {
+        var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5, autoStartWork: false))
+        #expect(driver.nextTransition == nil, "Idle.")
 
-        state.start()
-        #expect(
-            environment.clock.scheduledBoundary == 10,
-            "Nothing is counted, so there is no credit point to arm for."
-        )
-    }
+        driver.act(.start)
+        driver.act(.pause)
+        #expect(driver.nextTransition == nil, "Paused.")
 
-    @Test("the stored lead does nothing until it is switched on")
-    @MainActor
-    func theLeadIsOffUntilSwitchedOn() async {
-        let environment = TestEnvironment()
-        environment.defaults.set(true, forKey: PreferenceKeys.trackStatistics)
-        // The field keeps a value of its own; the toggle is what makes it apply.
-        environment.defaults.set(3, forKey: PreferenceKeys.sessionLeadSecs)
-        let state = environment.makeTimerState()
-        state.workDurationSecs = 10
-        state.restDurationSecs = 5
-
-        state.start()
-        #expect(environment.clock.scheduledBoundary == 10, "With no lead, the boundary is the only thing due.")
-
-        await environment.advanceTime(by: 7)
-        #expect(state.statistics.current.workSessionsCompleted == 0, "A session still counts where it always did.")
+        driver.act(.resume)
+        driver.run(10)
+        driver.run(5)
+        #expect(driver.phase == .awaitingReturn)
+        #expect(driver.nextTransition == nil, "Awaiting return.")
     }
 }

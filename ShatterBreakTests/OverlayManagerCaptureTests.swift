@@ -1,100 +1,112 @@
-import CoreGraphics
-import Foundation
+import AppKit
 import Testing
 
 @testable import ShatterBreak
 
-@Suite("OverlayManager capture pipeline", .tags(.overlays))
+@Suite("OverlayManager capture", .tags(.overlays), .timeLimit(.minutes(1)))
 @MainActor
 struct OverlayManagerCaptureTests {
-    private let primaryDisplay: CGDirectDisplayID = 1
-    private let secondaryDisplay: CGDirectDisplayID = 2
-
-    @Test("a matching session paints captured images onto their displays")
-    func matchingSessionAppliesImages() throws {
-        let session = UUID()
-        let states = makeOverlayStates()
-        let image = try TestImage.make()
-
-        OverlayManager.applyCapturedImages(
-            [primaryDisplay: image, secondaryDisplay: image],
-            sessionID: session,
-            activeSessionID: session,
-            to: states
+    @Test("a capture that outlives its break does not paint the next one")
+    func staleCaptureIsDropped() async throws {
+        let environment = TestEnvironment()
+        let screens = StubScreens([StubScreens.display(1)])
+        let image = try TestImage.make(width: 4, height: 4)
+        let captures = HeldCaptures()
+        let manager = OverlayManager(
+            defaults: environment.defaults,
+            screens: { screens.screens },
+            capture: { displayIDs in
+                await captures.wait()
+                return Dictionary(uniqueKeysWithValues: displayIDs.map { ($0, image) })
+            },
+            isDisplayAwake: { _ in true },
+            hasScreenRecordingPermission: { true },
+            directCaptureAccess: { .allowed }
         )
+        defer { manager.dismiss() }
 
-        for state in states.values {
-            #expect(state.phase == .shatterIntro, "Each display should advance to the shatter intro.")
-            #expect(state.backgroundImage != nil, "Each display should receive its captured screenshot.")
-        }
+        manager.show(environment.makeTimerState(), style: .animated)
+        let firstBreak = manager.captureTasks
+        await captures.held(1)
+        manager.dismiss()
+        manager.show(environment.makeTimerState(), style: .animated)
+        await captures.held(2)
+
+        captures.releaseOldest()
+        for task in firstBreak { await task.value }
+        #expect(manager.overlayStates[1]?.backgroundImage == nil)
+        #expect(manager.overlayStates[1]?.phase == .plain)
+
+        let secondBreak = manager.captureTasks
+        captures.releaseAll()
+        for task in secondBreak { await task.value }
+        #expect(manager.overlayStates[1]?.backgroundImage === image, "Its own capture still lands.")
     }
 
-    @Test("a display missing from the capture falls back to a plain shatter")
-    func partialCaptureFallsBackPerDisplay() throws {
-        let session = UUID()
-        let states = makeOverlayStates()
-        let image = try TestImage.make()
-
-        OverlayManager.applyCapturedImages(
-            [primaryDisplay: image],
-            sessionID: session,
-            activeSessionID: session,
-            to: states
+    @Test("a capture paints only the displays it was taken for")
+    func captureLeavesOtherDisplaysAlone() async throws {
+        let environment = TestEnvironment()
+        let screens = StubScreens([StubScreens.display(1)])
+        let image = try TestImage.make(width: 4, height: 4)
+        let captures = HeldCaptures()
+        let manager = OverlayManager(
+            defaults: environment.defaults,
+            screens: { screens.screens },
+            capture: { displayIDs in
+                await captures.wait()
+                return Dictionary(uniqueKeysWithValues: displayIDs.map { ($0, image) })
+            },
+            isDisplayAwake: { _ in true },
+            hasScreenRecordingPermission: { true },
+            directCaptureAccess: { .allowed }
         )
+        defer { manager.dismiss() }
 
-        #expect(states[primaryDisplay]?.backgroundImage != nil, "The captured display keeps its screenshot.")
-        #expect(states[primaryDisplay]?.phase == .shatterIntro)
-        #expect(states[secondaryDisplay]?.backgroundImage == nil, "The failed display falls back to no screenshot.")
+        manager.show(environment.makeTimerState(), style: .animated)
+        await captures.held(1)
+        // The second display lights while the first display's capture is still in flight.
+        screens.screens = [StubScreens.display(1), StubScreens.display(2, x: 100)]
+        manager.displaysDidChange()
+        await captures.held(2)
+        let tasks = manager.captureTasks
+
+        captures.releaseOldest()
+        await tasks[0].value
+        #expect(manager.overlayStates[1]?.backgroundImage === image)
         #expect(
-            states[secondaryDisplay]?.phase == .shatterIntro,
-            "A display without a screenshot still shatters, just without a freeze-frame."
+            manager.overlayStates[2]?.phase == .plain,
+            "A display still waiting on its own capture must not shatter over nothing."
         )
+
+        captures.releaseAll()
+        await tasks[1].value
+        #expect(manager.overlayStates[2]?.backgroundImage === image, "Its own capture still lands.")
+    }
+}
+
+/// Captures that finish only when the test says so, oldest first.
+@MainActor
+private final class HeldCaptures {
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        await withCheckedContinuation { waiting.append($0) }
     }
 
-    @Test("a total capture failure still shatters every display without a screenshot")
-    func totalCaptureFailureShattersWithoutImages() {
-        let session = UUID()
-        let states = makeOverlayStates()
-
-        OverlayManager.applyCapturedImages(
-            [:],
-            sessionID: session,
-            activeSessionID: session,
-            to: states
-        )
-
-        for state in states.values {
-            #expect(state.phase == .shatterIntro, "An empty capture should still trigger the shatter.")
-            #expect(state.backgroundImage == nil, "An empty capture leaves displays without a freeze-frame.")
+    /// Bounded, so a regression reports a failure instead of hanging.
+    func held(_ count: Int) async {
+        for _ in 0..<100 where waiting.count < count {
+            await Task.yield()
         }
     }
 
-    @Test("a stale capture is dropped once the session has rotated")
-    func staleSessionCaptureIsDropped() throws {
-        let captureSession = UUID()
-        let activeSession = UUID()
-        let states = makeOverlayStates()
-        let image = try TestImage.make()
-
-        OverlayManager.applyCapturedImages(
-            [primaryDisplay: image, secondaryDisplay: image],
-            sessionID: captureSession,
-            activeSessionID: activeSession,
-            to: states
-        )
-
-        for state in states.values {
-            #expect(state.phase == .plain, "A capture from a rotated session must not paint later overlays.")
-            #expect(state.backgroundImage == nil, "A stale capture must not leak its screenshot onto new windows.")
-        }
+    func releaseOldest() {
+        guard waiting.isEmpty == false else { return }
+        waiting.removeFirst().resume()
     }
 
-    // MARK: - Helpers
-
-    private func makeOverlayStates() -> [CGDirectDisplayID: OverlayPresentationState] {
-        [
-            primaryDisplay: OverlayPresentationState(effectType: .shatter),
-            secondaryDisplay: OverlayPresentationState(effectType: .shatter)
-        ]
+    func releaseAll() {
+        waiting.forEach { $0.resume() }
+        waiting.removeAll()
     }
 }

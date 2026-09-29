@@ -1,34 +1,28 @@
-import Foundation
+import AppKit
 
+/// The two consents Shatter needs: classic Screen Recording, which CoreGraphics can preflight
+/// and request, and macOS's separate direct-capture consent, learned only by attempting one.
 @MainActor
 @Observable
 final class ScreenCapturePermissionManager {
     static let shared = ScreenCapturePermissionManager()
 
-    /// Whether classic Screen Recording permission is currently granted.
-    ///
-    /// A plain answer rather than a granted/denied/undetermined status: nothing in the app
-    /// distinguishes "denied" from "never asked" — both mean Shatter cannot capture, both
-    /// show the same warning, both are fixed in the same place. Tracking the difference
-    /// only kept the warning hidden until the app happened to have asked once.
+    /// "Denied" and "never asked" are the same answer here: both block the capture, show the
+    /// same warning and are fixed in the same place.
     private(set) var hasScreenRecordingAccess = false
 
-    /// Independent of ``hasScreenRecordingAccess``: Screen Recording can be granted while
-    /// this is refused, which is exactly the case that ambushed the user mid-break (#90).
+    /// Independent of Screen Recording, which can be granted while this is refused (#90).
     private(set) var directCaptureAccess: DirectCaptureAccess = .unknown
 
-    /// Whether a consent the user must fix stands between Shatter and a capture. An
-    /// ``DirectCaptureAccess/unknown`` answer does not: the next session's probe settles it.
+    /// An ``DirectCaptureAccess/unknown`` answer does not block: the next session settles it.
     var isCaptureBlocked: Bool {
         hasScreenRecordingAccess == false || directCaptureAccess == .refused
     }
 
-    /// A remembered decline of macOS's direct-capture confirmation. Persisted so the
-    /// monthly ask does not reappear on every launch of a login-item menu bar app; the
-    /// user re-opens it deliberately (issue #90).
+    /// Persisted, so a login-item app does not raise macOS's monthly ask at every boot.
     private static let directCaptureDeclinedKey = "com.shatterbreak.directCaptureDeclined"
 
-    private var appActiveObserver: AppActiveObserver?
+    private var activationObserver: (any NSObjectProtocol)?
     private var confirmation: Task<Void, Never>?
     private var hasRequestedAccessThisLaunch = false
     private let defaults: any KeyValueStore
@@ -43,41 +37,45 @@ final class ScreenCapturePermissionManager {
         self.defaults = defaults
         self.appNotificationCenter = appNotificationCenter
         self.permissionClient = permissionClient
-        self.directCaptureAccess = defaults.bool(forKey: Self.directCaptureDeclinedKey)
-            ? .refused
-            : .unknown
+        directCaptureAccess = defaults.bool(forKey: Self.directCaptureDeclinedKey) ? .refused : .unknown
         refresh()
+    }
+
+    isolated deinit {
+        if let activationObserver {
+            appNotificationCenter.removeObserver(activationObserver)
+        }
     }
 
     func refresh() {
         hasScreenRecordingAccess = permissionClient.preflightAccess()
-        updateAppActiveObservation()
+        // Once granted there is nothing left to watch for.
+        if hasScreenRecordingAccess, let activationObserver {
+            appNotificationCenter.removeObserver(activationObserver)
+            self.activationObserver = nil
+        } else if hasScreenRecordingAccess == false, activationObserver == nil {
+            activationObserver = appNotificationCenter.addObserver(
+                forName: NSApplication.didBecomeActiveNotification, object: nil, queue: nil
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.refresh() }
+            }
+        }
     }
 
     func openSystemSettings() {
         permissionClient.openSystemSettings()
     }
 
-    /// Settles every consent the shatter effect needs, ahead of the break that will use
-    /// them.
-    ///
-    /// Called when a work session begins, not when the break starts: macOS raises its
-    /// direct-capture dialog lazily, at the first real ScreenCaptureKit call, so making
-    /// that call earlier is the only way to keep the dialog out of the break.
-    ///
-    /// A refusal is remembered *across* launches — this app starts at login, so re-probing
-    /// each launch would raise the dialog at every boot, far more often than the monthly
-    /// cadence macOS itself considers reasonable. The user re-opens it deliberately via
-    /// ``confirmDirectCaptureAccess()``. Screen Recording is settled first, because
-    /// without it the probe would fail for an unrelated reason and mislabel the result.
+    /// Called as a work session begins: macOS raises its direct-capture dialog at the first
+    /// capture request, and one made early keeps it out of the break. Screen Recording goes
+    /// first, or the probe fails for the wrong reason.
     func prepareForCapture() async {
         refresh()
         requestAccessIfNeeded()
 
         guard isCaptureBlocked == false else { return }
 
-        // A probe already out is joined, not skipped: returning early would hand the caller
-        // an answer that has not arrived yet.
+        // Joined, not skipped: returning early would hand the caller an answer not yet in.
         if let confirmation {
             return await confirmation.value
         }
@@ -92,52 +90,19 @@ final class ScreenCapturePermissionManager {
         await task.value
     }
 
-    /// Re-opens the system's direct-capture dialog, clearing a remembered decline.
-    ///
-    /// The only two ways back: this, from the Preferences warning, and re-selecting
-    /// Shatter — both explicit statements that the user does want the frozen screen.
+    /// Re-opens the direct-capture dialog, clearing a remembered decline. System Settings has
+    /// no switch for this consent.
     func confirmDirectCaptureAccess() async {
         directCaptureAccess = .unknown
         defaults.set(false, forKey: Self.directCaptureDeclinedKey)
         await prepareForCapture()
     }
 
-    /// Requests Screen Recording when it is absent, at most once per launch.
-    ///
-    /// macOS decides whether a dialog appears: `CGRequestScreenCaptureAccess()` prompts
-    /// only "if absent" and returns silently once TCC holds an answer. Asking each launch
-    /// therefore costs nothing, and lets the app recover on its own — the grant is keyed
-    /// to the code-signing identity, so an ad-hoc rebuild (issue #43) leaves TCC with no
-    /// record. Nothing about the request is persisted: macOS is the record. The per-launch
-    /// cap is belt-and-braces against a macOS that re-prompts after a denial.
+    /// macOS prompts only while it holds no answer, so asking each launch is free and recovers
+    /// a grant lost to re-signing (issue #43).
     func requestAccessIfNeeded() {
-        guard hasScreenRecordingAccess == false, hasRequestedAccessThisLaunch == false else {
-            return
-        }
-
+        guard hasScreenRecordingAccess == false, hasRequestedAccessThisLaunch == false else { return }
         hasRequestedAccessThisLaunch = true
         _ = permissionClient.requestAccess()
-    }
-
-    private func updateAppActiveObservation() {
-        guard hasScreenRecordingAccess == false else {
-            // Screen recording permission changes typically require relaunch before
-            // the running process sees a new effective access state.
-            appActiveObserver = nil
-            return
-        }
-
-        observeAppActiveIfNeeded()
-    }
-
-    private func observeAppActiveIfNeeded() {
-        guard appActiveObserver == nil else { return }
-
-        let observer = AppActiveObserver(
-            manager: self,
-            notificationCenter: appNotificationCenter
-        )
-        observer.startObserving()
-        appActiveObserver = observer
     }
 }

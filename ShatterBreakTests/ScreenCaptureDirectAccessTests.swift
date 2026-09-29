@@ -2,8 +2,7 @@ import Testing
 
 @testable import ShatterBreak
 
-/// Covers macOS 15+'s direct-capture confirmation — the consent that sits on top of
-/// Screen Recording and used to be discovered mid-break (issue #90).
+/// Issue #90.
 @Suite("ScreenCapturePermissionManager direct capture", .tags(.permissions))
 struct ScreenCaptureDirectAccessTests {
     @Test("preparing for capture confirms direct capture when Screen Recording is granted")

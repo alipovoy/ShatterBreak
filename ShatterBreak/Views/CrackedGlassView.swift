@@ -19,9 +19,8 @@ struct CrackedGlassView: View {
         .allowsHitTesting(false)
     }
 
-    /// Glass catching light: additive white highlights (`.plusLighter`) over a thin offset
-    /// dark stroke. Additive blending is what keeps the cracks glinting rather than reading
-    /// as flat dark lines over the capture.
+    /// Additive highlights over a thin dark stroke, so the cracks glint rather than read as
+    /// flat lines.
     private static func draw(_ cracks: CrackedGlass, in context: GraphicsContext) {
         var shadow = context
         shadow.translateBy(x: 0.75, y: 0.75)

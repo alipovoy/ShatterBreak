@@ -3,9 +3,7 @@ import Testing
 
 @testable import ShatterBreak
 
-/// Covers how ``OverlayManager`` reuses the freeze-frames taken when a break began, so
-/// a display that changes shape, or that leaves and returns, keeps showing the desktop
-/// the break started over (issue #67).
+/// Issue #67.
 @Suite("OverlayManager freeze-frame reuse", .tags(.overlays))
 @MainActor
 struct OverlayManagerFreezeFrameTests {
@@ -18,7 +16,7 @@ struct OverlayManagerFreezeFrameTests {
     func returningDisplayReusesItsCapture() async throws {
         let capture = try TestImage.make(width: 160, height: 90)
         let context = try Context(capture: capture, displays: [primary])
-        defer { context.manager.dismissOverlays() }
+        defer { context.manager.dismiss() }
 
         await context.startBreak()
 
@@ -43,7 +41,7 @@ struct OverlayManagerFreezeFrameTests {
     func newDisplayCapturesFresh() async throws {
         let capture = try TestImage.make(width: 160, height: 90)
         let context = try Context(capture: capture, displays: [primary])
-        defer { context.manager.dismissOverlays() }
+        defer { context.manager.dismiss() }
 
         await context.startBreak()
 
@@ -61,7 +59,7 @@ struct OverlayManagerFreezeFrameTests {
     func reframedDisplayRefitsItsCapture() async throws {
         let capture = try TestImage.make(width: 160, height: 90)
         let context = try Context(capture: capture, displays: [primary])
-        defer { context.manager.dismissOverlays() }
+        defer { context.manager.dismiss() }
 
         await context.startBreak()
         #expect(context.manager.overlayStates[primaryDisplay]?.backgroundImage === capture)
@@ -79,7 +77,7 @@ struct OverlayManagerFreezeFrameTests {
     func repeatedReframesDoNotCompound() async throws {
         let capture = try TestImage.make(width: 160, height: 90)
         let context = try Context(capture: capture, displays: [primary])
-        defer { context.manager.dismissOverlays() }
+        defer { context.manager.dismiss() }
 
         await context.startBreak()
 
@@ -102,39 +100,32 @@ struct OverlayManagerFreezeFrameTests {
         StubScreens.display(secondaryDisplay, x: widescreen.width, size: widescreen)
     }
 
-    /// A manager wired to a stub that reports a mutable display list and captures one
-    /// known image, with both consent gates open so the shatter effect survives
-    /// ``OverlayManager/resolveEffectType(selected:hasScreenRecordingPermission:directCaptureAccess:)``.
+    /// Both consents open, so the break shatters.
     @MainActor
     private struct Context {
         let manager: OverlayManager
         let screens: StubScreens
 
         private let environment = TestEnvironment()
-        private let center = NotificationCenter()
 
         init(capture: CGImage, displays: [ScreenInfo]) throws {
             let screens = StubScreens(displays)
             self.screens = screens
             manager = environment.makeOverlayManager(
-                captureClient: screens.capturingClient(image: capture),
-                notificationCenter: center,
+                screens: screens,
+                capture: capture,
                 directCaptureAccess: { .allowed }
             )
         }
 
-        /// Opens a break and waits for its freeze-frames to land, so later assertions
-        /// run against a settled session rather than a race.
         func startBreak() async {
-            manager.showOverlays(state: environment.makeTimerState(), settled: false)
+            manager.show(environment.makeTimerState(), style: .animated)
             await settleCaptures()
         }
 
-        /// Swaps the attached displays and lets the manager reconcile, exactly as the
-        /// window server's notification would.
         func reconfigure(to displays: [ScreenInfo]) {
             screens.screens = displays
-            center.post(name: NSApplication.didChangeScreenParametersNotification, object: nil)
+            manager.displaysDidChange()
         }
 
         func settleCaptures() async {

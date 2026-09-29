@@ -1,13 +1,7 @@
 import Foundation
 
-/// A volatile `KeyValueStore`: isolated per instance, never written to disk.
-///
-/// For tests, replacing the per-test `UserDefaults(suiteName:)` suites that left a backing
-/// `plist` behind on every run, and for previews, where the canvas would otherwise write the
-/// user's real preferences.
-///
-/// Coercions mirror `UserDefaults` for the kinds this app stores: durations as `Double`,
-/// flags as `Bool`, enum raw values as `String`.
+/// Never written to disk. Coerces like `UserDefaults` for what the app stores: durations as
+/// `Double`, flags as `Bool`, enum raw values as `String`.
 final class InMemoryKeyValueStore: KeyValueStore, @unchecked Sendable {
     private var storage: [String: Any] = [:]
     private let lock = NSLock()

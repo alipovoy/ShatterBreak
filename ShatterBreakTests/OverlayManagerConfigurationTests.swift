@@ -62,7 +62,11 @@ struct OverlayManagerConfigurationTests {
     @Test("shatter without Screen Recording permission resolves to fogged")
     func shatterWithoutPermissionResolvesToFogged() {
         #expect(
-            OverlayManager.resolveEffectType(selected: .shatter, hasScreenRecordingPermission: false) == .fogged,
+            OverlayManager.resolveEffectType(
+                selected: .shatter,
+                hasScreenRecordingPermission: false,
+                directCaptureAccess: .unknown
+            ) == .fogged,
             "Shatter must fall back to fogged glass when it cannot capture the screen."
         )
     }
@@ -103,7 +107,8 @@ struct OverlayManagerConfigurationTests {
     func permissionlessEffectsAreUnaffected(selected: EffectType, hasPermission: Bool) {
         let resolved = OverlayManager.resolveEffectType(
             selected: selected,
-            hasScreenRecordingPermission: hasPermission
+            hasScreenRecordingPermission: hasPermission,
+            directCaptureAccess: .unknown
         )
         #expect(resolved == selected, "\(selected) needs no permission, so it should be presented as chosen.")
     }

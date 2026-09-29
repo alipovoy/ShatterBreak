@@ -4,8 +4,8 @@ import Foundation
 
 /// Drives ``TimerReducer`` over a clock the test moves by hand.
 ///
-/// ``run(_:)``, ``drift(_:)`` and ``sleepMachine(_:)`` are the same three ways time can
-/// pass that ``ManualTimerClock`` documents. No sleep notification is ever posted here,
+/// Time passes three ways: ``run(_:)`` awake and reconciling, ``drift(_:)`` awake with
+/// nothing reconciled, ``sleepMachine(_:)`` asleep. No sleep notification is ever posted here,
 /// deliberately: the absence must be measurable without one.
 struct ReducerDriver {
     private(set) var plan: TimerPlan
@@ -30,6 +30,8 @@ struct ReducerDriver {
     var now: Date { date }
     var remaining: TimeInterval { plan.remaining(at: date) }
     var phase: TimerPlan.Phase { plan.phase }
+    /// What `TimerState` arms its boundary timer for.
+    var nextTransition: TimeInterval? { TimerReducer.nextTransition(plan, at: date, prefs: prefs) }
 
     func count(of effect: TimerEffect) -> Int {
         effects.filter { $0 == effect }.count
@@ -70,9 +72,7 @@ struct ReducerDriver {
 }
 
 extension TimerPreferences {
-    /// Short durations so scenarios read in seconds. `awayResetThreshold` tracks
-    /// `restDuration`, as the app passes it today; `lead` defaults to the app's zero, so a
-    /// scenario that does not ask for one behaves as it did before the lead existed.
+    /// Short durations, so scenarios read in seconds; the away-reset tracks rest, as in the app.
     static func testing(
         work: TimeInterval = 10,
         rest: TimeInterval = 5,

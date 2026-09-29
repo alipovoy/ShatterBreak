@@ -2,16 +2,8 @@ import Testing
 
 @testable import ShatterBreak
 
-/// What a cycle settled by an absence writes to the tally (issue #111).
-///
-/// One rule, two halves. The break the absence stood in for counts, because a break taken by
-/// walking away is still a break taken. The work session never does: one finished at the desk
-/// was counted by the boundary it crossed, so anything counted here would be a countdown the
-/// wall clock ran out on with nobody in the room.
-///
-/// The break is credited only to a session someone sat through for a break's worth first —
-/// unless a postpone already earned it. Everything in "Absences that earn nothing" is a way
-/// the machine can look busy while the room is empty, and the floor is what tells them apart.
+/// What a cycle settled by an absence tallies (issue #111): the break it stood in for, after
+/// a break's worth of attended work or a postpone; never the work session.
 @Suite("Timer reducer absence tallies", .tags(.timerState, .sleepWake))
 struct TimerReducerAbsenceTallyTests {
     // MARK: - Breaks an absence earns
@@ -181,9 +173,7 @@ struct TimerReducerAbsenceTallyTests {
         var driver = ReducerDriver(prefs: .testing(work: 1_500, rest: 300))
         driver.act(.start)
         driver.run(30)
-        // Indistinguishable from sleep by measurement: the wall clock leaps an hour while the
-        // awake clock does not. The timer restarting is old behaviour; the tally must not
-        // follow it.
+        // Measures exactly like sleep; the timer may restart, the tally must not count it.
         driver.sleepMachine(3_600)
         driver.reconcile()
 

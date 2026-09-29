@@ -1,14 +1,8 @@
 import Foundation
 
-/// Pure parsing, formatting, and snapping for duration values.
-///
-/// This logic used to live in a `DurationSliderViewModel`, but it holds no state — it
-/// is just functions over `Double` seconds and `String` input. Keeping it as a plain
-/// namespace lets `DurationSliderView` own its own `@State` and lets tests exercise the
-/// fiddly parsing directly, without an `@Observable` wrapper.
+/// Parsing, formatting and snapping for durations in seconds.
 enum DurationFormat {
-    /// Parses user input ("1h 5m", "01:30", "90", "1:02:03") into total seconds, or
-    /// `nil` if it is not a valid duration. Input is lowercased and trimmed first.
+    /// Seconds from "1h 5m", "01:30", "90" (minutes) or "1:02:03"; `nil` if invalid.
     static func parse(_ rawInput: String) -> Double? {
         let input = rawInput
             .lowercased()
@@ -23,29 +17,24 @@ enum DurationFormat {
         return parsedColonSeparatedSeconds(from: input)
     }
 
-    /// Applies accepted input to `current`, clamped to `min...max`. Rejected or
-    /// non-positive input leaves `current` unchanged.
+    /// Rejected or non-positive input leaves `current` unchanged.
     static func applying(input: String, to current: Double, min: Double, max: Double) -> Double {
         guard let parsed = parse(input), parsed > 0 else { return current }
         return Swift.max(min, Swift.min(parsed, max))
     }
 
-    /// Snaps a raw slider duration to its step (5s / 60s / 300s) and clamps to `min...max`.
     static func snap(rawSeconds: Double, min: Double, max: Double) -> Double {
         let step = scaleStep(for: rawSeconds)
         let snapped = (rawSeconds / step).rounded() * step
         return Swift.max(min, Swift.min(snapped, max))
     }
 
-    /// The single-step adjustment for nudging a duration up or down; shares the
-    /// slider's snap scale. Descending steps pick the scale from just below the
-    /// current value, so stepping down from a boundary (60s, 600s) descends
-    /// through the finer scale instead of jumping past it.
+    /// Stepping down picks the scale from just below the value, so leaving a boundary (60s,
+    /// 600s) takes the finer step.
     static func step(from seconds: Double, descending: Bool) -> Double {
         scaleStep(for: descending ? seconds - 1 : seconds)
     }
 
-    /// The snap/step scale for a duration: finer near zero, coarser as it grows.
     private static func scaleStep(for seconds: Double) -> Double {
         switch seconds {
         case ..<60: 5
@@ -56,13 +45,12 @@ enum DurationFormat {
 
     // MARK: - Display formatting
 
-    /// A reader-friendly duration: "1h 5m" above an hour, otherwise "MM:SS".
+    /// "1h 5m" above an hour, otherwise "MM:SS".
     static func friendly(_ seconds: Double) -> String {
         let wholeSeconds = Int(seconds)
         guard wholeSeconds >= 3600 else { return clock(seconds) }
 
-        // Hours and minutes are always shown; seconds only when they are non-zero,
-        // so a round duration reads "2h 0m" rather than "2h 0m 0s".
+        // "2h 0m", not "2h 0m 0s".
         let allowedUnits: Set<Duration.UnitsFormatStyle.Unit> = wholeSeconds % 60 == 0
             ? [.hours, .minutes]
             : [.hours, .minutes, .seconds]
@@ -72,7 +60,7 @@ enum DurationFormat {
         )
     }
 
-    /// An editable clock string ("MM:SS"); minutes are not capped at 59.
+    /// Minutes are not capped at 59.
     static func clock(_ seconds: Double) -> String {
         let totalMinutes = Int(seconds) / 60
         let remainingSeconds = Int(seconds) % 60

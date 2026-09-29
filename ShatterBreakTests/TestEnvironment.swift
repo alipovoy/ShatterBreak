@@ -1,140 +1,73 @@
 import CoreGraphics
 import Foundation
+import Testing
 
 @testable import ShatterBreak
 
+@MainActor
 final class TestEnvironment {
     let defaults: any KeyValueStore = InMemoryKeyValueStore()
-    let workspaceNotificationCenter = NotificationCenter()
-    let appNotificationCenter = NotificationCenter()
-    let defaultsNotificationCenter = NotificationCenter()
-    private var cachedClock: ManualTimerClock?
-    /// Lit unless a DarkWake-gating test says otherwise, so overlay assertions stay about
-    /// the state machine.
-    @MainActor
-    var isDisplayAwake = true
-
-    /// Empty unless a gating test sleeps one. Held here rather than in a captured local so
-    /// a test can sleep or wake a display after the manager already holds the closure.
-    @MainActor
+    let clock = TestClock()
     var asleepDisplays: Set<CGDirectDisplayID> = []
+    private weak var timer: TimerState?
 
-    @MainActor
-    var clock: ManualTimerClock {
-        if let cachedClock {
-            return cachedClock
-        }
-
-        let clock = ManualTimerClock()
-        cachedClock = clock
-        return clock
+    func makeTimerState(overlays: (any BreakPresenting)? = nil) -> TimerState {
+        let state = TimerState(defaults: defaults, overlays: overlays, now: { [clock] in clock.instant })
+        timer = state
+        return state
     }
 
-    @MainActor
-    func makeTimerState(
-        overlays: OverlayPresenter = .disabled,
-        postponeDurationSecs: Double? = nil
-    ) -> TimerState {
-        TimerState(
-            overlays: overlays,
-            postponeDurationSecs: postponeDurationSecs,
-            defaults: defaults,
-            clock: clock,
-            workspaceNotificationCenter: workspaceNotificationCenter,
-            isDisplayAwake: { [unowned self] in isDisplayAwake }
-        )
-    }
-
-    @MainActor
-    /// - Parameter directCaptureAccess: `.unknown` by default, matching the app before its
-    ///   probe answers. A test needing shatter to survive `resolveEffectType` passes
-    ///   `.allowed`.
-    func makeOverlayManager(
-        captureClient: ScreenCaptureClient = .live,
-        notificationCenter: NotificationCenter = NotificationCenter(),
-        directCaptureAccess: @escaping @MainActor () -> DirectCaptureAccess = { .unknown }
-    ) -> OverlayManager {
-        OverlayManager(
-            defaults: defaults,
-            captureClient: captureClient,
-            notificationCenter: notificationCenter,
-            // Shared with the screen-parameter observer: tests post both display-reconfiguration
-            // and sleep/wake notifications on the one center they hold a reference to.
-            workspaceNotificationCenter: notificationCenter,
-            directCaptureAccess: directCaptureAccess,
-            isDisplayAwake: { [unowned self] in asleepDisplays.contains($0) == false }
-        )
-    }
-
-    /// For tests planting a timestamp the timer will measure against.
-    @MainActor
-    var now: Date { clock.date }
-
-    @MainActor
     func advanceTime(by interval: TimeInterval = 1, ticks: Int = 1) async {
         for _ in 0..<ticks {
-            clock.advance(by: interval)
+            clock.elapse(by: interval)
+            guard let timer else {
+                Issue.record("No live timer to reconcile; the clock moved for nothing.")
+                return
+            }
+            timer.reconcile()
         }
     }
 
-    /// Awake but not reconciling: a dropped boundary timer, not an absence.
-    @MainActor
+    /// Awake with nothing reconciling: a lost boundary timer, not an absence.
     func elapseTimeWithoutTick(by interval: TimeInterval) {
         clock.elapse(by: interval)
     }
 
-    /// Asleep, with no notification to say so — the evidence an absence is measured from.
-    @MainActor
+    /// Asleep, with no notification to say so.
     func sleepMachine(by interval: TimeInterval) {
         clock.sleepMachine(by: interval)
     }
 
-    @MainActor
-    func advanceUntil(
-        by interval: TimeInterval = 1,
-        maxTicks: Int = 5,
-        condition: () -> Bool
-    ) async {
+    var now: Date { clock.date }
+
+    func advanceUntil(by interval: TimeInterval = 1, maxTicks: Int = 5, condition: () -> Bool) async {
         for _ in 0..<maxTicks where condition() == false {
             await advanceTime(by: interval)
         }
     }
 
-    @MainActor
-    func makeMenuBarController(state: TimerState) -> MenuBarController {
-        MenuBarController(
-            state: state,
+    /// Displays in `asleepDisplays` read as dark. Without `capture`, Screen Recording reads as
+    /// missing, so shatter resolves to fogged and nothing is captured.
+    func makeOverlayManager(
+        screens: StubScreens? = nil,
+        capture image: CGImage? = nil,
+        directCaptureAccess: @escaping @MainActor () -> DirectCaptureAccess = { .unknown }
+    ) -> OverlayManager {
+        OverlayManager(
             defaults: defaults,
-            notificationCenter: defaultsNotificationCenter
+            screens: { screens?.screens ?? [] },
+            capture: { displayIDs in
+                guard let image else { return [:] }
+                return Dictionary(uniqueKeysWithValues: displayIDs.map { ($0, image) })
+            },
+            isDisplayAwake: { [unowned self] in asleepDisplays.contains($0) == false },
+            hasScreenRecordingPermission: { image != nil },
+            directCaptureAccess: directCaptureAccess
         )
     }
 
-    /// The preference is written by `@AppStorage`, not through the timer, so the posted
-    /// notification is the only signal ``MenuBarController`` gets.
-    @MainActor
-    func setMenuBarTimerStyle(_ style: MenuBarTimerStyle) {
-        defaults.set(style.rawValue, forKey: PreferenceKeys.menuBarTimerStyle)
-        defaultsNotificationCenter.post(name: UserDefaults.didChangeNotification, object: nil)
-    }
+    let appNotificationCenter = NotificationCenter()
 
-    /// Work posted to the main queue — a notification observer, a `Task` spawned from a
-    /// main-actor object — lands a turn or more after the call that scheduled it, and a
-    /// countdown's own sleep is a second long.
-    @MainActor
-    func waitUntil(_ condition: () -> Bool) async {
-        for _ in 0..<600 {
-            if condition() { return }
-            try? await Task.sleep(for: .milliseconds(5))
-        }
-    }
-
-    /// For asserting that something did *not* happen, where there is no condition to poll.
-    @MainActor
-    func settle() async {
-        try? await Task.sleep(for: .milliseconds(50))
-    }
-
-    @MainActor
     func makePermissionManager(
         permissionClient: ScreenCapturePermissionClient = .live
     ) -> ScreenCapturePermissionManager {
@@ -143,5 +76,24 @@ final class TestEnvironment {
             appNotificationCenter: appNotificationCenter,
             permissionClient: permissionClient
         )
+    }
+
+    /// The in-memory store posts no change notification of its own.
+    func setMenuBarTimerStyle(_ style: MenuBarTimerStyle) {
+        defaults.set(style.rawValue, forKey: PreferenceKeys.menuBarTimerStyle)
+        NotificationCenter.default.post(name: UserDefaults.didChangeNotification, object: nil)
+    }
+
+    /// Work posted to the main queue lands a turn or more after the call that scheduled it.
+    func waitUntil(_ condition: () -> Bool) async {
+        for _ in 0..<600 {
+            if condition() { return }
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+    }
+
+    /// For asserting that something did *not* happen, where there is no condition to poll.
+    func settle() async {
+        try? await Task.sleep(for: .milliseconds(50))
     }
 }

@@ -14,14 +14,12 @@ struct TimerStateSleepWakeTests {
         state.restDurationSecs = 4
 
         state.start()
-
-        let notificationCenter = environment.workspaceNotificationCenter
-        notificationCenter.post(name: NSWorkspace.screensDidSleepNotification, object: nil)
+        state.systemWillSleep()
         // Away for less than a full break, so the work countdown must keep running.
         environment.elapseTimeWithoutTick(by: 2)
         #expect(state.isPaused == false, "Work must never pause on display sleep (issue #4).")
 
-        notificationCenter.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
+        state.systemDidWake()
         #expect(state.mode == .running, "A short absence should keep the work session running.")
         #expect(state.timeRemaining == 3, "The countdown should reflect the time spent asleep.")
 
@@ -40,12 +38,10 @@ struct TimerStateSleepWakeTests {
         state.start()
         await environment.advanceTime(by: 4)
         #expect(state.timeRemaining == 6, "The test setup should consume part of the work period.")
-
-        let notificationCenter = environment.workspaceNotificationCenter
-        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        state.systemWillSleep()
         // Away at least one full break, so the absence counts as the break itself.
         environment.elapseTimeWithoutTick(by: 5)
-        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        state.systemDidWake()
 
         #expect(state.mode == .running, "A long absence should start a fresh work session (issue #69).")
         #expect(state.timeRemaining == 10, "The fresh session should restore the full work duration.")
@@ -65,11 +61,9 @@ struct TimerStateSleepWakeTests {
         state.start()
         await environment.advanceUntil(maxTicks: 6) { state.isResting }
         #expect(state.isResting, "The test setup should enter rest before simulating sleep.")
-
-        let notificationCenter = environment.workspaceNotificationCenter
-        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        state.systemWillSleep()
         environment.elapseTimeWithoutTick(by: 1)
-        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        state.systemDidWake()
 
         #expect(state.mode == .running, "An elapsed break should auto-resume into work on logon (issue #4).")
         #expect(state.timeRemaining == 5, "Auto-resume should begin a fresh work session.")
@@ -83,18 +77,16 @@ struct TimerStateSleepWakeTests {
         defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let recorder = OverlayRecorder()
-        let state = environment.makeTimerState(overlays: recorder.presenter)
+        let state = environment.makeTimerState(overlays: recorder)
         state.workDurationSecs = 5
         state.restDurationSecs = 1
 
         state.start()
         await environment.advanceUntil(maxTicks: 6) { state.isResting }
         #expect(state.isResting, "The test setup should enter rest before simulating sleep.")
-
-        let notificationCenter = environment.workspaceNotificationCenter
-        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        state.systemWillSleep()
         environment.elapseTimeWithoutTick(by: 1)
-        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        state.systemDidWake()
 
         #expect(state.awaitingReturn, "Without auto-start, an elapsed break should await the user on wake.")
         #expect(recorder.dismissCount == 0, "The break overlay should remain visible until the user returns.")
@@ -104,7 +96,8 @@ struct TimerStateSleepWakeTests {
     @MainActor
     func shortSleepDuringPostponedWorkContinues() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(postponeDurationSecs: 5)
+        environment.defaults.set(5.0, forKey: PreferenceKeys.postponeDurationSecs)
+        let state = environment.makeTimerState()
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -114,15 +107,13 @@ struct TimerStateSleepWakeTests {
 
         state.postpone()
         #expect(state.mode == .postponedWork, "Postpone should switch into postponed work.")
-
-        let notificationCenter = environment.workspaceNotificationCenter
-        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        state.systemWillSleep()
         #expect(state.isPaused == false, "Postponed work must never pause on sleep (issue #4).")
 
         // Away for less than a full break, so the postponed countdown keeps running.
         environment.elapseTimeWithoutTick(by: 3)
 
-        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        state.systemDidWake()
         #expect(state.mode == .postponedWork, "A short absence should keep postponed work running.")
         #expect(state.timeRemaining == 2, "Postponed work should reflect the time spent asleep.")
 
@@ -135,7 +126,8 @@ struct TimerStateSleepWakeTests {
     @MainActor
     func longSleepDuringPostponedWorkStartsFreshSession() async {
         let environment = TestEnvironment()
-        let state = environment.makeTimerState(postponeDurationSecs: 5)
+        environment.defaults.set(5.0, forKey: PreferenceKeys.postponeDurationSecs)
+        let state = environment.makeTimerState()
         state.workDurationSecs = 8
         state.restDurationSecs = 3
 
@@ -146,12 +138,10 @@ struct TimerStateSleepWakeTests {
         state.postpone()
         #expect(state.mode == .postponedWork, "Postpone should switch into postponed work.")
         #expect(state.canPostpone == false, "Postpone should be spent for this cycle.")
-
-        let notificationCenter = environment.workspaceNotificationCenter
-        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        state.systemWillSleep()
         // Away at least one full break, so the absence counts as the break itself.
         environment.elapseTimeWithoutTick(by: 4)
-        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        state.systemDidWake()
 
         #expect(state.mode == .running, "A long absence should start a fresh work session (issue #69).")
         #expect(state.timeRemaining == 8, "The fresh session should restore the full work duration.")
@@ -169,10 +159,8 @@ struct TimerStateSleepWakeTests {
         state.pause()
         #expect(state.isPaused, "A user pause should freeze the work countdown.")
         let snapshot = state.timeRemaining
-
-        let notificationCenter = environment.workspaceNotificationCenter
-        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
-        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        state.systemWillSleep()
+        state.systemDidWake()
 
         #expect(state.isPaused, "A manual pause must not auto-resume on wake; only system auto-pauses resume.")
         #expect(
@@ -188,13 +176,9 @@ struct TimerStateSleepWakeTests {
         let state = environment.makeTimerState()
         state.workDurationSecs = 5
         state.restDurationSecs = 5
-
-        let notificationCenter = environment.workspaceNotificationCenter
         state.start()
-        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
-        // Stop lands before the wake, so the absence is still open when the cycle resets. It
-        // must not follow the user into the next one, where a leaked eight seconds
-        // would read as a break already taken.
+        state.systemWillSleep()
+        // The absence is still open as the cycle resets, and must not leak into the next.
         environment.elapseTimeWithoutTick(by: 8)
         state.stop()
         #expect(state.mode == .idle, "Stop should return to idle even while a sleep is in flight.")
@@ -211,26 +195,20 @@ struct TimerStateSleepWakeTests {
     func expiryWhileAsleepResolvesImmediately() async {
         let environment = TestEnvironment()
         let recorder = OverlayRecorder()
-        let state = environment.makeTimerState(overlays: recorder.presenter)
+        let state = environment.makeTimerState(overlays: recorder)
         state.workDurationSecs = 2
         state.restDurationSecs = 5
-
-        let notificationCenter = environment.workspaceNotificationCenter
         state.start()
-        notificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        state.systemWillSleep()
 
-        // Work runs out while the machine is asleep. The old design deferred the transition
-        // until a wake authorised it, which is why a wake that never came stalled the timer.
-        // Now the reconcile that observes the boundary resolves it.
+        // Work runs out while asleep; the next reconcile resolves it, no wake needed.
         await environment.advanceTime(by: 3)
         #expect(state.isResting, "The boundary must resolve when it is observed, not when a notification allows it.")
         #expect(state.timeRemaining == 2, "The whole absence is credited as rest (5 - 3).")
 
-        // Safety is the executor's job: the plan advances during a dark wake, and only the
-        // presentation waits for a screen.
         #expect(recorder.showCount == 1, "With a display awake, the break is presented as usual.")
 
-        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        state.systemDidWake()
         #expect(state.isResting, "The wake has nothing left to resolve and must not disturb the break.")
         #expect(recorder.showCount == 1, "Nor present it a second time.")
     }
@@ -245,13 +223,12 @@ struct TimerStateSleepWakeTests {
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
-        environment.workspaceNotificationCenter.post(name: NSWorkspace.willSleepNotification, object: nil)
+        state.systemWillSleep()
         state.start()
         await environment.advanceUntil(maxTicks: 4) { state.awaitingReturn }
         #expect(state.awaitingReturn, "Manual mode should park in awaiting-return after the break.")
 
-        // This window can sit for hours. An absence carried into it would credit all of that
-        // as a break the moment the user starts, resetting the session they asked for.
+        // Hours can pass here; an absence carried in would reset the session the user starts.
         state.start()
         #expect(state.timeRemaining == 1, "The session the user started must begin whole.")
     }

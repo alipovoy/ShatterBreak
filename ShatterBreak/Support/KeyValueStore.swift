@@ -1,10 +1,7 @@
 import Foundation
 
-/// A key-value persistence seam, satisfied by `UserDefaults` in the app and by an in-memory
-/// store in tests, so that tests never touch the real preferences system.
-///
-/// `@AppStorage` requires a concrete `UserDefaults` and is not exercised by tests. The
-/// surface mirrors `UserDefaults` exactly, so conformance is free.
+/// `UserDefaults` in the app, ``InMemoryKeyValueStore`` in tests: a `UserDefaults` suite
+/// leaves its file behind in the sandbox container on every run.
 protocol KeyValueStore: Sendable {
     func object(forKey key: String) -> Any?
     func string(forKey key: String) -> String?
@@ -17,17 +14,19 @@ protocol KeyValueStore: Sendable {
 extension UserDefaults: KeyValueStore {}
 
 extension KeyValueStore {
-    /// A duration preference, or `defaultValue` when unset.
-    ///
-    /// `double(forKey:)` cannot tell "unset" from "zero", and no duration the app stores is
+    /// `double(forKey:)` cannot tell unset from zero, and no duration the app stores is
     /// legitimately zero, so a non-positive reading means nothing was written.
     func duration(forKey key: String, default defaultValue: Double) -> Double {
         let stored = double(forKey: key)
         return stored > 0 ? stored : defaultValue
     }
 
-    /// A preference stored as an enum's raw value, or `defaultValue` when unset or
-    /// unrecognized — so a corrupt stored string falls back rather than being trusted.
+    /// `bool(forKey:)` cannot tell unset from false, and several flags default to true.
+    func flag(forKey key: String, default defaultValue: Bool) -> Bool {
+        object(forKey: key) as? Bool ?? defaultValue
+    }
+
+    /// An unrecognized stored string falls back rather than being trusted.
     func value<V: RawRepresentable>(forKey key: String, default defaultValue: V) -> V
     where V.RawValue == String {
         string(forKey: key).flatMap(V.init(rawValue:)) ?? defaultValue

@@ -1,26 +1,15 @@
 import SwiftUI
 
-/// The geometry of a cracked-glass effect: the radial fracture lines, the finer
-/// web of secondary cracks, and the impact point they radiate from.
 struct CrackedGlass: Equatable {
     var mainCracks: Path
     var webCracks: Path
     var shatterCenter: CGPoint
 }
 
-/// Builds the ``CrackedGlass`` geometry for a given size.
-///
-/// The randomness is injected so callers can supply a seeded generator, keeping
-/// the produced geometry deterministic and unit-testable while the view stays
-/// purely presentational.
 struct CrackedGlassGenerator {
-    /// How far the impact point may stray from the center, as a fraction of each
-    /// axis. A fixed point offset read as nearly centered on large displays; scaling
-    /// by the display size lets the impact land well off-center while staying within
-    /// bounds (the center sits in the inner 1 − 2·fraction of the screen).
+    /// A fraction of each axis: a fixed offset read as centred on large displays.
     private static let impactJitterFraction: CGFloat = 0.15
 
-    /// Generates fracture geometry filling `size`, or `nil` when `size` has no area.
     func generate(
         size: CGSize,
         using rng: inout some RandomNumberGenerator

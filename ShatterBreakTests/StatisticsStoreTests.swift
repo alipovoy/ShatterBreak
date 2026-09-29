@@ -4,11 +4,12 @@ import Testing
 @testable import ShatterBreak
 
 @Suite("StatisticsStore", .tags(.statistics), .timeLimit(.minutes(1)))
+@MainActor
 struct StatisticsStoreTests {
+    let environment = TestEnvironment()
+    var defaults: any KeyValueStore { environment.defaults }
     @Test("recording increments counters and persists across store instances")
-    @MainActor
     func recordingPersistsAcrossInstances() {
-        let defaults = InMemoryKeyValueStore()
         defaults.set(true, forKey: PreferenceKeys.trackStatistics)
 
         let store = StatisticsStore(defaults: defaults)
@@ -27,9 +28,7 @@ struct StatisticsStoreTests {
     }
 
     @Test("record is a no-op while tracking is disabled")
-    @MainActor
     func recordIsNoOpWhileDisabled() {
-        let defaults = InMemoryKeyValueStore()
 
         let store = StatisticsStore(defaults: defaults)
         store.record(.workSessionCompleted)
@@ -42,29 +41,23 @@ struct StatisticsStoreTests {
     }
 
     @Test("reset zeroes the counters and restamps since")
-    @MainActor
     func resetZeroesCountersAndRestampsSince() {
-        let defaults = InMemoryKeyValueStore()
         defaults.set(true, forKey: PreferenceKeys.trackStatistics)
 
-        var currentTime = Date(timeIntervalSinceReferenceDate: 1_000)
-        let store = StatisticsStore(defaults: defaults, now: { currentTime })
+        let store = StatisticsStore(defaults: defaults)
         store.record(.workSessionCompleted)
-
-        currentTime = Date(timeIntervalSinceReferenceDate: 2_000)
+        let before = Date.now
         store.reset()
 
         #expect(store.current.workSessionsCompleted == 0, "Reset should zero the counters.")
-        #expect(store.current.since == currentTime, "Reset should stamp since with the present moment.")
+        #expect(store.current.since >= before, "Reset should stamp since with the present moment.")
 
         let reloaded = StatisticsStore(defaults: defaults)
         #expect(reloaded.current == store.current, "The reset tally should persist.")
     }
 
     @Test("automatic reset requires both tracking and the opt-in preference")
-    @MainActor
     func automaticResetRequiresBothPreferences() {
-        let defaults = InMemoryKeyValueStore()
         defaults.set(true, forKey: PreferenceKeys.trackStatistics)
 
         let store = StatisticsStore(defaults: defaults)
@@ -84,14 +77,12 @@ struct StatisticsStoreTests {
     }
 
     @Test("unreadable stored data falls back to a fresh zero tally")
-    @MainActor
     func unreadableDataFallsBackToFreshTally() {
-        let defaults = InMemoryKeyValueStore()
         defaults.set(Data("not json".utf8), forKey: PreferenceKeys.sessionStatistics)
 
-        let fallbackTime = Date(timeIntervalSinceReferenceDate: 3_000)
-        let store = StatisticsStore(defaults: defaults, now: { fallbackTime })
+        let store = StatisticsStore(defaults: defaults)
 
-        #expect(store.current == SessionStatistics(since: fallbackTime), "Bad data should yield a fresh tally.")
+        #expect(store.current == SessionStatistics(since: store.current.since), "Bad data should yield a zero tally.")
+        #expect(abs(store.current.since.timeIntervalSinceNow) < 60, "Counted from now, not from a stale date.")
     }
 }

@@ -3,8 +3,6 @@ import Testing
 
 @testable import ShatterBreak
 
-/// The status item reacts to a preference written elsewhere, to the phase on the clock and
-/// to being released — none of which reaches it through SwiftUI any more.
 @Suite("Menu bar controller", .tags(.timerState), .timeLimit(.minutes(1)))
 struct MenuBarControllerTests {
     @Test("A style written to the store reaches the item")
@@ -13,7 +11,7 @@ struct MenuBarControllerTests {
         let environment = TestEnvironment()
         let state = environment.makeTimerState()
         state.workDurationSecs = 1500
-        let controller = environment.makeMenuBarController(state: state)
+        let controller = MenuBarController(state: state)
 
         state.start()
         await environment.settle()
@@ -35,10 +33,11 @@ struct MenuBarControllerTests {
     func postponedWorkCountsTheDelay() async {
         let environment = TestEnvironment()
         environment.setMenuBarTimerStyle(.seconds)
-        let state = environment.makeTimerState(postponeDurationSecs: 300)
+        environment.defaults.set(300.0, forKey: PreferenceKeys.postponeDurationSecs)
+        let state = environment.makeTimerState()
         state.workDurationSecs = 6000
         state.restDurationSecs = 60
-        let controller = environment.makeMenuBarController(state: state)
+        let controller = MenuBarController(state: state)
 
         state.start()
         await environment.waitUntil { controller.countdownText == "100:00" }
@@ -63,7 +62,7 @@ struct MenuBarControllerTests {
         environment.setMenuBarTimerStyle(.seconds)
         let state = environment.makeTimerState()
         state.workDurationSecs = 1500
-        let controller = environment.makeMenuBarController(state: state)
+        let controller = MenuBarController(state: state)
 
         state.start()
         await environment.advanceTime(by: 60)
@@ -83,7 +82,7 @@ struct MenuBarControllerTests {
         let state = environment.makeTimerState()
         state.workDurationSecs = 60
         state.restDurationSecs = 60
-        let controller = environment.makeMenuBarController(state: state)
+        let controller = MenuBarController(state: state)
 
         state.start()
         await environment.waitUntil { controller.countdownText == "01:00" }
@@ -104,7 +103,7 @@ struct MenuBarControllerTests {
         environment.setMenuBarTimerStyle(.seconds)
         let state = environment.makeTimerState()
         state.workDurationSecs = 1500
-        let controller = environment.makeMenuBarController(state: state)
+        let controller = MenuBarController(state: state)
 
         _ = controller.stageAnchor()
         guard let item = controller.itemScreenFrame, let parked = controller.anchorOrigin else {
@@ -137,7 +136,7 @@ struct MenuBarControllerTests {
     func aPressAnswersTheDismissalTheItemCaused() async {
         let environment = TestEnvironment()
         let state = environment.makeTimerState()
-        let controller = environment.makeMenuBarController(state: state)
+        let controller = MenuBarController(state: state)
         let notification = Notification(name: NSPopover.willCloseNotification)
 
         #expect(
@@ -182,7 +181,7 @@ struct MenuBarControllerTests {
         weak var released: MenuBarController?
 
         do {
-            let controller = environment.makeMenuBarController(state: state)
+            let controller = MenuBarController(state: state)
             released = controller
             state.start()
             await environment.waitUntil { controller.countdownText.isEmpty == false }

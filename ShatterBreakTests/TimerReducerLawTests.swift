@@ -3,11 +3,8 @@ import Testing
 
 @testable import ShatterBreak
 
-/// The properties the design rests on.
-///
-/// Everything above the reducer may call `advance` at any moment, as often as it likes,
-/// and none of it is trusted — which is only safe if reconciling is idempotent and crosses
-/// at most one boundary. If these fail, the design is broken, not the test.
+/// Anything may call `advance` at any moment, as often as it likes. That is safe only while
+/// these hold.
 @Suite("Timer reducer laws", .tags(.timerState))
 struct TimerReducerLawTests {
     /// Wide enough to reach every phase, both sides of every boundary, paused and running,

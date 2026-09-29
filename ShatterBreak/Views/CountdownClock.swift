@@ -1,20 +1,11 @@
 import SwiftUI
 
-/// Supplies a reference date that advances exactly when the countdown's display can next
-/// change, and no sooner.
-///
-/// Read-only by construction: the timer runs on ``TimerState``'s own clock, so a drive loop
-/// that dies here leaves a stale label, not a stalled timer. The two were once confused,
-/// and a dead view loop was indistinguishable from a stuck timer.
-///
-/// One implementation for every countdown on screen; the menu bar, popover and overlay all
-/// used to keep near-copies with their own ideas of when to restart.
+/// A reference date that advances exactly when the countdown's text can change. Read-only:
+/// a loop that dies here leaves a stale label, never a stalled timer.
 struct CountdownClock<Content: View>: View {
     let state: TimerState
     /// An off-screen popover should not wake the machine to redraw what nobody can see.
     var isActive = true
-    /// Sets the cadence: the distance to the next visible change, once a minute in the
-    /// power-save style.
     var displayStyle: CountdownDisplayStyle = .seconds
     @ViewBuilder var content: (Date) -> Content
 
@@ -25,10 +16,8 @@ struct CountdownClock<Content: View>: View {
             .task(id: taskKey) { await drive() }
     }
 
-    /// Restarts the loop when the interval changes.
-    ///
-    /// The loop ends at zero, so only a new key revives it. Keyed on anything coarser,
-    /// back-to-back sessions in the same mode leave it dead on the last frame.
+    /// The loop ends at zero and only a new key revives it, so it is keyed on the interval:
+    /// back-to-back sessions share a mode.
     private var taskKey: CountdownClockKey {
         CountdownClockKey(
             intervalID: state.countdownIntervalID,
@@ -41,7 +30,7 @@ struct CountdownClock<Content: View>: View {
     @MainActor
     private func drive() async {
         guard isActive else {
-            referenceDate = state.clock.instant.date
+            referenceDate = state.now().date
             return
         }
 

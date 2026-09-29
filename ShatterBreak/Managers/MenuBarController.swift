@@ -1,24 +1,19 @@
 import AppKit
 import SwiftUI
 
-/// The status item and the popover holding ``MenuView``.
+/// The status item and its popover. AppKit rather than `MenuBarExtra`, which drops font
+/// modifiers on its label: without monospaced digits the item resized every tick.
 ///
-/// AppKit rather than `MenuBarExtra`: that scene drops font modifiers on its label, so the
-/// countdown drew proportionally and the item resized every tick. Monospaced digits hold
-/// the width instead.
-///
-/// The popover hangs off an anchor window rather than the item: AppKit moves a popover
-/// whose positioning view resizes, landing it ~48pt off.
+/// The popover hangs off an anchor window, not the item: AppKit moves a popover whose
+/// positioning view resizes.
 @MainActor
 final class MenuBarController: NSObject, NSPopoverDelegate {
     private let state: TimerState
-    private let defaults: any KeyValueStore
-    private let notificationCenter: NotificationCenter
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let popover = NSPopover()
 
-    /// Built from the menu bar's own point size, read before anything overrides
-    /// `button.font`, which is what keeps the baseline where AppKit put it.
+    /// From the menu bar's own point size, read before `button.font` is touched, which keeps
+    /// the baseline where AppKit put it.
     private let titleAttributes: [NSAttributedString.Key: Any]
 
     /// Parked where the item was when the menu opened, and left there.
@@ -32,15 +27,9 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private var styleObserver: (any NSObjectProtocol)?
     private var timerStyle: MenuBarTimerStyle
 
-    init(
-        state: TimerState,
-        defaults: any KeyValueStore = UserDefaults.standard,
-        notificationCenter: NotificationCenter = .default
-    ) {
+    init(state: TimerState) {
         self.state = state
-        self.defaults = defaults
-        self.notificationCenter = notificationCenter
-        self.timerStyle = defaults.value(
+        self.timerStyle = state.defaults.value(
             forKey: PreferenceKeys.menuBarTimerStyle,
             default: PreferenceDefaults.menuBarTimerStyle
         )
@@ -60,7 +49,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         popover.delegate = self
         popover.contentViewController = NSHostingController(rootView: MenuView(state: state))
 
-        styleObserver = notificationCenter.addObserver(
+        styleObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
             object: nil,
             queue: .main
@@ -75,7 +64,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     isolated deinit {
         refreshTask?.cancel()
         if let styleObserver {
-            notificationCenter.removeObserver(styleObserver)
+            NotificationCenter.default.removeObserver(styleObserver)
         }
         anchorWindow?.orderOut(nil)
         NSStatusBar.system.removeStatusItem(statusItem)
@@ -87,12 +76,11 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         case swallowed, closes, opens
     }
 
-    /// A click on the item deactivates the app, dismissing the menu 28ms before the action runs,
-    /// on the deactivation rather than the click. The two cannot be matched up by event, only by
-    /// order — a dismissal the item caused is followed by a press, one caused elsewhere is not.
+    /// A click on the item dismisses the menu before the action runs, so the two are matched by
+    /// order: a dismissal the item caused is followed by a press, one caused elsewhere is not.
     ///
-    /// A press that dismissed nothing — VoiceOver, Full Keyboard Access — has to close the menu
-    /// itself. A menu still fading reads as shown, and is reopened rather than closed again.
+    /// A press that dismissed nothing (VoiceOver, Full Keyboard Access) closes the menu itself.
+    /// A menu still fading reads as shown, and is reopened rather than closed again.
     func press(menuIsShown: Bool) -> PressOutcome {
         guard dismissalIsUnanswered == false else {
             dismissalIsUnanswered = false
@@ -119,8 +107,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private func showMenu() {
         guard let anchor = stageAnchor() else { return }
 
-        // Deprecated, but the `activate()` that replaced it declines to bring an accessory
-        // app forward — measured leaving the menu with no key window at all.
+        // Deprecated, but `activate()` declines to bring an accessory app forward, leaving the
+        // menu with no key window.
         NSApp.activate(ignoringOtherApps: true)
         popover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .minY)
 
@@ -128,9 +116,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         dropFirstResponder()
     }
 
-    /// The duration field takes first responder as the window appears, being the first control
-    /// that accepts one. At `didShow` alone the field holds it for the length of the fade;
-    /// here alone misses a menu reopened while the last was closing.
+    /// The duration field grabs first responder as the window appears. Dropped both here and at
+    /// `didShow`: either alone misses a case.
     private func dropFirstResponder() {
         popover.contentViewController?.view.window?.makeFirstResponder(nil)
     }
@@ -152,9 +139,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         isClosing = false
     }
 
-    /// From the trailing edge, the one coordinate a status item keeps when its width
-    /// changes: from the centre, stopping a session from an open menu leaves the arrow
-    /// beside the item. 16pt is where the icon sits with the countdown hidden.
+    /// From the trailing edge, the one coordinate a status item keeps as its width changes.
+    /// 16pt is where the icon sits with the countdown hidden.
     private static let anchorInset: CGFloat = 16
 
     func stageAnchor() -> NSView? {
@@ -180,19 +166,15 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         window.hasShadow = false
         window.ignoresMouseEvents = true
         window.level = .statusBar
-        // Without this the anchor — and so the menu hanging off it — stays on the Space it
-        // was first ordered onto, while the status item is on all of them.
+        // Otherwise the anchor, and the menu with it, stays on the Space it first appeared on.
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         return window
     }
 
     // MARK: - Refresh
 
-    /// Captures no strong `self` across the await, which is what keeps `deinit` reachable
-    /// while the loop sleeps — and so lets the status item go.
-    ///
-    /// Configures inside the task rather than at the call site: the two must read the same
-    /// mode, and by the time the task body runs the state that triggered it may have moved on.
+    /// No strong `self` across the await, so `deinit` can run while the loop sleeps. Configures
+    /// inside the task so configuring and drawing read the same mode.
     private func restart() {
         refreshTask?.cancel()
         refreshTask = Task { [weak self, state] in
@@ -204,9 +186,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         }
     }
 
-    /// `withObservationTracking` fires once, on willSet, so the handler re-registers before
-    /// reacting — registering anywhere else leaves a second tracker armed for every one the
-    /// handler adds.
+    /// `withObservationTracking` fires once, so the handler re-registers; registering anywhere
+    /// else arms a second tracker for every one it adds.
     private func observeState() {
         withObservationTracking {
             _ = state.mode
@@ -220,12 +201,11 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
 
     private func styleDidChange() {
-        let stored: MenuBarTimerStyle = defaults.value(
+        let stored: MenuBarTimerStyle = state.defaults.value(
             forKey: PreferenceKeys.menuBarTimerStyle,
             default: PreferenceDefaults.menuBarTimerStyle
         )
-        // Every defaults write lands here, the durations included; only a style change alters
-        // what the item draws.
+        // Every defaults write lands here; only a style change alters the item.
         guard stored != timerStyle else { return }
         timerStyle = stored
         restart()
@@ -233,7 +213,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     // MARK: - Drawing
 
-    /// Read-only seams, so a test can assert on the item without holding the AppKit object.
+    /// For tests.
     var anchorOrigin: CGPoint? { anchorWindow?.frame.origin }
     var itemScreenFrame: CGRect? {
         guard let button = statusItem.button else { return nil }
@@ -248,8 +228,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         return timerStyle.countdownDisplayStyle
     }
 
-    /// Everything a tick cannot change, so that a tick only assigns a string: the VoiceOver
-    /// label, and whether the countdown shows at all.
+    /// What a tick cannot change, so a tick only assigns a string.
     private func configure() {
         guard let button = statusItem.button else { return }
         button.setAccessibilityLabel(String(localized: accessibilityLabel))

@@ -10,7 +10,7 @@ struct TimerStateOverlayTests {
     func startPreparesOverlayPermissions() async {
         let environment = TestEnvironment()
         let recorder = OverlayRecorder()
-        let state = environment.makeTimerState(overlays: recorder.presenter)
+        let state = environment.makeTimerState(overlays: recorder)
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
@@ -35,7 +35,7 @@ struct TimerStateOverlayTests {
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let recorder = OverlayRecorder()
-        let state = environment.makeTimerState(overlays: recorder.presenter)
+        let state = environment.makeTimerState(overlays: recorder)
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
@@ -59,7 +59,7 @@ struct TimerStateOverlayTests {
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let recorder = OverlayRecorder()
-        let state = environment.makeTimerState(overlays: recorder.presenter)
+        let state = environment.makeTimerState(overlays: recorder)
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
@@ -81,7 +81,7 @@ struct TimerStateOverlayTests {
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let recorder = OverlayRecorder()
-        let state = environment.makeTimerState(overlays: recorder.presenter)
+        let state = environment.makeTimerState(overlays: recorder)
         state.workDurationSecs = 1
         state.restDurationSecs = 10
 
@@ -103,7 +103,7 @@ struct TimerStateOverlayTests {
         defaults.set(WorkStartMode.manual.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let recorder = OverlayRecorder()
-        let state = environment.makeTimerState(overlays: recorder.presenter)
+        let state = environment.makeTimerState(overlays: recorder)
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
@@ -113,30 +113,23 @@ struct TimerStateOverlayTests {
 
         await environment.advanceUntil(maxTicks: 2) { state.awaitingReturn }
         #expect(recorder.dismissCount == 0, "The overlay should remain visible while waiting.")
+        #expect(recorder.showCount == 1, "The break on screen is settled in place, not presented again.")
         #expect(state.awaitingReturn, "Manual mode should wait for the user to return after rest expires.")
 
         state.start()
         #expect(recorder.dismissCount == 1, "Starting work from awaiting return should dismiss the overlay once.")
     }
 
-    @Test("with no test override, the DarkWake gate asks the overlay presenter")
+    @Test("the DarkWake gate asks the overlay presenter")
     @MainActor
-    func gateFallsBackToOverlayPresenterWhenNoOverrideGiven() async {
+    func gateAsksTheOverlayPresenter() async {
         let environment = TestEnvironment()
         let defaults = environment.defaults
         defaults.set(WorkStartMode.automatic.rawValue, forKey: PreferenceKeys.workStartMode)
 
         let recorder = OverlayRecorder()
-        // Simulates a display OverlayManager would actually draw on being lit even though
-        // the executor's old gate asked only the main display. No `isDisplayAwake`
-        // override, so the executor must fall back to this.
         recorder.hasAwakeScreen = false
-        let state = TimerState(
-            overlays: recorder.presenter,
-            defaults: defaults,
-            clock: environment.clock,
-            workspaceNotificationCenter: environment.workspaceNotificationCenter
-        )
+        let state = environment.makeTimerState(overlays: recorder)
         state.workDurationSecs = 1
         state.restDurationSecs = 1
 
@@ -147,7 +140,7 @@ struct TimerStateOverlayTests {
         #expect(recorder.showCount == 0, "No awake screen to draw on, so the break must wait.")
 
         recorder.hasAwakeScreen = true
-        environment.clock.fireReconcile()
+        state.reconcile()
 
         #expect(recorder.showCount == 1, "Once a screen the presenter would draw on is lit, the held break shows.")
     }
@@ -157,7 +150,7 @@ struct TimerStateOverlayTests {
     func stopAcrossAMissedBoundaryPresentsNothing() {
         let environment = TestEnvironment()
         let recorder = OverlayRecorder()
-        let state = environment.makeTimerState(overlays: recorder.presenter)
+        let state = environment.makeTimerState(overlays: recorder)
         state.workDurationSecs = 60
         state.restDurationSecs = 60
 
@@ -174,21 +167,20 @@ struct TimerStateOverlayTests {
     func stopOnAWokenDisplayDoesNotFlushTheHeldBreak() {
         let environment = TestEnvironment()
         let recorder = OverlayRecorder()
-        let state = environment.makeTimerState(overlays: recorder.presenter)
+        let state = environment.makeTimerState(overlays: recorder)
         state.workDurationSecs = 60
         state.restDurationSecs = 60
 
-        environment.isDisplayAwake = false
+        recorder.hasAwakeScreen = false
         state.start()
-        environment.clock.advance(by: 61)
+        environment.clock.elapse(by: 61)
+        state.reconcile()
         #expect(recorder.showCount == 0, "A dark display holds the break back.")
 
-        // The old shape performed the reconcile's effects before the action's, so the retry
-        // flushed the break the action was about to dismiss.
-        environment.isDisplayAwake = true
+        recorder.hasAwakeScreen = true
         state.stop()
 
-        #expect(recorder.showCount == 0, "The dismissal must reach the executor before the retry does.")
+        #expect(recorder.showCount == 0, "The dismissal must land before the retry does (issue #112).")
         #expect(state.isRunning == false)
     }
 }

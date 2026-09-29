@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// The remaining time, redrawn only when the text it shows would actually change.
 struct CountdownTextView: View {
     let state: TimerState
     var isActive = true
@@ -13,10 +12,7 @@ struct CountdownTextView: View {
     }
 }
 
-/// The remaining time as of a reference date the caller supplies.
-///
-/// For callers already inside a ``CountdownClock``: nesting ``CountdownTextView`` in one
-/// would start a second drive loop ticking the same second for the same label.
+/// For callers already inside a ``CountdownClock``, which would otherwise run a second loop.
 struct CountdownLabel: View {
     let state: TimerState
     let referenceDate: Date

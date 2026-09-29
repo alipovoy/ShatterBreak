@@ -1,13 +1,11 @@
 import SwiftUI
 
-/// The app's Settings window: three System Settings-style tabs (General, Schedule,
-/// Break Screen) that keep each pane short enough to fit a 13" display without
-/// scrolling.
+/// Three tabs, each short enough to fit a 13" display without scrolling.
 struct PreferencesView: View {
     @Environment(\.permissions) private var permissions
 
-    /// Durations must be edited through the model: it loads them once at init and persists
-    /// on set, so an `@AppStorage` binding here would silently desync from the menu.
+    /// Durations are edited through the model, which reads them once: an `@AppStorage`
+    /// binding would desync from the menu.
     @Bindable var state: TimerState
 
     @State private var selectedTab: SettingsTab = .general
@@ -56,8 +54,6 @@ private enum SettingsTab: Hashable {
 // MARK: - General
 
 private struct GeneralSettingsTab: View {
-    /// For the work duration the lead is measured against, live so the warning reacts to
-    /// edits made in the menu.
     let state: TimerState
 
     @AppStorage(PreferenceKeys.autoStartOnLaunch)
@@ -88,8 +84,7 @@ private struct GeneralSettingsTab: View {
             }
 
             Section(.statistics) {
-                // This and the two lead controls below re-arm the running session: the credit
-                // point is a scheduled moment, and tracking gates it as much as its own switch.
+                // These and the lead controls re-arm the running session's credit point.
                 Toggle(.trackStatisticsToggle, isOn: $trackStatistics)
                     .help(Text(.trackStatisticsHelp))
                     .onChange(of: trackStatistics) { state.reconcile() }
@@ -161,7 +156,6 @@ private struct ScheduleSettingsTab: View {
                     max: DurationBounds.restMaximumSecs
                 )
 
-                // Two cases, so it reads better as a toggle than the picker it is stored as.
                 Toggle(.startWorkAutomaticallyToggle, isOn: startWorkAutomatically)
                     .help(Text(.workStartModeHelp))
             }
@@ -205,7 +199,12 @@ private struct ScheduleSettingsTab: View {
 
             if breakTimingWarnings.isEmpty == false {
                 Section {
-                    BreakTimingWarningsView(warnings: breakTimingWarnings)
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(breakTimingWarnings, id: \.self) { warning in
+                            WarningLabel(message: warning.message)
+                        }
+                    }
+                    .readingWidth()
                 }
             }
         }
@@ -219,7 +218,6 @@ private struct ScheduleSettingsTab: View {
         )
     }
 
-    /// Rest is read from the live model, so the warnings react to edits made in the menu.
     private var breakTimingWarnings: [BreakTimingWarning] {
         BreakTimingValidator.warnings(
             restDurationSecs: state.restDurationSecs,
@@ -254,32 +252,42 @@ private struct BreakScreenSettingsTab: View {
                     .onChange(of: effectType) { _, newValue in
                         guard newValue.requiresScreenCapture else { return }
                         guard permissions.hasScreenRecordingAccess else {
-                            // Choosing Shatter is itself the request; the warning below
-                            // carries the state whether or not macOS raises a dialog.
+                            // Choosing Shatter is itself the request.
                             permissions.requestAccessIfNeeded()
                             return
                         }
 
-                        // Re-choosing Shatter is an explicit "I do want the frozen
-                        // screen", so a remembered decline stops standing in the way.
+                        // Re-choosing Shatter clears a remembered decline.
                         guard permissions.directCaptureAccess == .refused else { return }
                         confirmDirectCapture()
                     }
 
-                // Only Shatter captures the screen; Fogged and Dimmed work without
-                // any permission, so consent is only ever discussed under Shatter.
+                // Screen Recording gates direct capture, so it is raised first.
                 if effectType.requiresScreenCapture {
-                    ScreenCaptureConsentView(
-                        hasScreenRecordingAccess: permissions.hasScreenRecordingAccess,
-                        directCaptureAccess: permissions.directCaptureAccess,
-                        onGrantScreenRecording: grantScreenRecording,
-                        onConfirmDirectCapture: confirmDirectCapture
-                    )
+                    if permissions.hasScreenRecordingAccess == false {
+                        WarningLabel(
+                            message: .permissionWarningText,
+                            actionTitle: .openSystemSettingsToGrant,
+                            action: grantScreenRecording
+                        )
+                        .readingWidth()
+                    } else if permissions.directCaptureAccess == .refused {
+                        WarningLabel(
+                            message: .directCaptureWarningText,
+                            actionTitle: .directCaptureConfirmAction,
+                            action: confirmDirectCapture
+                        )
+                        .readingWidth()
+                    } else {
+                        Text(.directCaptureNote)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .readingWidth()
+                    }
                 }
 
-                // The shake is Shatter's alone, and a blocked capture presents Fogged. Left
-                // enabled while macOS Reduce Motion is on: a forced check would report a
-                // choice the user never made.
+                // Left enabled under macOS Reduce Motion: a forced check would report a choice
+                // the user never made.
                 if effectType.requiresScreenCapture, permissions.isCaptureBlocked == false {
                     Toggle(isOn: $reduceMotion) {
                         Text(.reduceMotionToggle)
@@ -290,8 +298,6 @@ private struct BreakScreenSettingsTab: View {
                     .help(Text(.reduceMotionHelp))
                 }
 
-                // A card cannot show a display-sized blur or a fog drawn behind the overlay,
-                // so the picker offers the real thing.
                 Button(.tryEffect) { Task { await trial.start() } }
                     .help(Text(.tryEffectHelp))
                     .disabled(trial.canStart == false)
@@ -305,16 +311,13 @@ private struct BreakScreenSettingsTab: View {
         .settingsTabLayout()
     }
 
-    /// Asks *and* opens System Settings, the app being unable to tell which is needed: macOS
-    /// shows its dialog only when it holds no answer, and Settings is the only place an
-    /// answer it holds can be changed — but lists the app only once it has asked.
+    /// Asks and opens System Settings: the app cannot tell whether macOS still holds an answer,
+    /// and Settings lists the app only once it has asked.
     private func grantScreenRecording() {
         permissions.requestAccessIfNeeded()
         permissions.openSystemSettings()
     }
 
-    /// Re-opens macOS's direct-capture dialog after the user declined it, so recovery
-    /// does not depend on relaunching — System Settings has no switch for this consent.
     private func confirmDirectCapture() {
         Task { await permissions.confirmDirectCaptureAccess() }
     }
@@ -323,8 +326,6 @@ private struct BreakScreenSettingsTab: View {
 // MARK: - Shared tab chrome
 
 private extension View {
-    /// Grouped, non-scrolling form that hugs its content, so the Settings window
-    /// resizes to each tab the way System Settings panes do.
     func settingsTabLayout() -> some View {
         formStyle(.grouped)
             .scrollDisabled(true)
@@ -333,33 +334,26 @@ private extension View {
 }
 
 #Preview("General with an oversized lead") { @MainActor in
-    // A lead longer than the work session, so the warning renders under the field that
-    // caused it.
     let defaults = UserDefaults.preview("sessionLead")
     defaults.set(true, forKey: PreferenceKeys.trackStatistics)
     defaults.set(true, forKey: PreferenceKeys.countSessionEarly)
     defaults.set(600, forKey: PreferenceKeys.sessionLeadSecs)
     defaults.set(300, forKey: PreferenceKeys.workDurationSecs)
 
-    return GeneralSettingsTab(state: TimerState(overlays: .disabled, defaults: defaults))
+    return GeneralSettingsTab(state: TimerState.parked(.idle(at: .now), defaults: defaults))
         .defaultAppStorage(defaults)
         .frame(width: 480)
 }
 
 #Preview("Settings") { @MainActor in
-    // `@AppStorage` reads `UserDefaults` and nothing else, so this pane cannot use the
-    // in-memory store other previews do; a suite of its own keeps the canvas off real
-    // settings.
     let defaults = UserDefaults.preview("settings")
 
-    return PreferencesView(state: TimerState(overlays: .disabled, defaults: defaults))
+    return PreferencesView(state: TimerState.parked(.idle(at: .now), defaults: defaults))
         .environment(\.permissions, ScreenCapturePermissionManager(defaults: defaults))
         .defaultAppStorage(defaults)
 }
 
 #Preview("Schedule with warnings") { @MainActor in
-    // Contradictory settings, so the warnings render under the controls that caused them.
-    // On their own they are three lines of orange text about nothing.
     let defaults = UserDefaults.preview("warnings")
     defaults.set(300, forKey: PreferenceKeys.restDurationSecs)
     defaults.set(true, forKey: PreferenceKeys.allowPostpone)
@@ -367,7 +361,7 @@ private extension View {
     defaults.set(true, forKey: PreferenceKeys.allowEarlyReturn)
     defaults.set(600, forKey: PreferenceKeys.earlyReturnLeadSecs)
 
-    return ScheduleSettingsTab(state: TimerState(overlays: .disabled, defaults: defaults))
+    return ScheduleSettingsTab(state: TimerState.parked(.idle(at: .now), defaults: defaults))
         .defaultAppStorage(defaults)
         .frame(width: 480)
 }
@@ -375,7 +369,7 @@ private extension View {
 #Preview("Break Screen") { @MainActor in
     let defaults = UserDefaults.preview("breakScreen")
 
-    return BreakScreenSettingsTab(state: TimerState(overlays: .disabled, defaults: defaults))
+    return BreakScreenSettingsTab(state: TimerState.parked(.idle(at: .now), defaults: defaults))
         .environment(\.permissions, ScreenCapturePermissionManager(defaults: defaults))
         .defaultAppStorage(defaults)
         .frame(width: 480)

@@ -1,10 +1,5 @@
 @testable import ShatterBreak
 
-/// Records every call the permission manager makes and lets a test dictate the
-/// answers, standing in for the two consents behind ``ScreenCapturePermissionClient``.
-///
-/// Main-actor isolated to match the client's closures, which are isolated (and so
-/// implicitly `Sendable`) and therefore may only capture `Sendable` state.
 @MainActor
 final class ScreenCapturePermissionClientSpy {
     var preflightAccess = false
