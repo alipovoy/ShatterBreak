@@ -82,6 +82,7 @@ struct StatisticsStoreTests {
 
         let store = StatisticsStore(defaults: defaults)
 
-        #expect(store.current == SessionStatistics(since: store.current.since), "Bad data should yield a fresh tally.")
+        #expect(store.current == SessionStatistics(since: store.current.since), "Bad data should yield a zero tally.")
+        #expect(abs(store.current.since.timeIntervalSinceNow) < 60, "Counted from now, not from a stale date.")
     }
 }

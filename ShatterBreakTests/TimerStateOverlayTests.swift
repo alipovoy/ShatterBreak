@@ -113,6 +113,7 @@ struct TimerStateOverlayTests {
 
         await environment.advanceUntil(maxTicks: 2) { state.awaitingReturn }
         #expect(recorder.dismissCount == 0, "The overlay should remain visible while waiting.")
+        #expect(recorder.showCount == 1, "The break on screen is settled in place, not presented again.")
         #expect(state.awaitingReturn, "Manual mode should wait for the user to return after rest expires.")
 
         state.start()

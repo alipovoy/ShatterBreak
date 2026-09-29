@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import Testing
 
 @testable import ShatterBreak
 
@@ -19,7 +20,11 @@ final class TestEnvironment {
     func advanceTime(by interval: TimeInterval = 1, ticks: Int = 1) async {
         for _ in 0..<ticks {
             clock.elapse(by: interval)
-            timer?.reconcile()
+            guard let timer else {
+                Issue.record("No live timer to reconcile; the clock moved for nothing.")
+                return
+            }
+            timer.reconcile()
         }
     }
 

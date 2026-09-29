@@ -30,6 +30,8 @@ struct ReducerDriver {
     var now: Date { date }
     var remaining: TimeInterval { plan.remaining(at: date) }
     var phase: TimerPlan.Phase { plan.phase }
+    /// What `TimerState` arms its boundary timer for.
+    var nextTransition: TimeInterval? { TimerReducer.nextTransition(plan, at: date, prefs: prefs) }
 
     func count(of effect: TimerEffect) -> Int {
         effects.filter { $0 == effect }.count

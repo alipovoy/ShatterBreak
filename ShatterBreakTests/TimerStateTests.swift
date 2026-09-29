@@ -123,4 +123,20 @@ struct TimerStateTests {
         }
         #expect(weakState == nil)
     }
+
+    @Test("the opt-in statistics reset happens at stop→start, not at resume")
+    func statisticsResetAtANewSession() {
+        environment.defaults.set(true, forKey: PreferenceKeys.trackStatistics)
+        environment.defaults.set(true, forKey: PreferenceKeys.resetStatisticsOnStart)
+        let state = makeState()
+        state.statistics.record(.workSessionCompleted)
+
+        state.start()
+        #expect(state.statistics.current.workSessionsCompleted == 0)
+
+        state.statistics.record(.workSessionCompleted)
+        state.pause()
+        state.resume()
+        #expect(state.statistics.current.workSessionsCompleted == 1, "Resuming continues the session.")
+    }
 }

@@ -153,4 +153,37 @@ struct SessionCreditLeadTests {
             "The postponed stint is the same session, however many times it hands back."
         )
     }
+
+    @Test("the boundary timer is armed for the credit point, then for the session's end")
+    func boundaryIsArmedForTheCreditPoint() {
+        var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5, lead: 3))
+        driver.act(.start)
+        #expect(driver.nextTransition == 7, "Armed for the session's end, the credit would land three seconds late.")
+
+        driver.run(7)
+        #expect(driver.nextTransition == 3)
+    }
+
+    @Test("without a lead, the boundary timer is armed for the session's end")
+    func boundaryWithoutALeadIsTheSessionEnd() {
+        var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5, lead: 0))
+        driver.act(.start)
+        #expect(driver.nextTransition == 10)
+    }
+
+    @Test("nothing is armed while no countdown runs")
+    func nothingIsArmedWithoutACountdown() {
+        var driver = ReducerDriver(prefs: .testing(work: 10, rest: 5, autoStartWork: false))
+        #expect(driver.nextTransition == nil, "Idle.")
+
+        driver.act(.start)
+        driver.act(.pause)
+        #expect(driver.nextTransition == nil, "Paused.")
+
+        driver.act(.resume)
+        driver.run(10)
+        driver.run(5)
+        #expect(driver.phase == .awaitingReturn)
+        #expect(driver.nextTransition == nil, "Awaiting return.")
+    }
 }
