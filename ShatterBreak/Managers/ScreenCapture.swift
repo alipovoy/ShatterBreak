@@ -19,6 +19,9 @@ enum ScreenCapture {
     /// One screenshot per display, without this app's own windows. A display whose capture
     /// fails is left out, so its overlay falls back; throws only on cancellation.
     static func captureImages(_ displayIDs: Set<CGDirectDisplayID>) async throws -> [CGDirectDisplayID: CGImage] {
+        // The content request is where macOS raises its consent dialog; skip it when unneeded.
+        guard displayIDs.isEmpty == false else { return [:] }
+        try Task.checkCancellation()
         let content: SCShareableContent
         do {
             content = try await loadShareableContent()
