@@ -167,6 +167,7 @@ struct BreakEffectTrialTests {
         await trial.start()
 
         #expect(overlays.showCount == 0, "Presenting to no screen would register as running with nothing on it.")
+        #expect(overlays.dismissCount == 0, "Nothing was shown, so there is nothing of the sample's to dismiss.")
         #expect(
             trial.isRunning == false,
             "Left running, the next click or keypress anywhere in the app would be swallowed for nothing."
