@@ -10,6 +10,12 @@
             "state" : "translated",
             "value" : "About"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "О программе"
+          }
         }
       }
     },
@@ -21,6 +27,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Build %@ (%@)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Сборка %@ (%@)"
           }
         }
       }
@@ -34,17 +46,29 @@
             "state" : "translated",
             "value" : "Copied version to clipboard"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Версия скопирована в буфер обмена"
+          }
         }
       }
     },
     "aboutCopyHelp" : {
-      "comment" : "Tooltip on the version link explaining that clicking copies the version to the clipboard.",
+      "comment" : "Clicking the version link copies the version summary.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Click to copy version info"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Нажмите, чтобы скопировать информацию о версии"
           }
         }
       }
@@ -58,11 +82,17 @@
             "state" : "translated",
             "value" : "Version %@"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Версия %@"
+          }
         }
       }
     },
     "allowEarlyReturnHelp" : {
-      "comment" : "Help text for the Allow Early Return toggle.",
+      "comment" : "The “I’m back” button lets the user end a break before it runs out.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -70,11 +100,17 @@
             "state" : "translated",
             "value" : "Show the “I’m back” button before a break ends so you can return early."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Показывать кнопку «Я на месте» перед завершением перерыва, чтобы можно было вернуться раньше."
+          }
         }
       }
     },
     "allowEarlyReturnToggle" : {
-      "comment" : "Toggle that enables the early “I’m back” button during a break.",
+      "comment" : "Shows the early “I’m back” button during a break.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -82,11 +118,17 @@
             "state" : "translated",
             "value" : "Allow Early Return"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Разрешить вернуться раньше"
+          }
         }
       }
     },
     "allowPostponeToggle" : {
-      "comment" : "Preferences toggle to allow the user to postpone a break.",
+      "comment" : "Lets the user push a break back.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -94,11 +136,17 @@
             "state" : "translated",
             "value" : "Allow Postpone"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Разрешить отложить перерыв"
+          }
         }
       }
     },
     "autoStartOnLaunchHelp" : {
-      "comment" : "Help text describing the auto-start-on-launch toggle.",
+      "comment" : "A focus session starts by itself when the app launches.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -106,17 +154,29 @@
             "state" : "translated",
             "value" : "When enabled, a focus session starts automatically each time ShatterBreak launches."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Если этот параметр включён, фокус-сессия запускается автоматически при каждом запуске ShatterBreak."
+          }
         }
       }
     },
     "autoStartOnLaunchToggle" : {
-      "comment" : "Preferences toggle that starts a focus session automatically when the app launches.",
+      "comment" : "Starts a focus session when the app launches.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Start timer on launch"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Включать таймер при запуске приложения"
           }
         }
       }
@@ -130,11 +190,17 @@
             "state" : "translated",
             "value" : "Close"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Закрыть"
+          }
         }
       }
     },
     "countSessionEarlyHelp" : {
-      "comment" : "Help text for the Count Sessions Early toggle.",
+      "comment" : "A work session counts as worked a little before it ends, so leaving in its closing minutes still counts it.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -142,17 +208,29 @@
             "state" : "translated",
             "value" : "Count a work session as worked shortly before it ends, so stepping away in its closing minutes still counts it."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Засчитывать рабочую сессию как отработанную незадолго до её завершения, чтобы сессия засчитывалась, даже если вы отошли от компьютера в последние минуты."
+          }
         }
       }
     },
     "countSessionEarlyToggle" : {
-      "comment" : "Toggle that counts a work session shortly before it ends.",
+      "comment" : "A work session counts shortly before it ends.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Count Sessions Early"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Засчитывать сессии досрочно"
           }
         }
       }
@@ -165,6 +243,12 @@
             "state" : "translated",
             "value" : "Ask macOS again"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Запросить подтверждение снова"
+          }
         }
       }
     },
@@ -176,6 +260,12 @@
             "state" : "translated",
             "value" : "macOS asks you to confirm direct screen capture when a work session starts, and again about once a month."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "macOS запрашивает подтверждение на прямой захват экрана при начале рабочей сессии, а затем повторно — примерно раз в месяц."
+          }
         }
       }
     },
@@ -186,6 +276,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shatter also needs macOS’s confirmation to capture the screen directly. Until it is allowed, breaks use the Fogged effect instead."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Для эффекта «Стекло» также требуется подтверждение macOS на прямой захват экрана. Пока оно не получено, для перерывов используется эффект «Туман»."
           }
         }
       }
@@ -199,11 +295,17 @@
             "state" : "translated",
             "value" : "Early-return lead is longer than the break; “I’m back” shows for the whole break."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Время показа кнопки «Я на месте» до конца перерыва больше самого перерыва: кнопка видна весь перерыв."
+          }
         }
       }
     },
     "earlyReturnLeadHelp" : {
-      "comment" : "Help text for the early-return lead slider.",
+      "comment" : "How long before a break ends the “I’m back” button appears.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -211,17 +313,29 @@
             "state" : "translated",
             "value" : "How early the “I’m back” button appears before a break ends."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Насколько рано кнопка «Я на месте» появляется до окончания перерыва."
+          }
         }
       }
     },
     "earlyReturnLeadLabel" : {
-      "comment" : "Label for the slider setting how early the “I’m back” button appears.",
+      "comment" : "Slider: how long before a break ends the “I’m back” button appears.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show “I’m back” before end"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Показывать «Я на месте» до конца перерыва"
           }
         }
       }
@@ -235,6 +349,12 @@
             "state" : "translated",
             "value" : "Dimmed"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Мрак"
+          }
         }
       }
     },
@@ -246,6 +366,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fogged"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Туман"
           }
         }
       }
@@ -259,17 +385,29 @@
             "state" : "translated",
             "value" : "Shatter"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Стекло"
+          }
         }
       }
     },
     "effectTypePicker" : {
-      "comment" : "Preferences picker label for choosing the break effect.",
+      "comment" : "Choice of break effect.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Effect Type"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Тип эффекта"
           }
         }
       }
@@ -283,6 +421,12 @@
             "state" : "translated",
             "value" : "I'm back"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Я на месте"
+          }
         }
       }
     },
@@ -294,6 +438,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ends the break and resumes work."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Завершает перерыв и возобновляет работу."
           }
         }
       }
@@ -307,6 +457,12 @@
             "state" : "translated",
             "value" : "ShatterBreak, idle"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ShatterBreak, ожидание"
+          }
         }
       }
     },
@@ -318,6 +474,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ShatterBreak, paused"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ShatterBreak, пауза"
           }
         }
       }
@@ -331,6 +493,12 @@
             "state" : "translated",
             "value" : "ShatterBreak, on a break"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ShatterBreak, перерыв"
+          }
         }
       }
     },
@@ -342,6 +510,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ShatterBreak, working"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ShatterBreak, работа"
           }
         }
       }
@@ -355,6 +529,12 @@
             "state" : "translated",
             "value" : "Minutes"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Минуты"
+          }
         }
       }
     },
@@ -366,6 +546,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Off"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Выключено"
           }
         }
       }
@@ -379,6 +565,12 @@
             "state" : "translated",
             "value" : "Minutes and seconds"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Минуты и секунды"
+          }
         }
       }
     },
@@ -389,6 +581,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open System Settings to grant permission"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Открыть Системные настройки, чтобы предоставить разрешение"
           }
         }
       }
@@ -402,6 +600,12 @@
             "state" : "translated",
             "value" : "Pause"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Приостановить"
+          }
         }
       }
     },
@@ -414,17 +618,29 @@
             "state" : "translated",
             "value" : "Shatter requires Screen Recording permission. Without it, breaks use the Fogged effect instead. If ShatterBreak is already switched on in System Settings, the entry is stale, for example after an update: remove it with the “−” button and add the app back with the “+” button."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Для эффекта «Стекло» требуется разрешение на запись экрана. Без него в перерывах используется эффект «Туман». Если ShatterBreak уже включён в Системных настройках, эта запись может быть устаревшей, например после обновления: удалите её кнопкой «−» и добавьте приложение снова кнопкой «+»."
+          }
         }
       }
     },
     "playSoundToggle" : {
-      "comment" : "Preferences toggle that enables a sound when a break starts.",
+      "comment" : "Plays a sound when a break starts.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Play Sound"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Воспроизводить звук"
           }
         }
       }
@@ -438,6 +654,12 @@
             "state" : "translated",
             "value" : "Postpone"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Отложить"
+          }
         }
       }
     },
@@ -450,11 +672,17 @@
             "state" : "translated",
             "value" : "Delays this break."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Откладывает этот перерыв."
+          }
         }
       }
     },
     "postponeDurationHelp" : {
-      "comment" : "Help text for the Postpone duration slider.",
+      "comment" : "How far a break moves when the user postpones it.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -462,17 +690,29 @@
             "state" : "translated",
             "value" : "How long a break is pushed back when you tap Postpone."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Время, на которое переносится перерыв при нажатии кнопки «Отложить»."
+          }
         }
       }
     },
     "postponeDurationLabel" : {
-      "comment" : "Label for the slider setting how long a postpone pushes the break back.",
+      "comment" : "Slider: how far a postpone moves the break.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Postpone duration"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Длительность отсрочки"
           }
         }
       }
@@ -486,11 +726,17 @@
             "state" : "translated",
             "value" : "Postpone window is longer than the break; Postpone stays for the whole break."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Время доступности кнопки «Отложить» больше длительности перерыва: кнопка остаётся на весь перерыв."
+          }
         }
       }
     },
     "postponeWindowHelp" : {
-      "comment" : "Help text for the Postpone window slider.",
+      "comment" : "How long the Postpone button stays on screen once a break starts.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -498,17 +744,29 @@
             "state" : "translated",
             "value" : "How long the Postpone button stays on screen after a break begins."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Как долго кнопка «Отложить» остаётся на экране после начала перерыва."
+          }
         }
       }
     },
     "postponeWindowLabel" : {
-      "comment" : "Label for the slider setting how long the Postpone button stays visible.",
+      "comment" : "Slider: how long the Postpone button stays on screen once a break starts.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Postpone available for"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Время доступности кнопки «Отложить»"
           }
         }
       }
@@ -522,6 +780,12 @@
             "state" : "translated",
             "value" : "Preferences"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Настройки"
+          }
         }
       }
     },
@@ -533,6 +797,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quit"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Завершить"
           }
         }
       }
@@ -546,6 +816,12 @@
             "state" : "translated",
             "value" : "Ready"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Готов к работе"
+          }
         }
       }
     },
@@ -558,11 +834,17 @@
             "state" : "translated",
             "value" : "macOS Reduce Motion is on, so motion is already reduced"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "В macOS уже включена функция «Уменьшение движения», поэтому движение и так снижено"
+          }
         }
       }
     },
     "reduceMotionHelp" : {
-      "comment" : "Tooltip for the Reduce motion toggle.",
+      "comment" : "Skips the shake that precedes the Shatter effect’s cracks.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -570,17 +852,29 @@
             "state" : "translated",
             "value" : "Goes straight to the cracked glass, without shaking the screen first."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Переходить сразу к разбитому стеклу, без предварительного дрожания экрана."
+          }
         }
       }
     },
     "reduceMotionToggle" : {
-      "comment" : "Preferences toggle that skips the shake before the Shatter effect cracks.",
+      "comment" : "Skips the shake before the Shatter effect cracks.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reduce motion"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Уменьшение движения"
           }
         }
       }
@@ -594,11 +888,17 @@
             "state" : "translated",
             "value" : "Reset statistics"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Сбросить статистику"
+          }
         }
       }
     },
     "resetStatisticsHelp" : {
-      "comment" : "Tooltip on the statistics reset button.",
+      "comment" : "Clears the statistics and starts counting from zero.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -606,11 +906,17 @@
             "state" : "translated",
             "value" : "Start a fresh tally from zero."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Начать новый отсчёт с нуля."
+          }
         }
       }
     },
     "resetStatisticsOnStartHelp" : {
-      "comment" : "Tooltip explaining the automatic statistics reset preference.",
+      "comment" : "Statistics restart when a session begins after a stop; relaunching the app never resets them.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -618,11 +924,17 @@
             "state" : "translated",
             "value" : "Start a fresh tally whenever a session starts after a stop. Statistics always survive app relaunches."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Начинать новый отсчёт статистики при каждом запуске сессии после остановки. Статистика всегда сохраняется при перезапуске приложения."
+          }
         }
       }
     },
     "resetStatisticsOnStartToggle" : {
-      "comment" : "Preferences toggle for resetting statistics automatically at the stop→start boundary.",
+      "comment" : "Restarts statistics when a session begins after a stop.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -630,17 +942,29 @@
             "state" : "translated",
             "value" : "Reset statistics on a new session"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Сбрасывать статистику при новой сессии"
+          }
         }
       }
     },
     "restDuration" : {
-      "comment" : "Label for the rest duration slider.",
+      "comment" : "Slider: break length.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rest Duration"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Продолжительность перерыва"
           }
         }
       }
@@ -654,6 +978,12 @@
             "state" : "translated",
             "value" : "Resume"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Продолжить"
+          }
         }
       }
     },
@@ -666,11 +996,17 @@
             "state" : "translated",
             "value" : "Session lead is longer than a work session; every session counts as soon as it starts."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Время засчёта сессии до окончания больше самой сессии — сессия засчитывается сразу после начала."
+          }
         }
       }
     },
     "sessionLeadHelp" : {
-      "comment" : "Help text for the session-lead field.",
+      "comment" : "How long before a work session ends it already counts as worked.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -678,17 +1014,29 @@
             "state" : "translated",
             "value" : "How long before a work session ends it counts as worked."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Время до окончания рабочей сессии, начиная с которого она уже считается отработанной."
+          }
         }
       }
     },
     "sessionLeadLabel" : {
-      "comment" : "Label for the field setting how early a work session counts.",
+      "comment" : "Field: how long before a work session ends it counts as worked.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Count session before end"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Засчитывать сессию до окончания"
           }
         }
       }
@@ -702,6 +1050,12 @@
             "state" : "translated",
             "value" : "Break Screen"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Экран перерыва"
+          }
         }
       }
     },
@@ -713,6 +1067,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "General"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Основные"
           }
         }
       }
@@ -726,11 +1086,17 @@
             "state" : "translated",
             "value" : "Schedule"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Расписание"
+          }
         }
       }
     },
     "showTimerInMenuBarHelp" : {
-      "comment" : "Help text describing the show-timer-in-menu-bar picker.",
+      "comment" : "Explains the timer display options: Off, Minutes (updates once a minute, switches to seconds in the last minute), Minutes and seconds.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -738,17 +1104,29 @@
             "state" : "translated",
             "value" : "Choose how the remaining time appears next to the app icon in the menu bar. Minutes updates once a minute to save energy and switches to seconds for the final minute."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Выберите, как оставшееся время отображается рядом со значком приложения в строке меню. Режим «Минуты» обновляется раз в минуту для экономии энергии и переключается на секунды в последнюю минуту."
+          }
         }
       }
     },
     "showTimerInMenuBarToggle" : {
-      "comment" : "Preferences picker that controls the remaining-time display in the menu bar.",
+      "comment" : "Choice of how the remaining time shows in the menu bar.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show timer in menu bar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Показывать таймер в строке меню"
           }
         }
       }
@@ -762,17 +1140,29 @@
             "state" : "translated",
             "value" : "Skip Rest"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Пропустить перерыв"
+          }
         }
       }
     },
     "softOverlayToggle" : {
-      "comment" : "Preferences toggle that uses a soft overlay allowing menu bar access.",
+      "comment" : "The break overlay leaves the menu bar usable.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Soft Overlay (allows menu bar access)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Мягкое наложение (строка меню остаётся доступной)"
           }
         }
       }
@@ -786,17 +1176,29 @@
             "state" : "translated",
             "value" : "Start Focus"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Начать фокус-сессию"
+          }
         }
       }
     },
     "startWorkAutomaticallyToggle" : {
-      "comment" : "Settings toggle for WorkStartMode: on = automatic, off = manual.",
+      "comment" : "On: work starts by itself after a break. Off: the user starts it.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Start work automatically after a break"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Начинать работу автоматически после перерыва"
           }
         }
       }
@@ -810,6 +1212,12 @@
             "state" : "translated",
             "value" : "Statistics"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Статистика"
+          }
         }
       }
     },
@@ -821,6 +1229,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Breaks"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Перерывы"
           }
         }
       }
@@ -834,6 +1248,12 @@
             "state" : "translated",
             "value" : "Early returns"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Досрочные возвращения"
+          }
         }
       }
     },
@@ -845,6 +1265,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Postponed"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Отложено"
           }
         }
       }
@@ -858,6 +1284,12 @@
             "state" : "translated",
             "value" : "since %@"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "с %@"
+          }
         }
       }
     },
@@ -869,6 +1301,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Work sessions"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Рабочие сессии"
           }
         }
       }
@@ -882,6 +1320,12 @@
             "state" : "translated",
             "value" : "Stop"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Остановить"
+          }
         }
       }
     },
@@ -894,11 +1338,17 @@
             "state" : "translated",
             "value" : "Time to rest"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Время для перерыва"
+          }
         }
       }
     },
     "trackStatisticsHelp" : {
-      "comment" : "Tooltip explaining the statistics tracking preference.",
+      "comment" : "Statistics cover work sessions, breaks, postpones and early returns, and appear in the menu.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -906,17 +1356,29 @@
             "state" : "translated",
             "value" : "Count completed work sessions, breaks, postpones, and early returns, shown in the menu."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Учитывать завершённые рабочие сессии, перерывы, переносы и досрочные возвращения и показывать их в меню."
+          }
         }
       }
     },
     "trackStatisticsToggle" : {
-      "comment" : "Preferences toggle that enables the session statistics.",
+      "comment" : "Turns statistics on.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Track statistics"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Отслеживать статистику"
           }
         }
       }
@@ -930,17 +1392,29 @@
             "state" : "translated",
             "value" : "Try It"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Попробовать"
+          }
         }
       }
     },
     "tryEffectHelp" : {
-      "comment" : "Tooltip for the Try It button in Preferences.",
+      "comment" : "Previews the effect for a few seconds; any key or click ends it.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shows this effect on your screen for a few seconds. Any key or click ends it."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Показывает этот эффект на экране в течение нескольких секунд. Любая клавиша или щелчок мыши завершает показ."
           }
         }
       }
@@ -954,11 +1428,17 @@
             "state" : "translated",
             "value" : "Postpone and “I’m back” windows overlap — both buttons can appear at once."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Окна кнопок «Отложить» и «Я на месте» пересекаются: обе кнопки могут появиться одновременно."
+          }
         }
       }
     },
     "workDuration" : {
-      "comment" : "Label for the work duration slider.",
+      "comment" : "Slider: work session length.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -966,11 +1446,17 @@
             "state" : "translated",
             "value" : "Work Duration"
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Продолжительность работы"
+          }
         }
       }
     },
     "workStartModeHelp" : {
-      "comment" : "Help text describing the start-work-after-break picker.",
+      "comment" : "Explains the choice between work starting by itself after a break and waiting for a button press.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -978,9 +1464,15 @@
             "state" : "translated",
             "value" : "Choose whether the work timer should automatically start when your rest finishes or wait until you press a button."
           }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Выберите, должен ли рабочий таймер запускаться автоматически после завершения перерыва, или ждать нажатия кнопки."
+          }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version" : "1.3"
 }
