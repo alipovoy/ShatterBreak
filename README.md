@@ -98,9 +98,23 @@ Screen Recording* still lists ShatterBreak with its switch on. That entry is sta
 **toggling it off and on does not repair it**. Remove the entry with **-**, add the new
 app back with **+**. Once per update.
 
-Downloadable builds stay ad-hoc so trying the app needs no certificate setup; a copy you
-sign locally with a stable identity keeps the grant
-([RELEASING.md](./RELEASING.md#signing-so-permissions-survive-updates)).
+Downloadable builds stay ad-hoc so trying the app needs no certificate setup. Building
+from source with your own team keeps the grant
+([RELEASING.md](./RELEASING.md#local-team-signing)), and so does re-signing a download:
+
+### Stable signing for a downloaded build
+Create a certificate once: *Keychain Access > Certificate Assistant > Create a
+Certificate…*, named `ShatterBreak Self-Signed`, *Identity Type: Self Signed Root*,
+*Certificate Type: Code Signing*, *Key Type: RSA* (an EC key breaks the Screen Recording
+listing in other accounts), default 365-day validity. Then, after each update and before
+the first launch:
+
+```bash
+codesign --force --timestamp --preserve-metadata=entitlements,flags \
+  --sign "ShatterBreak Self-Signed" ShatterBreak.app
+```
+
+Renewing the certificate changes the app's identity, so expect one re-add a year.
 
 ### The second, separate confirmation
 On macOS 15 and later, Screen Recording is not the only consent `Shatter` needs.

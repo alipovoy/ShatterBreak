@@ -44,10 +44,10 @@ xcodebuild -project ShatterBreak.xcodeproj -scheme ShatterBreak build
 You can also open `ShatterBreak.xcodeproj` in Xcode, select the `ShatterBreak`
 scheme, and build and run from there.
 
-No code-signing setup is required: the `.env/signing.yml` include is gated behind
-`INCLUDE_SIGNING`, unset by default. To sign locally, copy
-[`.env/signing.yml.example`](./.env/signing.yml.example) — see
-[RELEASING.md](./RELEASING.md#which-identity-signs-a-build).
+No code-signing setup is required, but without a team Xcode signs ad-hoc and every
+rebuild drops the Screen Recording grant. To sign with your own team, copy
+[`Config/Signing.local.xcconfig.example`](./Config/Signing.local.xcconfig.example) — see
+[RELEASING.md](./RELEASING.md#local-team-signing).
 
 ## Running tests
 

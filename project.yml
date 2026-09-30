@@ -1,8 +1,8 @@
 name: ShatterBreak
 
-include:
-  - path: .env/signing.yml
-    enable: ${INCLUDE_SIGNING}
+configFiles:
+  Debug: Config/Signing.xcconfig
+  Release: Config/Signing.xcconfig
 
 options:
   bundleIdPrefix: dev.lipovoy
@@ -91,8 +91,6 @@ targets:
         Release:
           TEST_HOST: $(BUILT_PRODUCTS_DIR)/ShatterBreak.app/Contents/MacOS/ShatterBreak
 
-# Defined at the top level (not via the target `scheme:` shorthand) so the archive
-# action can carry a post-action — the shorthand only attaches actions to build.
 schemes:
   ShatterBreak:
     build:
@@ -110,13 +108,3 @@ schemes:
         - ShatterBreakTests
     archive:
       config: Release
-      postActions:
-        # Re-sign with a stable identity so the Screen Recording grant survives
-        # updates (#43). SIGN_OPTIONAL makes a missing certificate a no-op; it does
-        # NOT cover a signing failure, and Xcode ignores post-action exit status, so
-        # check the log. See RELEASING.md.
-        - name: Sign with stable identity
-          script: |
-            SIGN_OPTIONAL=1 "${SRCROOT}/Scripts/sign-release.sh" \
-              "${ARCHIVE_PATH}/Products/Applications/${WRAPPER_NAME}"
-          settingsTarget: ShatterBreak

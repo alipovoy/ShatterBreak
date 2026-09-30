@@ -25,7 +25,6 @@ jobs:
       SCHEME: ShatterBreak
       DERIVED_DATA: ${{ github.workspace }}/DerivedData
       RESULT_BUNDLE: ${{ github.workspace }}/ShatterBreak.xcresult
-      INCLUDE_SIGNING: "false"
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
 
