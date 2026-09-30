@@ -155,10 +155,8 @@ is unchanged.
 
 **Published builds stay ad-hoc, deliberately.** CI has no certificate, and giving it one
 means a key in repository secrets. Trying the app should not require certificate
-setup; the cost lands on updates, where the README explains the re-add. Tracked in
+setup; the cost lands on updates, where the README explains the re-add. Decided in
 [#100](https://github.com/alipovoy/ShatterBreak/issues/100).
-
-CI signs ad-hoc directly in `release.yml`; there is no signing script.
 
 ### Local team signing
 
@@ -182,8 +180,8 @@ certificate — the `OU` field:
 security find-certificate -c "Apple Development" -p | openssl x509 -noout -subject
 ```
 
-Not the parenthesized suffix from `security find-identity`, which identifies the
-certificate. The setting applies at project level so the test target inherits it; no
+Not the parenthesized suffix from `security find-identity`, which is not the Team ID.
+The setting applies at project level so the test target inherits it; no
 `PROVISIONING_PROFILE_SPECIFIER` is needed, as the entitlements are sandbox-only.
 
 Confirm the DR is not a bare `cdhash`:
