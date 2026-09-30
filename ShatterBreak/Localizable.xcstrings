@@ -1,986 +1,986 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "about": {
-      "comment": "Button that opens the About window; also the window title.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "About"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "about" : {
+      "comment" : "Button that opens the About window; also the window title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
           }
         }
       }
     },
-    "aboutBuild": {
-      "comment": "Build line in the About window. First %@ is the build number, second is the git commit hash.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Build %@ (%@)"
+    "aboutBuild" : {
+      "comment" : "Build line in the About window. First %@ is the build number, second is the git commit hash.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build %@ (%@)"
           }
         }
       }
     },
-    "aboutCopied": {
-      "comment": "Shown after the version link is clicked and the version summary is copied to the clipboard.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copied version to clipboard"
+    "aboutCopied" : {
+      "comment" : "Shown after the version link is clicked and the version summary is copied to the clipboard.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied version to clipboard"
           }
         }
       }
     },
-    "aboutCopyHelp": {
-      "comment": "Tooltip on the version link explaining that clicking copies the version to the clipboard.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Click to copy version info"
+    "aboutCopyHelp" : {
+      "comment" : "Tooltip on the version link explaining that clicking copies the version to the clipboard.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click to copy version info"
           }
         }
       }
     },
-    "aboutVersion": {
-      "comment": "Version line in the About window. %@ is the version string.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Version %@"
+    "aboutVersion" : {
+      "comment" : "Version line in the About window. %@ is the version string.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@"
           }
         }
       }
     },
-    "allowEarlyReturnHelp": {
-      "comment": "Help text for the Allow Early Return toggle.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show the “I’m back” button before a break ends so you can return early."
+    "allowEarlyReturnHelp" : {
+      "comment" : "Help text for the Allow Early Return toggle.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show the “I’m back” button before a break ends so you can return early."
           }
         }
       }
     },
-    "allowEarlyReturnToggle": {
-      "comment": "Toggle that enables the early “I’m back” button during a break.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Allow Early Return"
+    "allowEarlyReturnToggle" : {
+      "comment" : "Toggle that enables the early “I’m back” button during a break.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Early Return"
           }
         }
       }
     },
-    "allowPostponeToggle": {
-      "comment": "Preferences toggle to allow the user to postpone a break.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Allow Postpone"
+    "allowPostponeToggle" : {
+      "comment" : "Preferences toggle to allow the user to postpone a break.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Postpone"
           }
         }
       }
     },
-    "autoStartOnLaunchHelp": {
-      "comment": "Help text describing the auto-start-on-launch toggle.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When enabled, a focus session starts automatically each time ShatterBreak launches."
+    "autoStartOnLaunchHelp" : {
+      "comment" : "Help text describing the auto-start-on-launch toggle.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When enabled, a focus session starts automatically each time ShatterBreak launches."
           }
         }
       }
     },
-    "autoStartOnLaunchToggle": {
-      "comment": "Preferences toggle that starts a focus session automatically when the app launches.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start timer on launch"
+    "autoStartOnLaunchToggle" : {
+      "comment" : "Preferences toggle that starts a focus session automatically when the app launches.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start timer on launch"
           }
         }
       }
     },
-    "close": {
-      "comment": "Button that closes the Preferences window.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Close"
+    "close" : {
+      "comment" : "Button that closes the Preferences window.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
           }
         }
       }
     },
-    "countSessionEarlyHelp": {
-      "comment": "Help text for the Count Sessions Early toggle.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Count a work session as worked shortly before it ends, so stepping away in its closing minutes still counts it."
+    "countSessionEarlyHelp" : {
+      "comment" : "Help text for the Count Sessions Early toggle.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Count a work session as worked shortly before it ends, so stepping away in its closing minutes still counts it."
           }
         }
       }
     },
-    "countSessionEarlyToggle": {
-      "comment": "Toggle that counts a work session shortly before it ends.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Count Sessions Early"
+    "countSessionEarlyToggle" : {
+      "comment" : "Toggle that counts a work session shortly before it ends.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Count Sessions Early"
           }
         }
       }
     },
-    "directCaptureConfirmAction": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ask macOS again"
+    "directCaptureConfirmAction" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask macOS again"
           }
         }
       }
     },
-    "directCaptureNote": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS asks you to confirm direct screen capture when a work session starts, and again about once a month."
+    "directCaptureNote" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS asks you to confirm direct screen capture when a work session starts, and again about once a month."
           }
         }
       }
     },
-    "directCaptureWarningText": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shatter also needs macOS’s confirmation to capture the screen directly. Until it is allowed, breaks use the Fogged effect instead."
+    "directCaptureWarningText" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shatter also needs macOS’s confirmation to capture the screen directly. Until it is allowed, breaks use the Fogged effect instead."
           }
         }
       }
     },
-    "earlyReturnLeadExceedsRestWarning": {
-      "comment": "Warning when the early-return lead is longer than the break.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Early-return lead is longer than the break; “I’m back” shows for the whole break."
+    "earlyReturnLeadExceedsRestWarning" : {
+      "comment" : "Warning when the early-return lead is longer than the break.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Early-return lead is longer than the break; “I’m back” shows for the whole break."
           }
         }
       }
     },
-    "earlyReturnLeadHelp": {
-      "comment": "Help text for the early-return lead slider.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "How early the “I’m back” button appears before a break ends."
+    "earlyReturnLeadHelp" : {
+      "comment" : "Help text for the early-return lead slider.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How early the “I’m back” button appears before a break ends."
           }
         }
       }
     },
-    "earlyReturnLeadLabel": {
-      "comment": "Label for the slider setting how early the “I’m back” button appears.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show “I’m back” before end"
+    "earlyReturnLeadLabel" : {
+      "comment" : "Label for the slider setting how early the “I’m back” button appears.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show “I’m back” before end"
           }
         }
       }
     },
-    "effectDimmed": {
-      "comment": "Display name for the dimmed break effect (a plain dimmed overlay).",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dimmed"
+    "effectDimmed" : {
+      "comment" : "Display name for the dimmed break effect (a plain dimmed overlay).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmed"
           }
         }
       }
     },
-    "effectFogged": {
-      "comment": "Display name for the fogged break effect (fogged glass over the desktop with cracks).",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fogged"
+    "effectFogged" : {
+      "comment" : "Display name for the fogged break effect (fogged glass over the desktop with cracks).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fogged"
           }
         }
       }
     },
-    "effectShatter": {
-      "comment": "Display name for the shatter break effect.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shatter"
+    "effectShatter" : {
+      "comment" : "Display name for the shatter break effect.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shatter"
           }
         }
       }
     },
-    "effectTypePicker": {
-      "comment": "Preferences picker label for choosing the break effect.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Effect Type"
+    "effectTypePicker" : {
+      "comment" : "Preferences picker label for choosing the break effect.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effect Type"
           }
         }
       }
     },
-    "imBack": {
-      "comment": "Overlay button the user taps to indicate they have returned from a break.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I'm back"
+    "imBack" : {
+      "comment" : "Overlay button the user taps to indicate they have returned from a break.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I'm back"
           }
         }
       }
     },
-    "menuBarTimerStyleMinutes": {
-      "comment": "Menu bar timer option that shows only whole minutes, updating once a minute.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minutes"
+    "imBackAccessibilityHint" : {
+      "comment" : "VoiceOver hint for the overlay's I'm back button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ends the break and resumes work."
           }
         }
       }
     },
-    "menuBarTimerStyleOff": {
-      "comment": "Menu bar timer option that hides the remaining time.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Off"
+    "menuBarAccessibilityIdle" : {
+      "comment" : "VoiceOver label for the menu bar status item when no timer is running.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ShatterBreak, idle"
           }
         }
       }
     },
-    "menuBarTimerStyleSeconds": {
-      "comment": "Menu bar timer option that shows minutes and seconds, updating every second.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minutes and seconds"
+    "menuBarAccessibilityPaused" : {
+      "comment" : "VoiceOver label for the menu bar status item while the timer is paused.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ShatterBreak, paused"
           }
         }
       }
     },
-    "openSystemSettingsToGrant": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open System Settings to grant permission"
+    "menuBarAccessibilityResting" : {
+      "comment" : "VoiceOver label for the menu bar status item during a break.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ShatterBreak, on a break"
           }
         }
       }
     },
-    "pause": {
-      "comment": "Menu button that pauses the running work timer.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pause"
+    "menuBarAccessibilityRunning" : {
+      "comment" : "VoiceOver label for the menu bar status item during a work session.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ShatterBreak, working"
           }
         }
       }
     },
-    "permissionWarningText": {
-      "comment": "Inline warning shown when Screen Recording permission is missing.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shatter requires Screen Recording permission. Without it, breaks use the Fogged effect instead."
+    "menuBarTimerStyleMinutes" : {
+      "comment" : "Menu bar timer option that shows only whole minutes, updating once a minute.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minutes"
           }
         }
       }
     },
-    "playSoundToggle": {
-      "comment": "Preferences toggle that enables a sound when a break starts.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Play Sound"
+    "menuBarTimerStyleOff" : {
+      "comment" : "Menu bar timer option that hides the remaining time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
           }
         }
       }
     },
-    "postpone": {
-      "comment": "Overlay button that postpones the current break.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Postpone"
+    "menuBarTimerStyleSeconds" : {
+      "comment" : "Menu bar timer option that shows minutes and seconds, updating every second.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minutes and seconds"
           }
         }
       }
     },
-    "postponeDurationHelp": {
-      "comment": "Help text for the Postpone duration slider.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "How long a break is pushed back when you tap Postpone."
+    "openSystemSettingsToGrant" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings to grant permission"
           }
         }
       }
     },
-    "postponeDurationLabel": {
-      "comment": "Label for the slider setting how long a postpone pushes the break back.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Postpone duration"
+    "pause" : {
+      "comment" : "Menu button that pauses the running work timer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause"
           }
         }
       }
     },
-    "postponeWindowExceedsRestWarning": {
-      "comment": "Warning when the Postpone window is longer than the break.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Postpone window is longer than the break; Postpone stays for the whole break."
+    "permissionWarningText" : {
+      "comment" : "Inline warning shown when Screen Recording permission is missing.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shatter requires Screen Recording permission. Without it, breaks use the Fogged effect instead. If ShatterBreak is already switched on in System Settings, the entry is stale, for example after an update: remove it with the “−” button and add the app back with the “+” button."
           }
         }
       }
     },
-    "postponeWindowHelp": {
-      "comment": "Help text for the Postpone window slider.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "How long the Postpone button stays on screen after a break begins."
+    "playSoundToggle" : {
+      "comment" : "Preferences toggle that enables a sound when a break starts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play Sound"
           }
         }
       }
     },
-    "postponeWindowLabel": {
-      "comment": "Label for the slider setting how long the Postpone button stays visible.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Postpone available for"
+    "postpone" : {
+      "comment" : "Overlay button that postpones the current break.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postpone"
           }
         }
       }
     },
-    "preferences": {
-      "comment": "Title of the Preferences window and the menu button that opens it.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preferences"
+    "postponeAccessibilityHint" : {
+      "comment" : "VoiceOver hint for the overlay's Postpone button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delays this break."
           }
         }
       }
     },
-    "quit": {
-      "comment": "Menu button that quits the app.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quit"
+    "postponeDurationHelp" : {
+      "comment" : "Help text for the Postpone duration slider.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How long a break is pushed back when you tap Postpone."
           }
         }
       }
     },
-    "ready": {
-      "comment": "Idle state shown in the menu when no timer is running.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ready"
+    "postponeDurationLabel" : {
+      "comment" : "Label for the slider setting how long a postpone pushes the break back.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postpone duration"
           }
         }
       }
     },
-    "reduceMotionFollowsSystemCaption": {
-      "comment": "Caption under the Reduce motion toggle while the macOS Reduce Motion accessibility setting is on.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS Reduce Motion is on, so motion is already reduced"
+    "postponeWindowExceedsRestWarning" : {
+      "comment" : "Warning when the Postpone window is longer than the break.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postpone window is longer than the break; Postpone stays for the whole break."
           }
         }
       }
     },
-    "reduceMotionHelp": {
-      "comment": "Tooltip for the Reduce motion toggle.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Goes straight to the cracked glass, without shaking the screen first."
+    "postponeWindowHelp" : {
+      "comment" : "Help text for the Postpone window slider.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How long the Postpone button stays on screen after a break begins."
           }
         }
       }
     },
-    "reduceMotionToggle": {
-      "comment": "Preferences toggle that skips the shake before the Shatter effect cracks.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reduce motion"
+    "postponeWindowLabel" : {
+      "comment" : "Label for the slider setting how long the Postpone button stays visible.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postpone available for"
           }
         }
       }
     },
-    "resetStatistics": {
-      "comment": "Icon button in the menu's statistics section that starts a fresh tally.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reset statistics"
+    "preferences" : {
+      "comment" : "Title of the Preferences window and the menu button that opens it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preferences"
           }
         }
       }
     },
-    "resetStatisticsHelp": {
-      "comment": "Tooltip on the statistics reset button.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start a fresh tally from zero."
+    "quit" : {
+      "comment" : "Menu button that quits the app.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit"
           }
         }
       }
     },
-    "resetStatisticsOnStartHelp": {
-      "comment": "Tooltip explaining the automatic statistics reset preference.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start a fresh tally whenever a session starts after a stop. Statistics always survive app relaunches."
+    "ready" : {
+      "comment" : "Idle state shown in the menu when no timer is running.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready"
           }
         }
       }
     },
-    "resetStatisticsOnStartToggle": {
-      "comment": "Preferences toggle for resetting statistics automatically at the stop→start boundary.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reset statistics on a new session"
+    "reduceMotionFollowsSystemCaption" : {
+      "comment" : "Caption under the Reduce motion toggle while the macOS Reduce Motion accessibility setting is on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS Reduce Motion is on, so motion is already reduced"
           }
         }
       }
     },
-    "restDuration": {
-      "comment": "Label for the rest duration slider.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rest Duration"
+    "reduceMotionHelp" : {
+      "comment" : "Tooltip for the Reduce motion toggle.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goes straight to the cracked glass, without shaking the screen first."
           }
         }
       }
     },
-    "resume": {
-      "comment": "Menu button that resumes a paused timer.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Resume"
+    "reduceMotionToggle" : {
+      "comment" : "Preferences toggle that skips the shake before the Shatter effect cracks.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reduce motion"
           }
         }
       }
     },
-    "sessionLeadExceedsWorkWarning": {
-      "comment": "Warning when the session lead is longer than a work session.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Session lead is longer than a work session; every session counts as soon as it starts."
+    "resetStatistics" : {
+      "comment" : "Icon button in the menu's statistics section that starts a fresh tally.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset statistics"
           }
         }
       }
     },
-    "sessionLeadHelp": {
-      "comment": "Help text for the session-lead field.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "How long before a work session ends it counts as worked."
+    "resetStatisticsHelp" : {
+      "comment" : "Tooltip on the statistics reset button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start a fresh tally from zero."
           }
         }
       }
     },
-    "sessionLeadLabel": {
-      "comment": "Label for the field setting how early a work session counts.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Count session before end"
+    "resetStatisticsOnStartHelp" : {
+      "comment" : "Tooltip explaining the automatic statistics reset preference.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start a fresh tally whenever a session starts after a stop. Statistics always survive app relaunches."
           }
         }
       }
     },
-    "settingsTabBreakScreen": {
-      "comment": "Settings tab for the break overlay appearance and sound.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Break Screen"
+    "resetStatisticsOnStartToggle" : {
+      "comment" : "Preferences toggle for resetting statistics automatically at the stop→start boundary.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset statistics on a new session"
           }
         }
       }
     },
-    "settingsTabGeneral": {
-      "comment": "Settings tab for app-level behavior (launch, menu bar, statistics).",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "General"
+    "restDuration" : {
+      "comment" : "Label for the rest duration slider.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rest Duration"
           }
         }
       }
     },
-    "settingsTabSchedule": {
-      "comment": "Settings tab for work/rest durations and break flexibility.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schedule"
+    "resume" : {
+      "comment" : "Menu button that resumes a paused timer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume"
           }
         }
       }
     },
-    "showTimerInMenuBarHelp": {
-      "comment": "Help text describing the show-timer-in-menu-bar picker.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Choose how the remaining time appears next to the app icon in the menu bar. Minutes updates once a minute to save energy and switches to seconds for the final minute."
+    "sessionLeadExceedsWorkWarning" : {
+      "comment" : "Warning when the session lead is longer than a work session.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session lead is longer than a work session; every session counts as soon as it starts."
           }
         }
       }
     },
-    "showTimerInMenuBarToggle": {
-      "comment": "Preferences picker that controls the remaining-time display in the menu bar.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show timer in menu bar"
+    "sessionLeadHelp" : {
+      "comment" : "Help text for the session-lead field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How long before a work session ends it counts as worked."
           }
         }
       }
     },
-    "skipRest": {
-      "comment": "Menu button that skips the current rest period.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Skip Rest"
+    "sessionLeadLabel" : {
+      "comment" : "Label for the field setting how early a work session counts.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Count session before end"
           }
         }
       }
     },
-    "softOverlayToggle": {
-      "comment": "Preferences toggle that uses a soft overlay allowing menu bar access.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Soft Overlay (allows menu bar access)"
+    "settingsTabBreakScreen" : {
+      "comment" : "Settings tab for the break overlay appearance and sound.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Break Screen"
           }
         }
       }
     },
-    "startFocus": {
-      "comment": "Menu button that starts a focus session.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start Focus"
+    "settingsTabGeneral" : {
+      "comment" : "Settings tab for app-level behavior (launch, menu bar, statistics).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
           }
         }
       }
     },
-    "startWorkAutomaticallyToggle": {
-      "comment": "Settings toggle for WorkStartMode: on = automatic, off = manual.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start work automatically after a break"
+    "settingsTabSchedule" : {
+      "comment" : "Settings tab for work/rest durations and break flexibility.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule"
           }
         }
       }
     },
-    "statistics": {
-      "comment": "Header of the collapsible statistics section in the menu.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Statistics"
+    "showTimerInMenuBarHelp" : {
+      "comment" : "Help text describing the show-timer-in-menu-bar picker.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose how the remaining time appears next to the app icon in the menu bar. Minutes updates once a minute to save energy and switches to seconds for the final minute."
           }
         }
       }
     },
-    "statisticsBreaks": {
-      "comment": "Statistics row: number of completed breaks.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Breaks"
+    "showTimerInMenuBarToggle" : {
+      "comment" : "Preferences picker that controls the remaining-time display in the menu bar.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show timer in menu bar"
           }
         }
       }
     },
-    "statisticsEarlyReturns": {
-      "comment": "Statistics row: number of breaks cut short via the early \"I'm back\" button.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Early returns"
+    "skipRest" : {
+      "comment" : "Menu button that skips the current rest period.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip Rest"
           }
         }
       }
     },
-    "statisticsPostponed": {
-      "comment": "Statistics row: number of times the break was postponed.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Postponed"
+    "softOverlayToggle" : {
+      "comment" : "Preferences toggle that uses a soft overlay allowing menu bar access.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soft Overlay (allows menu bar access)"
           }
         }
       }
     },
-    "statisticsSince": {
-      "comment": "Caption showing when the current statistics tally began. %@ is a time (same day) or a date and time.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "since %@"
+    "startFocus" : {
+      "comment" : "Menu button that starts a focus session.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Focus"
           }
         }
       }
     },
-    "statisticsWorkSessions": {
-      "comment": "Statistics row: number of completed work sessions.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Work sessions"
+    "startWorkAutomaticallyToggle" : {
+      "comment" : "Settings toggle for WorkStartMode: on = automatic, off = manual.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start work automatically after a break"
           }
         }
       }
     },
-    "stop": {
-      "comment": "Menu button that stops the running timer.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stop"
+    "statistics" : {
+      "comment" : "Header of the collapsible statistics section in the menu.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistics"
           }
         }
       }
     },
-    "timeToRest": {
-      "comment": "Headline shown on the break overlay.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Time to rest"
+    "statisticsBreaks" : {
+      "comment" : "Statistics row: number of completed breaks.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Breaks"
           }
         }
       }
     },
-    "trackStatisticsHelp": {
-      "comment": "Tooltip explaining the statistics tracking preference.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Count completed work sessions, breaks, postpones, and early returns, shown in the menu."
+    "statisticsEarlyReturns" : {
+      "comment" : "Statistics row: number of breaks cut short via the early \"I'm back\" button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Early returns"
           }
         }
       }
     },
-    "trackStatisticsToggle": {
-      "comment": "Preferences toggle that enables the session statistics.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Track statistics"
+    "statisticsPostponed" : {
+      "comment" : "Statistics row: number of times the break was postponed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postponed"
           }
         }
       }
     },
-    "tryEffect": {
-      "comment": "Button in Preferences that shows the selected break effect on screen for a few seconds.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Try It"
+    "statisticsSince" : {
+      "comment" : "Caption showing when the current statistics tally began. %@ is a time (same day) or a date and time.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "since %@"
           }
         }
       }
     },
-    "tryEffectHelp": {
-      "comment": "Tooltip for the Try It button in Preferences.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shows this effect on your screen for a few seconds. Any key or click ends it."
+    "statisticsWorkSessions" : {
+      "comment" : "Statistics row: number of completed work sessions.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Work sessions"
           }
         }
       }
     },
-    "windowsOverlapWarning": {
-      "comment": "Warning when the Postpone and “I’m back” windows overlap.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Postpone and “I’m back” windows overlap — both buttons can appear at once."
+    "stop" : {
+      "comment" : "Menu button that stops the running timer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop"
           }
         }
       }
     },
-    "workDuration": {
-      "comment": "Label for the work duration slider.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Work Duration"
+    "timeToRest" : {
+      "comment" : "Headline shown on the break overlay.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time to rest"
           }
         }
       }
     },
-    "workStartModeHelp": {
-      "comment": "Help text describing the start-work-after-break picker.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Choose whether the work timer should automatically start when your rest finishes or wait until you press a button."
+    "trackStatisticsHelp" : {
+      "comment" : "Tooltip explaining the statistics tracking preference.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Count completed work sessions, breaks, postpones, and early returns, shown in the menu."
           }
         }
       }
     },
-    "postponeAccessibilityHint": {
-      "comment": "VoiceOver hint for the overlay's Postpone button.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delays this break."
+    "trackStatisticsToggle" : {
+      "comment" : "Preferences toggle that enables the session statistics.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track statistics"
           }
         }
       }
     },
-    "imBackAccessibilityHint": {
-      "comment": "VoiceOver hint for the overlay's I'm back button.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ends the break and resumes work."
+    "tryEffect" : {
+      "comment" : "Button in Preferences that shows the selected break effect on screen for a few seconds.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try It"
           }
         }
       }
     },
-    "menuBarAccessibilityIdle": {
-      "comment": "VoiceOver label for the menu bar status item when no timer is running.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ShatterBreak, idle"
+    "tryEffectHelp" : {
+      "comment" : "Tooltip for the Try It button in Preferences.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows this effect on your screen for a few seconds. Any key or click ends it."
           }
         }
       }
     },
-    "menuBarAccessibilityRunning": {
-      "comment": "VoiceOver label for the menu bar status item during a work session.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ShatterBreak, working"
+    "windowsOverlapWarning" : {
+      "comment" : "Warning when the Postpone and “I’m back” windows overlap.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postpone and “I’m back” windows overlap — both buttons can appear at once."
           }
         }
       }
     },
-    "menuBarAccessibilityPaused": {
-      "comment": "VoiceOver label for the menu bar status item while the timer is paused.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ShatterBreak, paused"
+    "workDuration" : {
+      "comment" : "Label for the work duration slider.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Work Duration"
           }
         }
       }
     },
-    "menuBarAccessibilityResting": {
-      "comment": "VoiceOver label for the menu bar status item during a break.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ShatterBreak, on a break"
+    "workStartModeHelp" : {
+      "comment" : "Help text describing the start-work-after-break picker.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose whether the work timer should automatically start when your rest finishes or wait until you press a button."
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }
