@@ -190,6 +190,4 @@ Confirm the DR is not a bare `cdhash`:
 codesign -d --requirements - path/to/ShatterBreak.app
 ```
 
-Don't share development-signed builds. No profile is embedded, so nothing ties them to
-one Mac, but the certificate's common name contains the Apple ID email and development
-certificates are not meant for distribution. Builds for other people come from CI.
+Team signing is for your own builds; builds for other people come from CI.
