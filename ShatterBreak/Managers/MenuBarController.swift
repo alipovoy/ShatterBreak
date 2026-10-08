@@ -29,6 +29,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private var timerStyle: MenuBarTimerStyle
     private var warningLeadSecs: Int
     private(set) var isWarning = false
+    /// Held so the warning clears the view it painted.
+    private weak var warningBackground: NSView?
 
     init(state: TimerState) {
         self.state = state
@@ -47,9 +49,6 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             button.image = NSImage(systemSymbolName: "app.badge.clock", accessibilityDescription: nil)
             button.target = self
             button.action = #selector(togglePopover)
-            button.wantsLayer = true
-            button.layer?.cornerRadius = Self.warningCornerRadius
-            button.layer?.cornerCurve = .continuous
         }
 
         popover.behavior = .transient
@@ -278,17 +277,32 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         return 4.5
     }
 
-    /// On the button's own layer, which renders beneath the icon and digits and changes no
-    /// geometry. The image stays a template so the menu bar keeps colouring it.
+    /// A layer background, so nothing is added and no geometry changes. The image stays a
+    /// template so the menu bar keeps colouring it.
     private func setWarning(_ isActive: Bool, in button: NSStatusBarButton) {
         guard isActive != isWarning else { return }
         isWarning = isActive
 
+        if isActive {
+            let background = Self.warningBackground(for: button)
+            background.wantsLayer = true
+            background.layer?.cornerRadius = Self.warningCornerRadius
+            background.layer?.cornerCurve = .continuous
+            warningBackground = background
+        }
         // `cgColor` freezes one shade, so it is taken under the menu bar's appearance.
         button.effectiveAppearance.performAsCurrentDrawingAppearance {
-            button.layer?.backgroundColor = (isActive ? NSColor.systemOrange : .clear).cgColor
+            warningBackground?.layer?.backgroundColor = (isActive ? NSColor.systemOrange : .clear).cgColor
         }
         button.setAccessibilityLabel(String(localized: accessibilityLabel))
+    }
+
+    /// AppKit's slot for the item: 22pt tall with or without a countdown, where an icon-only
+    /// button is 33×29pt. Looked up as the warning begins, since the hierarchy is AppKit's.
+    /// A button sitting straight in the window would paint the whole bar, so it paints itself.
+    private static func warningBackground(for button: NSStatusBarButton) -> NSView {
+        guard let slot = button.superview, slot !== button.window?.contentView else { return button }
+        return slot
     }
 
     private var accessibilityLabel: LocalizedStringResource {
