@@ -52,26 +52,32 @@ struct OverlayView: View {
                             .foregroundStyle(.white)
                             .shadow(color: .black, radius: 5)
                             .accessibilityLabel(accessibleRemaining(at: referenceDate))
-
-                        if state.showsPostponeButton(at: referenceDate) {
-                            Button {
-                                state.postpone()
-                            } label: {
-                                Text(.postpone)
+                    }
+                    // Hung below the title and timer without taking part in their layout,
+                    // so the timer stays centred whether or not buttons are showing.
+                    .overlay(alignment: .bottom) {
+                        VStack(spacing: 24) {
+                            if state.showsPostponeButton(at: referenceDate) {
+                                Button {
+                                    state.postpone()
+                                } label: {
+                                    Text(.postpone)
+                                }
+                                .buttonStyle(OverlayActionButtonStyle())
+                                .accessibilityHint(Text(.postponeAccessibilityHint))
                             }
-                            .buttonStyle(OverlayActionButtonStyle())
-                            .accessibilityHint(Text(.postponeAccessibilityHint))
-                        }
 
-                        if state.showsReturnButton(at: referenceDate) {
-                            Button {
-                                state.returnToWork()
-                            } label: {
-                                Text(.imBack)
+                            if state.showsReturnButton(at: referenceDate) {
+                                Button {
+                                    state.returnToWork()
+                                } label: {
+                                    Text(.imBack)
+                                }
+                                .buttonStyle(OverlayActionButtonStyle())
+                                .accessibilityHint(Text(.imBackAccessibilityHint))
                             }
-                            .buttonStyle(OverlayActionButtonStyle())
-                            .accessibilityHint(Text(.imBackAccessibilityHint))
                         }
+                        .alignmentGuide(.bottom) { $0[.top] - 24 }
                     }
                 }
             }
