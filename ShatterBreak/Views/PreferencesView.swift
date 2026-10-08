@@ -60,6 +60,8 @@ private struct GeneralSettingsTab: View {
     private var autoStartOnLaunch = PreferenceDefaults.autoStartOnLaunch
     @AppStorage(PreferenceKeys.menuBarTimerStyle)
     private var menuBarTimerStyle = PreferenceDefaults.menuBarTimerStyle
+    @AppStorage(PreferenceKeys.menuBarWarningLeadSecs)
+    private var menuBarWarningLeadSecs = PreferenceDefaults.menuBarWarningLeadSecs
     @AppStorage(PreferenceKeys.trackStatistics)
     private var trackStatistics = PreferenceDefaults.trackStatistics
     @AppStorage(PreferenceKeys.resetStatisticsOnStart)
@@ -81,6 +83,26 @@ private struct GeneralSettingsTab: View {
                     }
                 }
                 .help(Text(.showTimerInMenuBarHelp))
+
+                Picker(.menuBarWarningLeadLabel, selection: $menuBarWarningLeadSecs) {
+                    ForEach(MenuBarWarning.leadChoices, id: \.self) { secs in
+                        if secs > 0 {
+                            Text(Duration.seconds(secs).formatted(.units(allowed: [.minutes, .seconds], width: .wide)))
+                                .tag(secs)
+                        } else {
+                            Text(.menuBarWarningLeadOff).tag(secs)
+                        }
+                    }
+                }
+                .help(Text(.menuBarWarningLeadHelp))
+
+                if MenuBarWarning.coversWholeSession(
+                    leadSecs: menuBarWarningLeadSecs,
+                    workDurationSecs: state.workDurationSecs
+                ) {
+                    WarningLabel(message: .menuBarWarningLeadExceedsWorkWarning)
+                        .readingWidth()
+                }
             }
 
             Section(.statistics) {
