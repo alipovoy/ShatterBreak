@@ -1,25 +1,22 @@
 import Foundation
 
 /// How a countdown renders, and so how often it must redraw. `minutes` ("24m") redraws once
-/// a minute with a loose tolerance, and falls back to MM:SS for the final minute.
+/// a minute with a loose tolerance, then counts whole seconds ("59s") below one minute.
 enum CountdownDisplayStyle: Equatable {
     case seconds
     case minutes
 
     static let finalCountdownThreshold: TimeInterval = 60
 
-    /// Minutes round up, as MM:SS does: "24m" means no more than 24 minutes remain.
+    /// Whole minutes left, read off the MM:SS clock: 1:10 is "1m", and "59s" follows 1:00.
     func text(forRemaining remaining: TimeInterval, locale: Locale = .autoupdatingCurrent) -> String {
         switch self {
         case .seconds:
             return TimerState.format(timeInterval: remaining)
         case .minutes:
-            guard remaining > Self.finalCountdownThreshold else {
-                return TimerState.format(timeInterval: remaining)
-            }
-            let wholeMinutes = Int(ceil(remaining / 60))
-            return Duration.seconds(wholeMinutes * 60)
-                .formatted(.units(allowed: [.minutes], width: .narrow).locale(locale))
+            let shown = Self.shownSeconds(forRemaining: remaining)
+            return Duration.seconds(shown)
+                .formatted(.units(allowed: [shown >= 60 ? .minutes : .seconds], width: .narrow).locale(locale))
         }
     }
 
@@ -29,10 +26,9 @@ enum CountdownDisplayStyle: Equatable {
         case .seconds:
             return Self.delayToNextBoundary(forRemaining: remaining, boundary: 1)
         case .minutes:
-            guard remaining > Self.finalCountdownThreshold else {
-                return Self.delayToNextBoundary(forRemaining: remaining, boundary: 1)
-            }
-            return Self.delayToNextBoundary(forRemaining: remaining, boundary: 60)
+            // The text holds until the displayed seconds drop below the figure it shows.
+            let lastSecondShown = Self.shownSeconds(forRemaining: remaining)
+            return .seconds(max(remaining - Double(lastSecondShown - 1), 0))
         }
     }
 
@@ -41,8 +37,16 @@ enum CountdownDisplayStyle: Equatable {
         case .seconds:
             return .milliseconds(100)
         case .minutes:
-            return remaining > Self.finalCountdownThreshold ? .seconds(5) : .milliseconds(100)
+            // Judged where the sleep ends, so the one into the final minute cannot skip "59s".
+            let remainingAtWake = remaining - nextRefreshDelay(forRemaining: remaining) / .seconds(1)
+            return remainingAtWake > Self.finalCountdownThreshold ? .seconds(5) : .milliseconds(100)
         }
+    }
+
+    /// The seconds the minutes style stands for: whole minutes from a minute up, else the seconds.
+    private static func shownSeconds(forRemaining remaining: TimeInterval) -> Int {
+        let displayed = TimerState.displaySeconds(for: remaining)
+        return displayed >= 60 ? displayed / 60 * 60 : displayed
     }
 
     private static func delayToNextBoundary(
