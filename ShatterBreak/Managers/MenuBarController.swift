@@ -29,8 +29,18 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private var timerStyle: MenuBarTimerStyle
     private var warningLeadSecs: Int
     private(set) var isWarning = false
-    /// Held so the warning clears the view it painted.
-    private weak var warningBackground: NSView?
+
+    /// The symbol drawn into a plain template image. AppKit lays an SF Symbol's button out at
+    /// 33×29pt around the item's 22pt slot; a plain image's button fills the slot, so the
+    /// button's own background takes the item's shape.
+    private static let icon: NSImage? = {
+        guard let symbol = NSImage(systemSymbolName: "app.badge.clock", accessibilityDescription: nil) else {
+            return nil
+        }
+        let image = NSImage(size: symbol.size, flipped: false) { symbol.draw(in: $0); return true }
+        image.isTemplate = true
+        return image
+    }()
 
     init(state: TimerState) {
         self.state = state
@@ -46,9 +56,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         super.init()
 
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "app.badge.clock", accessibilityDescription: nil)
+            button.image = Self.icon
             button.target = self
             button.action = #selector(togglePopover)
+            button.wantsLayer = true
+            button.layer?.cornerRadius = Self.warningCornerRadius
+            button.layer?.cornerCurve = .continuous
         }
 
         popover.behavior = .transient
@@ -283,26 +296,14 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         guard isActive != isWarning else { return }
         isWarning = isActive
 
-        if isActive {
-            let background = Self.warningBackground(for: button)
-            background.wantsLayer = true
-            background.layer?.cornerRadius = Self.warningCornerRadius
-            background.layer?.cornerCurve = .continuous
-            warningBackground = background
-        }
         // `cgColor` freezes one shade, so it is taken under the menu bar's appearance.
         button.effectiveAppearance.performAsCurrentDrawingAppearance {
-            warningBackground?.layer?.backgroundColor = (isActive ? NSColor.systemOrange : .clear).cgColor
+            button.layer?.backgroundColor = (isActive ? NSColor.systemOrange : .clear).cgColor
         }
+        // Other displays' menu bars show a copy of the item, refreshed when the button redraws;
+        // a layer property alone leaves them stale, which the countdown's ticks used to hide.
+        button.needsDisplay = true
         button.setAccessibilityLabel(String(localized: accessibilityLabel))
-    }
-
-    /// AppKit's slot for the item: 22pt tall with or without a countdown, where an icon-only
-    /// button is 33×29pt. Looked up as the warning begins, since the hierarchy is AppKit's.
-    /// A button sitting straight in the window would paint the whole bar, so it paints itself.
-    private static func warningBackground(for button: NSStatusBarButton) -> NSView {
-        guard let slot = button.superview, slot !== button.window?.contentView else { return button }
-        return slot
     }
 
     private var accessibilityLabel: LocalizedStringResource {
