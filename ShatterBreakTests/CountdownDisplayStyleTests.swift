@@ -81,11 +81,11 @@ struct CountdownDisplayStyleTests {
         #expect(CountdownDisplayStyle.minutes.text(forRemaining: -5, locale: english) == "0s")
     }
 
-    @Test("Minutes style wakes exactly when the text changes, from 61 s to the last second")
+    @Test("Minutes style wakes exactly when the text changes, down to the last second")
     func minutesStyleDelayLandsOnTextChange() {
         let style = CountdownDisplayStyle.minutes
-        for tenths in 1...1300 {
-            let remaining = Double(tenths) / 10 + 60
+        for tenths in 1...1900 {
+            let remaining = Double(tenths) / 10
             let delay = style.nextRefreshDelay(forRemaining: remaining)
             let seconds = Double(delay.components.seconds) + Double(delay.components.attoseconds) / 1e18
             let before = style.text(forRemaining: remaining - seconds + 0.001, locale: english)
