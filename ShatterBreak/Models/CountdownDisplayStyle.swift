@@ -8,7 +8,7 @@ enum CountdownDisplayStyle: Equatable {
 
     static let finalCountdownThreshold: TimeInterval = 60
 
-    /// Minutes and seconds round up, as MM:SS does: "24m" means no more than 24 minutes remain.
+    /// Whole minutes left, read off the MM:SS clock: 1:10 is "1m", and "59s" follows 1:00.
     func text(forRemaining remaining: TimeInterval, locale: Locale = .autoupdatingCurrent) -> String {
         switch self {
         case .seconds:
@@ -19,8 +19,7 @@ enum CountdownDisplayStyle: Equatable {
                 return Duration.seconds(wholeSeconds)
                     .formatted(.units(allowed: [.seconds], width: .narrow).locale(locale))
             }
-            let wholeMinutes = Int(ceil(remaining / 60))
-            return Duration.seconds(wholeMinutes * 60)
+            return Duration.seconds(wholeSeconds / 60 * 60)
                 .formatted(.units(allowed: [.minutes], width: .narrow).locale(locale))
         }
     }
@@ -34,7 +33,8 @@ enum CountdownDisplayStyle: Equatable {
             guard remaining > Self.finalCountdownThreshold else {
                 return Self.delayToNextBoundary(forRemaining: remaining, boundary: 1)
             }
-            return Self.delayToNextBoundary(forRemaining: remaining, boundary: 60)
+            // The text drops a minute one second below each whole minute, as 1:00 gives way to 0:59.
+            return Self.delayToNextBoundary(forRemaining: remaining + 1, boundary: 60)
         }
     }
 

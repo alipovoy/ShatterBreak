@@ -26,12 +26,13 @@ struct CountdownDisplayStyleTests {
         #expect(CountdownDisplayStyle.seconds.text(forRemaining: 7200, locale: english) == "120:00")
     }
 
-    @Test("Minutes style rounds whole minutes up, matching the MM:SS ceiling")
-    func minutesStyleRoundsUp() {
+    @Test("Minutes style shows the whole minutes left, as the MM:SS clock would")
+    func minutesStyleShowsWholeMinutes() {
         #expect(CountdownDisplayStyle.minutes.text(forRemaining: 1500, locale: english) == "25m")
-        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 1441, locale: english) == "25m")
+        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 1441, locale: english) == "24m")
         #expect(CountdownDisplayStyle.minutes.text(forRemaining: 1440, locale: english) == "24m")
-        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 61, locale: english) == "2m")
+        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 70, locale: english) == "1m")
+        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 61, locale: english) == "1m")
     }
 
     @Test("Minutes style counts whole seconds below one minute, without switching format")
@@ -50,11 +51,12 @@ struct CountdownDisplayStyleTests {
         #expect(CountdownDisplayStyle.seconds.nextRefreshDelay(forRemaining: 90.25) == .seconds(0.25))
     }
 
-    @Test("Minutes style sleeps to the next minute boundary")
+    @Test("Minutes style sleeps until the text drops a minute")
     func minutesStyleSleepsToNextMinute() {
-        #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 1500) == .seconds(60))
-        #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 1499.5) == .seconds(59.5))
-        #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 61) == .seconds(1))
+        #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 1500) == .seconds(1))
+        #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 1499) == .seconds(60))
+        #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 1498.5) == .seconds(59.5))
+        #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 61) == .seconds(2))
     }
 
     @Test("Minutes style ticks per second within the final minute")
