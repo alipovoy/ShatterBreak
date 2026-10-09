@@ -9,6 +9,7 @@ enum PreferenceDefaults {
     static let earlyReturnLeadSecs: Double = 30
     static let effectType: EffectType = .shatter
     static let menuBarTimerStyle: MenuBarTimerStyle = .off
+    static let menuBarWarningLeadSecs = 60
     static let playSound = true
     static let postponeDurationSecs: Double = 60
     static let postponeWindowSecs: Double = 60

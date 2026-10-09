@@ -24,8 +24,23 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private var isClosing = false
 
     private var refreshTask: Task<Void, Never>?
+    private var warningTask: Task<Void, Never>?
     private var styleObserver: (any NSObjectProtocol)?
     private var timerStyle: MenuBarTimerStyle
+    private var warningLeadSecs: Int
+    private(set) var isWarning = false
+
+    /// The symbol drawn into a plain template image. AppKit lays an SF Symbol's button out at
+    /// 33×29pt around the item's 22pt slot; a plain image's button fills the slot, so the
+    /// button's own background takes the item's shape.
+    private static let icon: NSImage? = {
+        guard let symbol = NSImage(systemSymbolName: "app.badge.clock", accessibilityDescription: nil) else {
+            return nil
+        }
+        let image = NSImage(size: symbol.size, flipped: false) { symbol.draw(in: $0); return true }
+        image.isTemplate = true
+        return image
+    }()
 
     init(state: TimerState) {
         self.state = state
@@ -33,6 +48,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             forKey: PreferenceKeys.menuBarTimerStyle,
             default: PreferenceDefaults.menuBarTimerStyle
         )
+        self.warningLeadSecs = MenuBarWarning.storedLead(in: state.defaults)
         let pointSize = statusItem.button?.font?.pointSize ?? NSFont.systemFontSize
         self.titleAttributes = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: pointSize, weight: .regular)
@@ -40,9 +56,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         super.init()
 
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "app.badge.clock", accessibilityDescription: nil)
+            button.image = Self.icon
             button.target = self
             button.action = #selector(togglePopover)
+            button.wantsLayer = true
+            button.layer?.cornerRadius = Self.warningCornerRadius
+            button.layer?.cornerCurve = .continuous
         }
 
         popover.behavior = .transient
@@ -63,6 +82,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     isolated deinit {
         refreshTask?.cancel()
+        warningTask?.cancel()
         if let styleObserver {
             NotificationCenter.default.removeObserver(styleObserver)
         }
@@ -177,11 +197,16 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     /// inside the task so configuring and drawing read the same mode.
     private func restart() {
         refreshTask?.cancel()
+        warningTask?.cancel()
         refreshTask = Task { [weak self, state] in
             self?.configure()
             guard let style = self?.displayStyle else { return }
-            await style.driveCountdown(for: state) { [weak self] referenceDate in
-                self?.render(at: referenceDate)
+            await style.driveCountdown(for: state) { [weak self] in self?.render(at: $0) }
+        }
+        warningTask = Task { [weak self, state] in
+            guard let warningLeadSecs = self?.warningLeadSecs else { return }
+            await MenuBarWarning.driveStart(for: state, leadSecs: warningLeadSecs) { [weak self] in
+                self?.render(at: $0)
             }
         }
     }
@@ -205,9 +230,11 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             forKey: PreferenceKeys.menuBarTimerStyle,
             default: PreferenceDefaults.menuBarTimerStyle
         )
-        // Every defaults write lands here; only a style change alters the item.
-        guard stored != timerStyle else { return }
+        let storedLead = MenuBarWarning.storedLead(in: state.defaults)
+        // Every defaults write lands here; only a style or lead change alters the item.
+        guard stored != timerStyle || storedLead != warningLeadSecs else { return }
         timerStyle = stored
+        warningLeadSecs = storedLead
         restart()
     }
 
@@ -243,14 +270,46 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
 
     private func render(at referenceDate: Date) {
-        guard let style = displayStyle, let button = statusItem.button else { return }
-        let text = " " + style.text(forRemaining: state.timeRemaining(at: referenceDate))
+        guard let button = statusItem.button else { return }
+        let remaining = state.timeRemaining(at: referenceDate)
+        setWarning(
+            MenuBarWarning.isActive(mode: state.mode, remaining: remaining, leadSecs: warningLeadSecs),
+            in: button
+        )
+
+        guard let style = displayStyle else { return }
+        let text = " " + style.text(forRemaining: remaining)
         button.attributedTitle = NSAttributedString(string: text, attributes: titleAttributes)
+    }
+
+    /// Tahoe rounds its menu bar highlights more than earlier releases.
+    private static var warningCornerRadius: CGFloat {
+        if #available(macOS 26, *) {
+            return 11
+        }
+        return 4.5
+    }
+
+    /// A layer background, so nothing is added and no geometry changes. The image stays a
+    /// template so the menu bar keeps colouring it.
+    private func setWarning(_ isActive: Bool, in button: NSStatusBarButton) {
+        guard isActive != isWarning else { return }
+        isWarning = isActive
+
+        // `cgColor` freezes one shade, so it is taken under the menu bar's appearance.
+        button.effectiveAppearance.performAsCurrentDrawingAppearance {
+            button.layer?.backgroundColor = (isActive ? NSColor.systemOrange : .clear).cgColor
+        }
+        // Other displays' menu bars show a copy of the item, refreshed when the button redraws;
+        // a layer property alone leaves them stale, which the countdown's ticks used to hide.
+        button.needsDisplay = true
+        button.setAccessibilityLabel(String(localized: accessibilityLabel))
     }
 
     private var accessibilityLabel: LocalizedStringResource {
         switch state.mode {
         case .idle: .menuBarAccessibilityIdle
+        case .running where isWarning: .menuBarAccessibilityBreakSoon
         case .running, .postponedWork: .menuBarAccessibilityRunning
         case .paused: .menuBarAccessibilityPaused
         case .resting, .awaitingReturn: .menuBarAccessibilityResting

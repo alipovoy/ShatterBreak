@@ -502,6 +502,24 @@
         }
       }
     },
+    "menuBarAccessibilityBreakSoon" : {
+      "comment" : "VoiceOver label for the menu bar status item shortly before a work session ends.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ShatterBreak, break starting soon"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ShatterBreak, скоро перерыв"
+          }
+        }
+      }
+    },
     "menuBarAccessibilityRunning" : {
       "comment" : "VoiceOver label for the menu bar status item during a work session.",
       "extractionState" : "manual",
@@ -570,6 +588,78 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Минуты и секунды"
+          }
+        }
+      }
+    },
+    "menuBarWarningLeadExceedsWorkWarning" : {
+      "comment" : "Warning when the menu bar highlight lead is not shorter than a work session.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Highlight lead is longer than a work session; the menu bar is highlighted from the start."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Время подсветки больше рабочей сессии — значок в строке меню подсвечен с самого начала."
+          }
+        }
+      }
+    },
+    "menuBarWarningLeadHelp" : {
+      "comment" : "Help for how long before a work session ends the menu bar item is highlighted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How long before a work session ends the menu bar item is highlighted, as a cue to wrap up."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "За сколько до конца рабочей сессии подсвечивается значок в строке меню — как сигнал закругляться."
+          }
+        }
+      }
+    },
+    "menuBarWarningLeadLabel" : {
+      "comment" : "Choice of how long before a work session ends the menu bar item is highlighted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Highlight before break"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Подсветка перед перерывом"
+          }
+        }
+      }
+    },
+    "menuBarWarningLeadOff" : {
+      "comment" : "Menu bar highlight option that never highlights.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Выкл."
           }
         }
       }

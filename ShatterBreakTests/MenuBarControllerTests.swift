@@ -96,6 +96,87 @@ struct MenuBarControllerTests {
         )
     }
 
+    @Test("With no countdown shown, the warning still arrives when the lead begins")
+    @MainActor
+    func theWarningArrivesWithoutACountdown() async {
+        let environment = TestEnvironment()
+        environment.defaults.set(30, forKey: PreferenceKeys.menuBarWarningLeadSecs)
+        let state = environment.makeTimerState()
+        // Just over the lead, so the one wait the controller makes is short in real time.
+        state.workDurationSecs = 30.2
+        let controller = MenuBarController(state: state)
+
+        state.start()
+        await environment.settle()
+        #expect(controller.isWarning == false, "The lead has not begun, so the item looks as it always does.")
+
+        environment.elapseTimeWithoutTick(by: 0.2)
+        await environment.waitUntil { controller.isWarning }
+        #expect(controller.isWarning, "With no countdown nothing else redraws the item; it needs its own wake.")
+    }
+
+    @Test("A break clears the warning")
+    @MainActor
+    func aBreakClearsTheWarning() async {
+        let environment = TestEnvironment()
+        environment.defaults.set(30, forKey: PreferenceKeys.menuBarWarningLeadSecs)
+        environment.setMenuBarTimerStyle(.seconds)
+        let state = environment.makeTimerState()
+        state.workDurationSecs = 60
+        state.restDurationSecs = 60
+        let controller = MenuBarController(state: state)
+
+        state.start()
+        await environment.advanceTime(by: 31)
+        await environment.waitUntil { controller.isWarning }
+        #expect(controller.isWarning, "The setup should be inside the lead before the break.")
+
+        await environment.advanceUntil(by: 60, maxTicks: 2) { state.isResting }
+        #expect(state.isResting, "The test setup should reach a break.")
+        await environment.waitUntil { controller.isWarning == false }
+        #expect(controller.isWarning == false)
+    }
+
+    @Test("A paused session does not warn")
+    @MainActor
+    func aPausedSessionDoesNotWarn() async {
+        let environment = TestEnvironment()
+        environment.defaults.set(30, forKey: PreferenceKeys.menuBarWarningLeadSecs)
+        environment.setMenuBarTimerStyle(.seconds)
+        let state = environment.makeTimerState()
+        state.workDurationSecs = 60
+        let controller = MenuBarController(state: state)
+
+        state.start()
+        await environment.advanceTime(by: 31)
+        await environment.waitUntil { controller.isWarning }
+
+        state.pause()
+        await environment.waitUntil { controller.isWarning == false }
+        #expect(controller.isWarning == false)
+    }
+
+    @Test("A lead chosen while a session runs takes effect at once")
+    @MainActor
+    func aLeadChosenMidSessionTakesEffect() async {
+        let environment = TestEnvironment()
+        environment.defaults.set(0, forKey: PreferenceKeys.menuBarWarningLeadSecs)
+        environment.setMenuBarTimerStyle(.seconds)
+        let state = environment.makeTimerState()
+        state.workDurationSecs = 60
+        let controller = MenuBarController(state: state)
+
+        state.start()
+        await environment.advanceTime(by: 31)
+        await environment.settle()
+        #expect(controller.isWarning == false, "A lead of zero is off, however near the end the session is.")
+
+        environment.defaults.set(30, forKey: PreferenceKeys.menuBarWarningLeadSecs)
+        NotificationCenter.default.post(name: UserDefaults.didChangeNotification, object: nil)
+        await environment.waitUntil { controller.isWarning }
+        #expect(controller.isWarning)
+    }
+
     @Test("The anchor parks on the item's trailing edge, and stays there when the item resizes")
     @MainActor
     func theAnchorParksOnTheItemsTrailingEdge() async {

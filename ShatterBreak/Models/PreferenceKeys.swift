@@ -8,6 +8,7 @@ enum PreferenceKeys {
     static let earlyReturnLeadSecs = "earlyReturnLeadSecs"
     static let effectType = "effectType"
     static let menuBarTimerStyle = "menuBarTimerStyle"
+    static let menuBarWarningLeadSecs = "menuBarWarningLeadSecs"
     static let playSound = "playSound"
     static let postponeDurationSecs = "postponeDurationSecs"
     static let postponeWindowSecs = "postponeWindowSecs"
