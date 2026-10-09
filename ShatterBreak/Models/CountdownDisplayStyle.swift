@@ -1,21 +1,23 @@
 import Foundation
 
 /// How a countdown renders, and so how often it must redraw. `minutes` ("24m") redraws once
-/// a minute with a loose tolerance, and falls back to MM:SS for the final minute.
+/// a minute with a loose tolerance, then counts whole seconds ("59s") below one minute.
 enum CountdownDisplayStyle: Equatable {
     case seconds
     case minutes
 
     static let finalCountdownThreshold: TimeInterval = 60
 
-    /// Minutes round up, as MM:SS does: "24m" means no more than 24 minutes remain.
+    /// Minutes and seconds round up, as MM:SS does: "24m" means no more than 24 minutes remain.
     func text(forRemaining remaining: TimeInterval, locale: Locale = .autoupdatingCurrent) -> String {
         switch self {
         case .seconds:
             return TimerState.format(timeInterval: remaining)
         case .minutes:
-            guard remaining > Self.finalCountdownThreshold else {
-                return TimerState.format(timeInterval: remaining)
+            let wholeSeconds = Int(ceil(remaining))
+            guard wholeSeconds >= 60 else {
+                return Duration.seconds(wholeSeconds)
+                    .formatted(.units(allowed: [.seconds], width: .narrow).locale(locale))
             }
             let wholeMinutes = Int(ceil(remaining / 60))
             return Duration.seconds(wholeMinutes * 60)

@@ -34,11 +34,14 @@ struct CountdownDisplayStyleTests {
         #expect(CountdownDisplayStyle.minutes.text(forRemaining: 61, locale: english) == "2m")
     }
 
-    @Test("Minutes style hands over to MM:SS for the final minute")
+    @Test("Minutes style counts whole seconds below one minute, without switching format")
     func minutesStyleShowsSecondsInFinalMinute() {
-        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 60, locale: english) == "01:00")
-        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 12.3, locale: english) == "00:13")
-        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 0, locale: english) == "00:00")
+        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 60, locale: english) == "1m")
+        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 59.5, locale: english) == "1m")
+        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 59, locale: english) == "59s")
+        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 12.3, locale: english) == "13s")
+        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 1, locale: english) == "1s")
+        #expect(CountdownDisplayStyle.minutes.text(forRemaining: 0, locale: english) == "0s")
     }
 
     @Test("Seconds style sleeps to the next second boundary")
@@ -56,6 +59,7 @@ struct CountdownDisplayStyleTests {
 
     @Test("Minutes style ticks per second within the final minute")
     func minutesStyleTicksPerSecondInFinalMinute() {
+        #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 59.5) == .seconds(0.5))
         #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 60) == .seconds(1))
         #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 42.5) == .seconds(0.5))
     }
