@@ -72,4 +72,30 @@ struct CountdownDisplayStyleTests {
         #expect(CountdownDisplayStyle.minutes.refreshTolerance(forRemaining: 60) == .milliseconds(100))
         #expect(CountdownDisplayStyle.seconds.refreshTolerance(forRemaining: 1500) == .milliseconds(100))
     }
+
+    @Test("Minutes style never shows a negative time")
+    func minutesStyleClampsNegativeRemaining() {
+        #expect(CountdownDisplayStyle.minutes.text(forRemaining: -5, locale: english) == "0s")
+    }
+
+    @Test("Minutes style wakes exactly when the text changes, from 61 s to the last second")
+    func minutesStyleDelayLandsOnTextChange() {
+        let style = CountdownDisplayStyle.minutes
+        for tenths in 1...1300 {
+            let remaining = Double(tenths) / 10 + 60
+            let delay = style.nextRefreshDelay(forRemaining: remaining)
+            let seconds = Double(delay.components.seconds) + Double(delay.components.attoseconds) / 1e18
+            let before = style.text(forRemaining: remaining - seconds + 0.001, locale: english)
+            let after = style.text(forRemaining: remaining - seconds - 0.001, locale: english)
+            #expect(before == style.text(forRemaining: remaining, locale: english))
+            #expect(after != before)
+        }
+    }
+
+    @Test("Minutes style lands on the second boundaries around the final minute")
+    func minutesStyleDelayAroundFinalMinute() {
+        #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 60.5) == .seconds(1.5))
+        #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 119.5) == .seconds(0.5))
+        #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 1) == .seconds(1))
+    }
 }

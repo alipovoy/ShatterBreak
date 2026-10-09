@@ -14,13 +14,9 @@ enum CountdownDisplayStyle: Equatable {
         case .seconds:
             return TimerState.format(timeInterval: remaining)
         case .minutes:
-            let wholeSeconds = Int(ceil(remaining))
-            guard wholeSeconds >= 60 else {
-                return Duration.seconds(wholeSeconds)
-                    .formatted(.units(allowed: [.seconds], width: .narrow).locale(locale))
-            }
-            return Duration.seconds(wholeSeconds / 60 * 60)
-                .formatted(.units(allowed: [.minutes], width: .narrow).locale(locale))
+            let shown = Self.shownSeconds(forRemaining: remaining)
+            return Duration.seconds(shown)
+                .formatted(.units(allowed: [shown >= 60 ? .minutes : .seconds], width: .narrow).locale(locale))
         }
     }
 
@@ -30,11 +26,9 @@ enum CountdownDisplayStyle: Equatable {
         case .seconds:
             return Self.delayToNextBoundary(forRemaining: remaining, boundary: 1)
         case .minutes:
-            guard remaining > Self.finalCountdownThreshold else {
-                return Self.delayToNextBoundary(forRemaining: remaining, boundary: 1)
-            }
-            // The text drops a minute one second below each whole minute, as 1:00 gives way to 0:59.
-            return Self.delayToNextBoundary(forRemaining: remaining + 1, boundary: 60)
+            // The text holds until the displayed seconds drop below the figure it shows.
+            let lastSecondShown = Self.shownSeconds(forRemaining: remaining)
+            return .seconds(max(remaining - Double(lastSecondShown - 1), 0))
         }
     }
 
@@ -45,6 +39,12 @@ enum CountdownDisplayStyle: Equatable {
         case .minutes:
             return remaining > Self.finalCountdownThreshold ? .seconds(5) : .milliseconds(100)
         }
+    }
+
+    /// The seconds the minutes style stands for: whole minutes from a minute up, else the seconds.
+    private static func shownSeconds(forRemaining remaining: TimeInterval) -> Int {
+        let displayed = TimerState.displaySeconds(for: remaining)
+        return displayed >= 60 ? displayed / 60 * 60 : displayed
     }
 
     private static func delayToNextBoundary(

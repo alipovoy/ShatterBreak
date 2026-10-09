@@ -140,8 +140,13 @@ final class TimerState {
 
     var timeRemaining: TimeInterval { timeRemaining(at: now().date) }
 
+    /// Whole seconds a countdown shows for `interval`: rounded up, so it reads 0 only once the time is out.
+    nonisolated static func displaySeconds(for interval: TimeInterval) -> Int {
+        Int(ceil(max(0, interval)))
+    }
+
     nonisolated static func format(timeInterval interval: TimeInterval) -> String {
-        let displayInterval = Int(ceil(max(0, interval)))
+        let displayInterval = displaySeconds(for: interval)
         // A closed `integerLength` range caps as well as pads, truncating minutes past 99.
         let minutes = (displayInterval / 60).formatted(.number.precision(.integerLength(2...)))
         let seconds = (displayInterval % 60).formatted(.number.precision(.integerLength(2...)))
