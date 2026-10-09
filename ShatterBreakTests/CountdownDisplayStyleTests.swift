@@ -66,9 +66,12 @@ struct CountdownDisplayStyleTests {
         #expect(CountdownDisplayStyle.minutes.nextRefreshDelay(forRemaining: 42.5) == .seconds(0.5))
     }
 
-    @Test("Minutes style relaxes tolerance only for minute-level sleeps")
+    @Test("Minutes style relaxes tolerance only for sleeps that end above the final minute")
     func minutesStyleRelaxesToleranceAboveFinalMinute() {
         #expect(CountdownDisplayStyle.minutes.refreshTolerance(forRemaining: 1500) == .seconds(5))
+        #expect(CountdownDisplayStyle.minutes.refreshTolerance(forRemaining: 120) == .seconds(5))
+        #expect(CountdownDisplayStyle.minutes.refreshTolerance(forRemaining: 119) == .milliseconds(100))
+        #expect(CountdownDisplayStyle.minutes.refreshTolerance(forRemaining: 61) == .milliseconds(100))
         #expect(CountdownDisplayStyle.minutes.refreshTolerance(forRemaining: 60) == .milliseconds(100))
         #expect(CountdownDisplayStyle.seconds.refreshTolerance(forRemaining: 1500) == .milliseconds(100))
     }

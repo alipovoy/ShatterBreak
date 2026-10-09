@@ -37,7 +37,9 @@ enum CountdownDisplayStyle: Equatable {
         case .seconds:
             return .milliseconds(100)
         case .minutes:
-            return remaining > Self.finalCountdownThreshold ? .seconds(5) : .milliseconds(100)
+            // Judged where the sleep ends, so the one into the final minute cannot skip "59s".
+            let remainingAtWake = remaining - nextRefreshDelay(forRemaining: remaining) / .seconds(1)
+            return remainingAtWake > Self.finalCountdownThreshold ? .seconds(5) : .milliseconds(100)
         }
     }
 
